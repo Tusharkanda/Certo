@@ -56,17 +56,6 @@ first item is the suggested next one.
     `PROMPT_TOOLKIT_NO_CPR=1`).
 
   Done when each is checked, or fixed.
-- **Check that Dependabot closed its alerts after the next push.**
-  `uv.lock` has every fixed version (certifi and Pillow 2026-10-21; aiohttp
-  3.14.5, pypdf 6.21.2, urllib3 2.8.0, Mako 1.4.3, multidict 6.9.1, PyJWT
-  2.15.1, oauthlib 4.0.0 on 2026-10-22). On 2026-10-22 GitHub's dependency
-  graph still showed Pillow 12.3.0 and the old certifi: it hadn't re-read
-  the lockfile pushed the day before, so 54 alerts stayed open, 28 of them
-  Pillow. multidict is held at 6.9.1, not 7 (it sits under aiohttp, used
-  by every model call); oauthlib 4 is a major version but is used only by
-  `browser-use`'s Google sign-in, which Certo doesn't use. Done when
-  Dependabot shows no open alert; if they stay open after the push, ask
-  GitHub to rescan (Security → Dependabot).
 - **Unpin the release runner from `ubuntu-24.04`.** Pinned for 0.1.18
   because `ubuntu-latest` moved to Ubuntu 26 on 2026-10-19. Switch the
   three jobs back once `.github/workflows/ci.yml`, which runs on
@@ -378,6 +367,11 @@ database).
   writing `examples/compare-models.sh.example`, which works around it by
   setting the variables. Done when the flags alone are enough. Open for
   contributors: [#11](https://github.com/alessioricco/certo/issues/11).
+- **A configuration error after `--project` leaves an empty project
+  folder.** `main()` creates the folder and records it in
+  `.certo-created-projects` before the `--escalate`/`--auto-model`
+  model-file checks, which need its path (model files can live there).
+  Open for contributors: [#26](https://github.com/alessioricco/certo/issues/26).
 - **Third-party skills: narrow license detection, `SKILL.md` only.** Eight
   permissive licenses are recognised; anything else is `unknown` and needs
   acknowledgement. Legacy single-file upstream skills can't be installed.
