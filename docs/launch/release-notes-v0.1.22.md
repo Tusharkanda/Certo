@@ -54,6 +54,9 @@ can check, and the climb stops there instead of paying for every model.
 
 ## Also
 
+- **Benchmarked.** On the 9 bundled tasks, `qwen3.8:27b` passed 26 of
+  27 and Sonnet, Haiku and Luna 9 of 9 each; Certo was fooled once in 54
+  runs. See [Baseline 0.1.22](../benchmark/baseline-0.1.22.md).
 - **`/v1/chat/completions` reports real token usage.** `usage` was always
   zero; it now counts the whole task (every model call, all models).
   Streaming adds a usage chunk with `stream_options: {"include_usage":

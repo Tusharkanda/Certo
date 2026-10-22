@@ -1,0 +1,9 @@
+# The local half of baseline-0.1.22.md (Certo 0.1.22): qwen3.8:27b, the
+# model `certo init` suggests, on Ollama, alone, three times.
+# Run it with: certo bench --config bench-0.1.22-local.yaml
+# The model must be enabled in your models.yaml; see
+# docs/guides/write-a-benchmark-file.md. Expect about 4 hours.
+tasks: all
+repeats: 3
+arms:
+  - {name: qwen3.8, strategy: single, model: qwen3.8-27b-local}

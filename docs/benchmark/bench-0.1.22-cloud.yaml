@@ -1,0 +1,11 @@
+# The cloud half of baseline-0.1.22.md (Certo 0.1.22): the same three
+# cloud models as baseline-0.1.15.md, each alone, once.
+# Run it with: certo bench --config bench-0.1.22-cloud.yaml --parallel 3
+# Every model below must be enabled in your models.yaml; see
+# docs/guides/write-a-benchmark-file.md.
+tasks: all
+repeats: 1
+arms:
+  - {name: haiku,  strategy: single, model: claude-haiku-5-5}
+  - {name: luna,   strategy: single, model: gpt-6-luna}
+  - {name: sonnet, strategy: single, model: claude-sonnet-5-5}

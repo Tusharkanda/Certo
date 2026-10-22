@@ -94,7 +94,7 @@ takes you from install to your first verified project.
 | Measure which models and strategies really deliver | [Benchmark models and strategies](guides/benchmark.md) |
 | Set up my own benchmark file | [Write a benchmark file](guides/write-a-benchmark-file.md) |
 | Benchmark my own tasks, or add one to Certo's set | [Write or contribute a benchmark task](guides/contribute-a-benchmark-task.md) |
-| See how Certo did on its own benchmark | [Baseline 0.1.18, local](benchmark/baseline-0.1.18-local.md), [0.1.15](benchmark/baseline-0.1.15.md) (and [0.1.13](benchmark/baseline-0.1.13.md)), [escalation in 0.1.17](benchmark/escalation-0.1.17.md), [one escalation run](benchmark/escalation-wordle-0.1.19.md), [escalation past a provider failure](benchmark/escalation-provider-failure-0.1.22.md), [provider swap in 0.1.19](benchmark/provider-swap-0.1.19.md), [first run with two models in 0.1.21](benchmark/first-run-auto-model-0.1.21.md), [five models build an Asteroids-style game](benchmark/compare-asteroids-0.1.19.md) |
+| See how Certo did on its own benchmark | [Baseline 0.1.22](benchmark/baseline-0.1.22.md), [0.1.18, local](benchmark/baseline-0.1.18-local.md), [0.1.15](benchmark/baseline-0.1.15.md) (and [0.1.13](benchmark/baseline-0.1.13.md)), [escalation in 0.1.17](benchmark/escalation-0.1.17.md), [one escalation run](benchmark/escalation-wordle-0.1.19.md), [escalation past a provider failure](benchmark/escalation-provider-failure-0.1.22.md), [provider swap in 0.1.19](benchmark/provider-swap-0.1.19.md), [first run with two models in 0.1.21](benchmark/first-run-auto-model-0.1.21.md), [five models build an Asteroids-style game](benchmark/compare-asteroids-0.1.19.md) |
 
 **Looking something up?** The reference pages are complete and exact:
 
