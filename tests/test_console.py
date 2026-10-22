@@ -53,6 +53,16 @@ def test_the_task_is_its_title_and_the_next_user_messages_are_shown_in_full(caps
     assert "Automated verification ran: pytest failed" in capsys.readouterr().out
 
 
+def test_a_handoff_shows_the_tasks_own_title(capsys):
+    # Live 2026-10-22: the second rung's line showed the start of Certo's
+    # note ("Another model was given this task first, ...").
+    note = "Another model was given this task first.\n\n- Model: a (x/a)"
+    QuietVisualizer().on_event(_user(f"{note}\n\nThe task:\n\n# A Wordle game\n\nBuild it."))
+    out = capsys.readouterr().out
+    assert out.startswith("Task: A Wordle game (with Certo's note about the previous model, ")
+    assert "Another model" not in out
+
+
 def test_a_conversation_error_is_left_to_certo_with_no_sdk_warning(capsys, caplog):
     # Live 2026-10-22: a rung whose key was rejected printed the SDK's
     # "not registered in EVENT_VISUALIZATION_CONFIG" warning before

@@ -17,7 +17,7 @@ from openhands.sdk.llm.exceptions.types import LLMRateLimitError
 from certo import runner
 from certo.config import Config
 from certo.verification import CheckOutcome
-from certo.escalation import ladder_from_models, resolve_ladder
+from certo.escalation import handoff_task, ladder_from_models, resolve_ladder
 from certo.model_catalog import load_model_catalog
 
 _REAL_AGENT_CHANGED_FILES = runner._agent_changed_files
@@ -343,6 +343,7 @@ def test_a_provider_failure_moves_to_the_next_rung(tmp_path, fake_run):
     assert "stopped at a provider error before it created or changed any file" in handoff
     assert "couldn't finish it" not in handoff
     assert "Result: provider or run failure (LLMRateLimitError: slow down)" in handoff
+    assert handoff_task(handoff) == "Build the thing"
 
 
 def test_a_provider_failure_on_the_last_rung_is_raised(tmp_path, fake_run):

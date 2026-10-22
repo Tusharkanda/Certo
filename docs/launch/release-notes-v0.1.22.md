@@ -49,8 +49,9 @@ can check, and the climb stops there instead of paying for every model.
   rejected its API key") instead of the raw provider error, which stays in
   `MODEL_DECISIONS.md`. Each escalation line is printed once (it was
   printed twice), the SDK's warning about an unshown error event is gone,
-  and the next model is no longer told that a model which never started
-  "couldn't finish".
+  the next model is no longer told that a model which never started
+  "couldn't finish", and its `Task:` line shows the task's title, not the
+  start of Certo's note.
 - **Benchmark transcripts say when each message arrived.**
   `runs/transcripts/<run>.json` has a `seconds` list beside the messages,
   counted from the run's start, so a slow run shows where its time went.

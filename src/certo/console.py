@@ -24,6 +24,7 @@ from openhands.sdk.event import Event, MessageEvent, SystemPromptEvent
 from openhands.sdk.event.conversation_error import ConversationErrorEvent
 
 from .config import Config
+from .escalation import handoff_task
 from .model_catalog import task_title
 
 
@@ -44,10 +45,20 @@ class QuietVisualizer(DefaultConversationVisualizer):
         if isinstance(event, MessageEvent) and event.source == "user" and not self._task_shown:
             self._task_shown = True
             text = event.visualize.plain
-            title = task_title(text)
             lines = len(text.splitlines())
+            # An escalation rung after the first starts with Certo's note
+            # about the previous model: show the task's own title.
+            task = handoff_task(text)
+            if task is not None:
+                print(
+                    f"Task: {task_title(task)} (with Certo's note about the previous model, "
+                    f"{lines} lines with the skills; --verbose shows them)",
+                    flush=True,
+                )
+                return
             print(
-                f"Task: {title} ({lines} lines with the skills; --verbose shows them)", flush=True
+                f"Task: {task_title(text)} ({lines} lines with the skills; --verbose shows them)",
+                flush=True,
             )
             return
         if isinstance(event, ConversationErrorEvent):

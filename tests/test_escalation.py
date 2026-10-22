@@ -6,6 +6,7 @@ import pytest
 from model_file_helpers import write_model_files
 
 from certo.escalation import (
+    handoff_task,
     failure_reason,
     EscalationError,
     derive_ladder,
@@ -283,3 +284,8 @@ def test_a_known_provider_failure_has_a_plain_reason(failure, expected):
 def test_an_unknown_failure_has_no_plain_reason():
     assert failure_reason("RuntimeError: boom") is None
     assert failure_reason(None) is None
+
+
+def test_handoff_task_finds_the_task_only_in_a_handoff():
+    assert handoff_task("Note.\n\nThe task:\n\n# Title\n\nBody") == "# Title\n\nBody"
+    assert handoff_task("# Title\n\nThe task: is in this sentence") is None

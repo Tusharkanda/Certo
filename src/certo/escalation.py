@@ -382,6 +382,19 @@ def _attempts(n: int) -> str:
     return f"{n} fix attempt" + ("" if n == 1 else "s")
 
 
+# The line before the original task in a handoff message.
+HANDOFF_TASK_HEADING = "The task:"
+
+
+def handoff_task(message: str) -> str | None:
+    """The original task inside a handoff message, or None for any other
+    message."""
+    marker = f"\n\n{HANDOFF_TASK_HEADING}\n\n"
+    if marker not in message:
+        return None
+    return message.split(marker, 1)[1]
+
+
 def handoff_message(task: str, previous: Sequence[RungResult], failing_output: str) -> str:
     """The first message of a rung after the first: the original task, a
     note Certo writes from recorded facts, and the real output of the checks
@@ -437,7 +450,7 @@ def handoff_message(task: str, previous: Sequence[RungResult], failing_output: s
     if len(previous) > 1:
         earlier = "; ".join(f"{r.name}: {r.ended}" for r in previous[:-1])
         lines.append(f"- Earlier models on this task: {earlier}")
-    lines += ["", "The task:", "", task.strip()]
+    lines += ["", HANDOFF_TASK_HEADING, "", task.strip()]
     if failing_output:
         lines += ["", "Output of the checks that were failing:", "", failing_output]
     return "\n".join(lines)
