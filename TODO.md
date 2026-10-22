@@ -309,11 +309,6 @@ database).
 - **`certo skills suggest`** (later, agreed 2026-10-22): match a
   project's files against an index of vetted third-party skills shipped
   with Certo, and print `add` commands; never install by itself.
-- **`certo skills --project` takes only a project in
-  `CERTO_PROJECTS_DIR`.** A run in the current folder (no `--project`)
-  reads `./.certo/skills/`, but there is no flag to add a skill there
-  except by copying the file in. Decide whether `--project .` should mean
-  the current folder.
 - **Stop reading `task_profiles:` / `escalation:` in `models_list.yaml`.**
   Since 0.1.20 they have their own files; the old sections are still read
   with a warning. Remove that path (and the tests that use the old layout

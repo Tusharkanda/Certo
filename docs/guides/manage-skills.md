@@ -80,6 +80,10 @@ certo skills add my-style.md --global
 certo skills add my-style.md --project demo
 ```
 
+`--project NAME` is a project in your projects folder, as for
+`certo "task" --project NAME`. `--project .` is the current folder: the
+one a run without `--project` works in.
+
 ```text
 Added 'my-style' to ~/.config/certo/skills. It is on.
   Fires when the task says: game, snake; about 5 tokens.

@@ -189,3 +189,15 @@ def _load():
 
     with defer_llm_check():
         return load_config()
+
+
+def test_project_dot_is_the_current_folder(home, monkeypatch):
+    monkeypatch.setenv("CERTO_WORKSPACE", str(home / "here"))
+    (home / "here").mkdir()
+
+    code, _out = _run(["add", str(_skill_file(home)), "--project", "."])
+    assert code == 0
+    assert (home / "here" / ".certo" / "skills" / "my-style.md").is_file()
+
+    code, out = _run(["list", "--project", "."])
+    assert code == 0 and "  my-style: when the task says: snake" in out

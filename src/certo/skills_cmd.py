@@ -51,7 +51,9 @@ def build_parser() -> argparse.ArgumentParser:
         help="List every skill a run gets: official and third-party, how each fires, its size.",
     )
     listing.add_argument(
-        "--project", metavar="NAME", help="Also show that project's skills (in CERTO_PROJECTS_DIR)."
+        "--project",
+        metavar="NAME",
+        help="Also show that project's skills (in CERTO_PROJECTS_DIR; . is the current folder).",
     )
     listing.add_argument(
         "--task",
@@ -117,7 +119,9 @@ def _scope(parser: argparse.ArgumentParser) -> None:
         help="Your skills for every project (~/.config/certo/skills/).",
     )
     group.add_argument(
-        "--project", metavar="NAME", help="One project's skills (<project>/.certo/skills/)."
+        "--project",
+        metavar="NAME",
+        help="One project's skills (<project>/.certo/skills/; . is the current folder).",
     )
 
 
@@ -152,6 +156,11 @@ def skills_main(
 
 
 def _project(cfg, name: str) -> Path:
+    """`.` is the folder a run without --project works in (CERTO_WORKSPACE,
+    by default the current folder); any other name, a project in
+    CERTO_PROJECTS_DIR, as for a run."""
+    if name == ".":
+        return Path(cfg.workspace).resolve()
     path = Path(resolve_project_dir(cfg.projects_dir, name))
     if not path.is_dir():
         raise SkillsError(f"There is no project '{name}' in {cfg.projects_dir}.")

@@ -887,3 +887,7 @@ considered and live-verification detail: `docs/ROADMAP.txt`.
   in `CERTO_PROJECTS_DIR`, as for a run. The old folders are read between
   the official skills and the global ones, as before; a downloaded skill
   there still can't replace an official one.
+- **`certo skills --project .` is the current folder** (the Author,
+  2026-10-22): the folder a run without `--project` works in
+  (`CERTO_WORKSPACE`), so its `.certo/skills/` can be managed too. Any
+  other name is still a project in `CERTO_PROJECTS_DIR`.

@@ -306,7 +306,7 @@ git sees them:
 | Flag | Folder | For |
 |---|---|---|
 | `--global` | `~/.config/certo/skills/` (`$XDG_CONFIG_HOME/certo/skills/` when set) | every project |
-| `--project NAME` | `<project>/.certo/skills/`, in `CERTO_PROJECTS_DIR` | one project |
+| `--project NAME` | `<project>/.certo/skills/`, in `CERTO_PROJECTS_DIR`; `--project .` is the current folder (`CERTO_WORKSPACE`), where a run without `--project` works | one project |
 
 `add`, `remove`, `enable`, `disable`, `update` and `sync` need one of the
 two flags. A third-party skill may replace an official one of the same
