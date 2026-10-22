@@ -2015,7 +2015,10 @@ def test_escalate_prints_progress_and_asks_only_when_interactive(monkeypatch, tm
     cli.main(["do it", "--escalate"])
     cli.main(["do it", "--escalate", "--interactive"])
 
-    assert calls[0]["on_progress"] is cli._print_progress
+    # Escalation lines are Certo's notices, printed once through on_notice
+    # (live 2026-10-22: with on_progress too, each line printed twice).
+    assert "on_progress" not in calls[0]
+    assert calls[0]["on_notice"] is cli._print_progress
     assert calls[0]["on_escalate"] is None
     assert calls[1]["on_escalate"] is cli._confirm_escalation
 

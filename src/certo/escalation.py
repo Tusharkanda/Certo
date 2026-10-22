@@ -410,6 +410,12 @@ def handoff_message(task: str, previous: Sequence[RungResult], failing_output: s
             "the task asks; if it truly needs no change, say why. This summary was "
             "written by Certo from what it recorded, not by a model."
         )
+    elif last.verdict is None and not _changed_any(last):
+        intro = (
+            "Another model was given this task first, but it stopped at a provider "
+            "error before it created or changed any file. Do what the task asks. This "
+            "summary was written by Certo from what it recorded, not by a model."
+        )
     else:
         intro = (
             "Another model already worked on this task in this folder and couldn't "
@@ -437,9 +443,38 @@ def handoff_message(task: str, previous: Sequence[RungResult], failing_output: s
     return "\n".join(lines)
 
 
+def _changed_any(result: RungResult) -> bool:
+    changes = result.changes
+    return bool(changes.created or changes.modified or changes.deleted)
+
+
+# The SDK's provider errors (`openhands.sdk.llm.exceptions`), by class name,
+# so this module needs no SDK import.
+_PROVIDER_FAILURES = {
+    "LLMAuthenticationError": "the provider rejected its API key",
+    "LLMRateLimitError": "the provider refused the request (out of credit, or rate limited)",
+    "LLMTimeoutError": "the provider didn't answer in time",
+    "LLMServiceUnavailableError": "the provider couldn't be reached",
+}
+
+
+def failure_reason(failure: str | None) -> str | None:
+    """A plain reason for a rung's provider failure, with the error's class
+    name, or None for an error with no known meaning. `failure` is
+    "ErrorClass: message", as `RungResult.failure` records it."""
+    name = (failure or "").split(":", 1)[0].strip()
+    reason = _PROVIDER_FAILURES.get(name)
+    return f"{reason} ({name})" if reason else None
+
+
 def climb_line(previous: RungResult, nxt: Rung, number: int, total: int) -> str:
     if previous.verdict is None:
-        why = f"failed at the provider or run level ({previous.failure})"
+        reason = failure_reason(previous.failure)
+        why = (
+            f"failed: {reason}"
+            if reason
+            else f"failed at the provider or run level ({previous.failure})"
+        )
     elif previous.verdict == "inconclusive" and previous.did_no_work:
         why = "ended inconclusive without changing a file"
     elif previous.verdict == "inconclusive":

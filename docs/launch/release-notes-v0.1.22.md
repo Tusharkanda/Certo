@@ -44,6 +44,13 @@ can check, and the climb stops there instead of paying for every model.
 - **The resume hint keeps your projects folder**: when
   `CERTO_PROJECTS_DIR` isn't the default, the printed `certo --resume`
   command includes it. Thanks to @dbdefault (#14).
+- **Clearer escalation output on a provider failure.** When a model
+  fails at the provider, the line says why in plain words ("the provider
+  rejected its API key") instead of the raw provider error, which stays in
+  `MODEL_DECISIONS.md`. Each escalation line is printed once (it was
+  printed twice), the SDK's warning about an unshown error event is gone,
+  and the next model is no longer told that a model which never started
+  "couldn't finish".
 - **Benchmark transcripts say when each message arrived.**
   `runs/transcripts/<run>.json` has a `seconds` list beside the messages,
   counted from the run's start, so a slow run shows where its time went.

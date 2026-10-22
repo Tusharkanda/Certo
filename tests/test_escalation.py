@@ -6,6 +6,7 @@ import pytest
 from model_file_helpers import write_model_files
 
 from certo.escalation import (
+    failure_reason,
     EscalationError,
     derive_ladder,
     describe_ladder,
@@ -264,3 +265,21 @@ def test_describe_an_explicit_ladder(tmp_path):
         "  2. strong (reasoning max)",
         "  Skipped: parked (activated: false)",
     ]
+
+
+@pytest.mark.parametrize(
+    ("failure", "expected"),
+    [
+        ("LLMAuthenticationError: invalid x-api-key", "the provider rejected its API key"),
+        ("LLMTimeoutError: took too long", "the provider didn't answer in time"),
+        ("LLMServiceUnavailableError: down", "the provider couldn't be reached"),
+    ],
+)
+def test_a_known_provider_failure_has_a_plain_reason(failure, expected):
+    name = failure.split(":")[0]
+    assert failure_reason(failure) == f"{expected} ({name})"
+
+
+def test_an_unknown_failure_has_no_plain_reason():
+    assert failure_reason("RuntimeError: boom") is None
+    assert failure_reason(None) is None

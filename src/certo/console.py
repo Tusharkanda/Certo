@@ -21,6 +21,7 @@ from openhands.sdk.conversation.visualizer import (
     DefaultConversationVisualizer,
 )
 from openhands.sdk.event import Event, MessageEvent, SystemPromptEvent
+from openhands.sdk.event.conversation_error import ConversationErrorEvent
 
 from .config import Config
 from .model_catalog import task_title
@@ -48,6 +49,11 @@ class QuietVisualizer(DefaultConversationVisualizer):
             print(
                 f"Task: {title} ({lines} lines with the skills; --verbose shows them)", flush=True
             )
+            return
+        if isinstance(event, ConversationErrorEvent):
+            # The SDK's visualizer has no block for it and logs a warning
+            # instead; Certo prints the error itself (a failed rung's line,
+            # or the run's error).
             return
         super().on_event(event)
 

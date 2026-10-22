@@ -53,6 +53,7 @@ from .escalation import (
     RungResult,
     climb_line,
     describe_ladder,
+    failure_reason,
     handoff_message,
     load_ladder,
     rung_dicts,
@@ -2158,7 +2159,11 @@ def _stream_escalation(
                 line = climb_line(result, nxt, number + 1, total)
                 io.notify(line)
                 kind = "climb_provider_failure" if outcome is None else "climb_quality_failure"
-                decide(kind, nxt.name, line.removeprefix("Certo: "))
+                reason = line.removeprefix("Certo: ")
+                if outcome is None and failure_reason(failure):
+                    # The line keeps only the plain reason; the record keeps the error.
+                    reason += f" The error: {failure}"
+                decide(kind, nxt.name, reason)
                 failing_output = "\n\n---\n\n".join(_check_followup(c) for c in failing)
     except BaseException as exc:
         captured_error = exc

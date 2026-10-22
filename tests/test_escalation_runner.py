@@ -335,11 +335,14 @@ def test_a_provider_failure_moves_to_the_next_rung(tmp_path, fake_run):
     first = outcome.rungs[0]
     assert first.verdict is None
     assert first.failure == "LLMRateLimitError: slow down"
-    assert any("failed at the provider or run level" in p for p in progress)
     assert (
-        "Result: provider or run failure (LLMRateLimitError: slow down)"
-        in (fake_run.calls[1]["first_message"])
+        "Certo: local failed: the provider refused the request (out of credit, or rate "
+        "limited) (LLMRateLimitError); escalating to mid (rung 2 of 3)." in progress
     )
+    handoff = fake_run.calls[1]["first_message"]
+    assert "stopped at a provider error before it created or changed any file" in handoff
+    assert "couldn't finish it" not in handoff
+    assert "Result: provider or run failure (LLMRateLimitError: slow down)" in handoff
 
 
 def test_a_provider_failure_on_the_last_rung_is_raised(tmp_path, fake_run):
@@ -488,7 +491,11 @@ def test_model_decisions_records_the_ladder_every_climb_and_the_stop(tmp_path, f
     assert "Explicit ladder 'default' from models_list.yaml." in text
     assert "Ladder (explicit ladder 'default'):" in text
     assert "- **local** (capability" in text
-    assert "local failed at the provider or run level (LLMRateLimitError: slow down)" in text
+    assert (
+        "local failed: the provider refused the request (out of credit, or rate limited) "
+        "(LLMRateLimitError); escalating to mid (rung 2 of 3). "
+        "The error: LLMRateLimitError: slow down" in text
+    )
     assert "mid ended no_progress after 1 fix attempt; escalating to strong (rung 3 of 3)." in text
     assert "strong ended verified, which doesn't escalate." in text
 

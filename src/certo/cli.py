@@ -688,7 +688,6 @@ def main(argv: list[str] | None = None) -> int:
             resume_instruction=task if resume_from is not None else None,
             ladder=ladder,
             on_escalate=_confirm_escalation if cfg.interactive else None,
-            on_progress=_print_progress if ladder is not None else None,
             on_notice=_print_progress,
         )
     except KeyboardInterrupt:

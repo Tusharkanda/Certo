@@ -238,6 +238,17 @@ one line:
 Certo: qwen-local ended no_progress after 1 fix attempt; escalating to gpt-luna (rung 2 of 3).
 ```
 
+When a rung fails at the provider, the line says why in plain words, with
+the error's name; the full error is in `MODEL_DECISIONS.md`:
+
+```text
+Certo: claude-sonnet-5-5 failed: the provider rejected its API key (LLMAuthenticationError); escalating to gpt-5.6-luna (rung 2 of 2).
+```
+
+The reasons Certo knows are a rejected key, a refused request (no credit,
+or rate limited), no answer in time and a provider that can't be reached.
+Any other error is shown as it is.
+
 At the end, the run summary has one line per rung and the rung that gave
 the final result:
 

@@ -23,10 +23,9 @@ first item is the suggested next one.
   ladder across providers in `escalation.yaml` (for example
   `claude-sonnet-5-5` → `gpt-5.6-luna`, chosen 2026-10-22), with an invalid key for
   rung 1 in `models.yaml`; the bundled Wordle task, with `--escalate`.
-  Dry run first: check what Certo prints when a rung fails on a provider
-  error. If the line is unclear or buried, improve it before recording (a
-  one-liner naming the failed model, the reason and the next rung): a
-  code change, with docs and tests. Alessio records the real run with
+  The dry run was done on 2026-10-22: the climb worked (rung 1 failed in
+  1.4s, `gpt-5.6-luna` ended `verified` in 2m 26s, $0.03), and the
+  rung-failure line was made plain and printed once. Alessio records the real run with
   asciinema and converts it to a GIF. Add a record page for that run
   under `docs/benchmark/`, like `escalation-wordle-0.1.19.md`, and link
   the GIF to it. The caption says rung 1's key was rejected for the demo;

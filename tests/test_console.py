@@ -3,6 +3,7 @@ import logging
 from openhands.sdk import Message, TextContent
 from openhands.sdk.conversation.visualizer import DefaultConversationVisualizer
 from openhands.sdk.event import MessageEvent, SystemPromptEvent
+from openhands.sdk.event.conversation_error import ConversationErrorEvent
 
 from certo.config import Config
 from certo.console import QuietVisualizer, quiet_sdk_logs, visualizer_for
@@ -50,6 +51,18 @@ def test_the_task_is_its_title_and_the_next_user_messages_are_shown_in_full(caps
     # the SDK's visualizer shows it whole.
     visualizer.on_event(_user("Automated verification ran: pytest failed"))
     assert "Automated verification ran: pytest failed" in capsys.readouterr().out
+
+
+def test_a_conversation_error_is_left_to_certo_with_no_sdk_warning(capsys, caplog):
+    # Live 2026-10-22: a rung whose key was rejected printed the SDK's
+    # "not registered in EVENT_VISUALIZATION_CONFIG" warning before
+    # Certo's own line about the failure.
+    with caplog.at_level(logging.WARNING):
+        QuietVisualizer().on_event(
+            ConversationErrorEvent(source="environment", code="LLMError", detail="rejected")
+        )
+    assert capsys.readouterr().out == ""
+    assert "EVENT_VISUALIZATION_CONFIG" not in caplog.text
 
 
 def test_verbose_uses_the_sdk_visualizer_and_the_default_a_fresh_quiet_one():
