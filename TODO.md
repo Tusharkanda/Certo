@@ -14,6 +14,48 @@ first item is the suggested next one.
 
 ## Before the next release
 
+- **Skills management: `certo skills list / add / remove`.** Urgent (the
+  Author, 2026-10-22). Today skills sit in six places, two of them
+  relative to the folder `certo` runs from (`./skills`,
+  `./third_party_skills/`), kept out of git only by `.gitignore` lines;
+  there is no global place, no way to see what a run gets, and the
+  commands for downloaded skills hide in `certo-admin`. Design (decided,
+  see `DECISIONS.md`):
+  - **Official and third-party skills never mix.** Official: Certo's own,
+    in the package, changed only by a release. Third-party: written or
+    downloaded by the user, in `~/.config/certo/skills/` (global) or
+    `<project>/.certo/skills/` (one project, never in git: `.certo/`
+    ignores itself). Each third-party folder has its own lock file.
+  - `certo skills add FILE_OR_FOLDER_OR_SOURCE --global | --project NAME`
+    (a flag is required): checks the skill loads with the SDK's loader,
+    prints how it fires and its size in tokens, asks before replacing a
+    skill of the same name. A git source (`github:owner/repo PATH`) keeps
+    today's rules: license check, exact commit, off until enabled.
+  - `certo skills remove NAME --global | --project NAME`: third-party
+    only.
+  - `certo skills list [--project NAME] [--task TEXT]`: official and
+    third-party in separate sections, each skill's layer, how it fires,
+    size, and "replaced by …"; with `--task`, which skills would fire for
+    that task and why (same matching as a run).
+  - Order, lowest to highest: official, third-party global, third-party
+    project, `.agents/skills/`. A third-party skill may replace an
+    official one of the same name; `list` shows it and the run prints a
+    line saying so.
+  - `.agents/skills/` and `AGENTS.md` are the project's own (shared with
+    other tools): read, listed under their own heading, never written.
+  - `./skills` (`CERTO_SKILLS_DIR`) and `./third_party_skills/` with its
+    lock file: still read for one release, with a line saying to move
+    them with `certo skills add --global`; then no longer read.
+  - `certo-admin skills` moves into `certo skills`.
+  - Later, not in the first version: turning an official skill off
+    (globally or for a project); `certo skills suggest`, which matches a
+    project's files against an index of vetted third-party skills shipped
+    with Certo and prints `add` commands, never installing by itself.
+  Docs: a new guide replacing "Add skills to a project" and the skills
+  part of "Add skills and tools", `commands.md`, `configuration.md`
+  (`CERTO_SKILLS_DIR` and the third-party settings deprecated).
+  Done when the commands exist with tests, the old folders print the
+  move hint, and the docs describe only the new layout.
 - **A small `certo bench` run of the Haiku → Sonnet ladder**, so the
   README can drop one "not benchmarked yet"
   ([#24](https://github.com/alessioricco/certo/issues/24), open for

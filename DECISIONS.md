@@ -849,3 +849,21 @@ considered and live-verification detail: `docs/ROADMAP.txt`.
   `override_llm()`. Validation stays out of `override_llm` itself so
   catalog swaps that clear a key can still set a base URL in the same
   call. No flag and no setting still yields the same error as before.
+- **Skills: official and third-party kept apart, managed by `certo
+  skills`** (2026-10-22, the Author; supersedes `CERTO_SKILLS_DIR` and
+  `./third_party_skills/` as places to keep skills). Official skills are
+  Certo's own guidance, shipped in the package and checked with the
+  benchmark; third-party skills are the user's choice, written or
+  downloaded. They live in separate folders, and third-party ones only
+  where git never sees them: `~/.config/certo/skills/` or
+  `<project>/.certo/skills/`, not `.agents/skills/`, which a project may
+  commit. Why: skills kept in folders relative to where `certo` runs ended
+  up inside repositories (three downloaded skills in Certo's own `./skills`),
+  protected only by `.gitignore` lines. `add` and `remove` need
+  `--global` or `--project`: a skill landing in the wrong scope is easy
+  to miss. A third-party skill may still replace an official one of the
+  same name (that is how a project adapts `pytest-conventions`), but never
+  silently. Skills are never suggested or installed by a model or
+  automatically: a downloaded skill is untrusted text that goes into the
+  agent's instructions, and each one that fires costs a local model
+  context; selection at run time stays the SDK's deterministic matching.
