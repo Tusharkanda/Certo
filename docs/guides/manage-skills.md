@@ -86,7 +86,7 @@ one a run without `--project` works in.
 
 ```text
 Added 'my-style' to ~/.config/certo/skills. It is on.
-  Fires when the task says: game, snake; about 5 tokens.
+  Fires when the task says: game, snake; about 24 tokens.
 ```
 
 Certo loads the file the way a run would before copying it, so a skill
@@ -105,6 +105,7 @@ A skill can also be a folder with a `SKILL.md` file, in the
 [AgentSkills](https://agentskills.io/specification) format. Add the
 folder the same way. Such a skill usually has no triggers: the agent sees
 its name and description, and opens it when it decides it needs it.
+Examples of each kind are in [Write a good skill](#write-a-good-skill).
 
 To stop using a skill:
 
@@ -113,6 +114,80 @@ certo skills remove my-style --global
 ```
 
 Official skills can't be removed.
+
+## Write a good skill
+
+A skill is part of the agent's instructions, so write it as
+instructions: what to do and what never to do, in a few lines. Leave out
+background the agent doesn't need to act.
+
+- **Fire narrowly.** Choose trigger words that appear in the tasks the
+  skill is for, and rarely elsewhere. A skill that fires on `add` or
+  `code` fires on almost every task.
+- **Words match whole and exactly.** `game` doesn't fire on "games", and
+  `test` doesn't fire on "tests". List both forms when you need them:
+  `triggers: [test, tests]`.
+- **Keep it short.** Every skill that fires costs context. On a local
+  model with a 32K context, a few large skills leave little room for the
+  code. `certo skills list` shows each skill's size.
+- **Check it before you rely on it.** `certo skills list --task "..."`
+  shows whether a task you'd really write gets the skill:
+
+  ```text
+  For the task 'Write the tests for the snake games':
+    From its first message (about 192 tokens):
+      pytest-conventions (official): "tests" is in the task
+      my-style (global): "snake" is in the task
+  ```
+
+  `my-style` fired on "snake", not on "games".
+- **A skill guides; it doesn't check.** If something must be true, make
+  it a test or a check the project runs: Certo's verdict comes from those,
+  not from the skill.
+
+Three kinds, by how they fire:
+
+**On words in the task** (`triggers:`), shown above.
+
+**When the agent works on certain files** (`paths:`), for rules about one
+kind of file. `python-deps.md`:
+
+```markdown
+---
+name: python-deps
+paths:
+  - pyproject.toml
+  - requirements*.txt
+---
+
+Pin every dependency to an exact version.
+```
+
+```text
+Added 'python-deps' to ~/.config/certo/skills. It is on.
+  Fires when the agent touches: pyproject.toml, requirements*.txt; about 10 tokens.
+```
+
+**When the agent asks for it** (a `SKILL.md` folder), for a longer
+procedure the agent needs only sometimes. The `description` is what the
+agent reads to decide, so say when to use it. `release-checklist/SKILL.md`:
+
+```markdown
+---
+name: release-checklist
+description: Steps to follow before tagging a release of this project.
+---
+
+1. Run the full test suite.
+2. Update CHANGELOG.md.
+```
+
+The folder's name must be the skill's `name`. Other files can sit next to
+`SKILL.md` (for example `scripts/`), and the skill can point the agent to
+them.
+
+A `.md` skill with no `triggers:` and no `paths:` goes into every run.
+Use that only for a few lines that truly apply to every task.
 
 ## Download a skill from git
 

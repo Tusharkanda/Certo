@@ -285,6 +285,8 @@ export CERTO_LLM_API_KEY=sk-...
   For example a local model first, then a cloud one; which local model to
   start with: [Choose a local model](guides/choose-a-local-model.md).
 - Write tasks Certo can check: [Write a task Certo can check](guides/write-a-good-task.md).
+- Teach the agent your conventions, for every project or one:
+  [Manage skills](guides/manage-skills.md) (`certo skills`).
 - What to do after each verdict: [What to do after each verdict](guides/after-the-verdict.md).
 - Use a different provider: [OpenAI, Claude and Gemini](guides/openai-claude-gemini.md)
   or [Ollama and local models](guides/ollama-and-local-models.md).

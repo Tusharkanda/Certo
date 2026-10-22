@@ -43,6 +43,12 @@ setting comes from and makes one small call to the model.
   [stops after two `inconclusive` rungs](#escalation-stops-after-two-rungs-with-inconclusive),
   [stops before the last rung](#escalation-stops-before-the-last-rung),
   [`--models` failures](#certo-check---models-a-model-fails)
+- Skills: [a skill doesn't fire](#a-skill-doesnt-fire),
+  [can't load](#isnt-a-skill-certo-can-load),
+  [already has a skill named](#already-has-a-skill-named),
+  [a downloaded skill is off](#a-downloaded-skill-is-off),
+  [replaces the official one](#your-skill-replaces-the-official-one),
+  [old folders still used](#skills-in-skills-are-still-used)
 - Benchmark: [no bench.yaml or model files](#certo-bench-no-benchyaml-or-model-files),
   [unknown model](#certo-bench-unknown-model),
   [`--parallel` refused](#certo-bench---parallel-is-refused),
@@ -640,6 +646,88 @@ rejected the API key. Check its api_key in models.yaml: ...`.
 key or address) or `models_list.yaml` (the model id). `--models` without
 the model files fails with `--models: No models.yaml found` and the command
 to copy the example.
+
+## Skills
+
+### A skill doesn't fire
+
+**You see:** the agent ignores a skill you added, and
+`certo skills list --task "..."` doesn't list it under "From its first
+message".
+
+**Cause:** trigger words match whole words only: `game` doesn't match
+"games", and `test` doesn't match "tests". Or the skill is in another
+project's folder, or (a `paths:` skill) the agent never touched a
+matching file.
+
+**Fix:** run `certo skills list --project NAME --task "your task"` (use
+`--project .` for the current folder). Add the forms the task really uses
+to `triggers:`, then add the skill again with `--yes`. See
+[Write a good skill](guides/manage-skills.md#write-a-good-skill).
+
+### "isn't a skill Certo can load"
+
+**You see:**
+
+```text
+Error: broken.md isn't a skill Certo can load: while parsing a flow sequence
+  in "<unicode string>", line 3, column 11
+did not find expected ',' or ']'
+```
+
+**Cause:** the header between the `---` lines isn't valid YAML (here, a
+`[` without its `]`). Nothing was copied. A skill already in a folder with
+a broken header is listed as `can't load` and skipped by runs.
+
+**Fix:** correct the header at the line the message names, then add the
+skill again.
+
+### "already has a skill named"
+
+**You see:** `Error: ~/.config/certo/skills already has a skill named
+'my-style'. Add --yes to replace it.`
+
+**Cause:** that folder has a skill with the same `name`, and there was no
+terminal to ask you.
+
+**Fix:** add `--yes` to replace it, or give the new skill another `name`.
+
+### A downloaded skill is off
+
+**You see:** in `certo skills list`, `off (downloaded; turn it on with:
+certo skills enable NAME --global)`, or `off (its files are modified; run:
+certo skills sync --global)`.
+
+**Cause:** a skill from git stays off until you enable it, and is turned
+off again when its files no longer match the hash recorded when it was
+downloaded (edited by hand, or deleted).
+
+**Fix:** read its files, then run the command shown. To change a
+downloaded skill, copy it, edit the copy, and add the copy as your own
+skill.
+
+### Your skill replaces the official one
+
+**You see:** `Certo: your global skill 'pytest-conventions' replaces the
+official one.` before a run.
+
+**Cause:** one of your skills has the same `name` as an official skill.
+The later one wins, so yours is used.
+
+**Fix:** nothing, if you meant it. Otherwise rename your skill, or remove
+it with `certo skills remove NAME --global` (or `--project NAME`).
+
+### Skills in ./skills are still used
+
+**You see:** `Certo: skills in ./skills (CERTO_SKILLS_DIR) are still used,
+until the next release.` before a run.
+
+**Cause:** Certo found skills in the old folder, relative to where you run
+`certo`. It stops reading that folder in the next release.
+
+**Fix:** move each one with `certo skills add PATH --global` (or
+`--project NAME`), then delete the old folder. See
+[Moving from the old folders](guides/manage-skills.md#moving-from-the-old-folders).
 
 ## Benchmark (`certo bench`)
 
