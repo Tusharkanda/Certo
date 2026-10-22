@@ -31,6 +31,15 @@ can check, and the climb stops there instead of paying for every model.
 
 ## Also
 
+- **`--model` alone is enough.** `certo "task" --model X` works with no
+  model configured, and `--model` with `--base-url` needs no key for a
+  local model. Thanks to @dbdefault (#17).
+- **`--auto-model` with missing model files stops cleanly**: only the
+  error, with no banner, no resume hint and no run recorded. Thanks to
+  @dbdefault (#15).
+- **The resume hint keeps your projects folder**: when
+  `CERTO_PROJECTS_DIR` isn't the default, the printed `certo --resume`
+  command includes it. Thanks to @dbdefault (#14).
 - **Benchmark transcripts say when each message arrived.**
   `runs/transcripts/<run>.json` has a `seconds` list beside the messages,
   counted from the run's start, so a slow run shows where its time went.
