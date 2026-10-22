@@ -1064,6 +1064,27 @@ def test_prompt_for_continuation_handles_empty_narrative(monkeypatch, capsys):
 
 # --- --auto-model: opt-in deterministic model selection ---------------------
 
+_AUTO_MODEL_CATALOG = """
+models:
+  - name: local
+    model: ollama/qwen
+    base_url: http://localhost:11434
+    ratings: {code: 2, cost: 5}
+  - name: cloud
+    model: openai/luna
+    api_key: k
+    ratings: {code: 5, cost: 2}
+"""
+
+
+def _auto_model_cfg(tmp_path, **overrides):
+    from model_file_helpers import write_model_files
+
+    list_path, models_path = write_model_files(tmp_path, _AUTO_MODEL_CATALOG)
+    return _cfg(
+        workspace=str(tmp_path), models_file=models_path, models_list_file=list_path, **overrides
+    )
+
 
 def test_auto_model_flag_off_by_default(monkeypatch):
     calls = {}
@@ -1092,7 +1113,7 @@ def test_auto_model_flag_off_by_default(monkeypatch):
     assert calls["on_model_choice"] is None
 
 
-def test_auto_model_flag_sets_config(monkeypatch):
+def test_auto_model_flag_sets_config(monkeypatch, tmp_path):
     calls = {}
 
     def _fake_run_task(
@@ -1109,7 +1130,7 @@ def test_auto_model_flag_sets_config(monkeypatch):
         calls["cfg"] = cfg
         return _fake_result()
 
-    monkeypatch.setattr(cli, "load_config", lambda: _cfg())
+    monkeypatch.setattr(cli, "load_config", lambda: _auto_model_cfg(tmp_path))
     monkeypatch.setattr(cli, "run_task", _fake_run_task)
 
     cli.main(["do something", "--auto-model"])
@@ -1117,7 +1138,7 @@ def test_auto_model_flag_sets_config(monkeypatch):
     assert calls["cfg"].model_selection == "auto"
 
 
-def test_auto_model_only_passes_the_prompt_when_also_interactive(monkeypatch):
+def test_auto_model_only_passes_the_prompt_when_also_interactive(monkeypatch, tmp_path):
     calls = {}
 
     def _fake_run_task(
@@ -1134,7 +1155,7 @@ def test_auto_model_only_passes_the_prompt_when_also_interactive(monkeypatch):
         calls["on_model_choice"] = on_model_choice
         return _fake_result()
 
-    monkeypatch.setattr(cli, "load_config", lambda: _cfg())
+    monkeypatch.setattr(cli, "load_config", lambda: _auto_model_cfg(tmp_path))
     monkeypatch.setattr(cli, "run_task", _fake_run_task)
 
     cli.main(["do something", "--auto-model"])
@@ -1142,6 +1163,58 @@ def test_auto_model_only_passes_the_prompt_when_also_interactive(monkeypatch):
 
     cli.main(["do something", "--auto-model", "--interactive"])
     assert calls["on_model_choice"] is cli._prompt_for_model_choice
+
+
+def test_auto_model_without_a_catalog_prints_only_the_error(monkeypatch, tmp_path, capsys):
+    """Missing model files must stop before the banner or any run record (#12)."""
+    from certo import run_history
+
+    monkeypatch.chdir(tmp_path)
+    monkeypatch.setattr(
+        cli, "load_config", lambda: _cfg(workspace=str(tmp_path), projects_dir=str(tmp_path))
+    )
+    monkeypatch.setattr(cli, "run_task", _fail_if_called)
+    monkeypatch.setattr(cli, "append_run", run_history.append_run)
+
+    assert cli.main(["hi", "--auto-model", "--project", "leap"]) == 1
+    captured = capsys.readouterr()
+    assert "Configuration error" in captured.err
+    assert "No models_list.yaml found" in captured.err
+    assert "models_list.yaml.example" in captured.err
+    assert "Continue with" not in captured.err
+    assert "Certo" not in captured.out
+    assert not (tmp_path / "leap" / ".certo").exists()
+
+
+def test_auto_model_with_broken_model_files_prints_only_the_error(monkeypatch, tmp_path, capsys):
+    from certo import run_history
+
+    (tmp_path / "models_list.yaml").write_text(
+        "models:\n  - name: local\n    model: ollama/q\n  - name: local\n    model: ollama/r\n"
+    )
+    (tmp_path / "models.yaml").write_text(
+        "models:\n  - name: local\n    base_url: http://localhost:11434\n"
+    )
+    monkeypatch.chdir(tmp_path)
+    monkeypatch.setattr(
+        cli,
+        "load_config",
+        lambda: _cfg(
+            workspace=str(tmp_path),
+            models_file=str(tmp_path / "models.yaml"),
+            models_list_file=str(tmp_path / "models_list.yaml"),
+        ),
+    )
+    monkeypatch.setattr(cli, "run_task", _fail_if_called)
+    monkeypatch.setattr(cli, "append_run", run_history.append_run)
+
+    assert cli.main(["hi", "--auto-model"]) == 1
+    captured = capsys.readouterr()
+    assert "Configuration error" in captured.err
+    assert "named 'local'" in captured.err
+    assert "Continue with" not in captured.err
+    assert "Certo" not in captured.out
+    assert not (tmp_path / ".certo").exists()
 
 
 def test_prompt_for_model_choice_accepts_the_recommendation_on_enter(monkeypatch, capsys):

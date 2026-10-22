@@ -19,6 +19,7 @@ from openhands.sdk.event import ActionEvent
 from . import __version__
 from .acceptance import AcceptanceCheck, AcceptanceCheckError, parse_acceptance_checks
 from .banner import format_banner
+from .catalog_check import load_checked_catalog
 from .config import (
     ConfigError,
     DEFAULT_PROJECTS_DIR,
@@ -564,6 +565,20 @@ def main(argv: list[str] | None = None) -> int:
                 on_warning=lambda w: print(f"Warning (models.yaml): {w}", file=sys.stderr),
             )
         except ValueError as exc:  # EscalationError, ModelCatalogError
+            print(f"Configuration error: {exc}", file=sys.stderr)
+            return 1
+    elif cfg.model_selection == "auto":
+        # Same timing as --escalate: refuse before the banner or any run
+        # record. run_task() loads the catalog again to pick a model.
+        try:
+            load_checked_catalog(
+                cfg.models_file,
+                cfg.models_list_file,
+                task_profiles_file=cfg.task_profiles_file,
+                escalation_file=cfg.escalation_file,
+                mode="auto",
+            )
+        except ValueError as exc:  # ModelCatalogError
             print(f"Configuration error: {exc}", file=sys.stderr)
             return 1
 

@@ -327,15 +327,6 @@ database).
   Since 0.1.20 they have their own files; the old sections are still read
   with a warning. Remove that path (and the tests that use the old layout
   through `write_model_files`) a version or two later.
-- **A configuration error prints a resume hint, then the banner, and is
-  logged as a run.** The same run printed the model-file error, then
-  "Continue with: certo --resume --project leap" (there was nothing to
-  resume), then the banner. Seen again in 0.1.20 with `--auto-model` and
-  no model files, which also created `.certo/` in the current folder with
-  a `RUNS.md` entry saying "Model: ollama/qwen3.8:27b (picked by
-  --auto-model)", although nothing was picked or run. Print the error
-  alone, after the banner or instead of it, and write nothing. Open for
-  contributors: [#12](https://github.com/alessioricco/certo/issues/12).
 - **`--model` alone fails when no model is configured.** `certo TASK
   --model X` with no `CERTO_LLM_MODEL` anywhere stops with "CERTO_LLM_MODEL
   is required": `load_config()` validates before `override_llm()` applies
