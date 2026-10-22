@@ -67,6 +67,11 @@ model = "ollama/qwen3.8:27b"
 # benchmarked; expect it to be weaker than the default on multi-step tasks.
 small_model = "ollama/qwen2.5-coder:7b"
 base_url = "http://localhost:11434"
+# Written as CERTO_LLM_TIMEOUT_SECONDS. The default, 300, is too short for
+# a local model that thinks at length: on qwen3.8:27b (2026-10-22) calls
+# took longer, failed and restarted from scratch (hanoi lost about 20 of
+# 42 minutes; space-rocks gave up after 5). Same value as models_list.yaml.
+llm_timeout_seconds = 1200
 source = "https://ollama.com/library/qwen3.8"
 checked = "2026-10-19"
 

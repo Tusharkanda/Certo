@@ -31,6 +31,13 @@ can check, and the climb stops there instead of paying for every model.
 
 ## Also
 
+- **`certo init` gives Ollama a longer call timeout.** It now writes
+  `CERTO_LLM_TIMEOUT_SECONDS=1200` when you choose Ollama. With the
+  default, 300 seconds, `qwen3.8:27b` on a local server had answers that
+  took longer, were dropped and restarted from scratch: a sample task lost
+  about 20 of its 42 minutes that way, and another gave up after 5
+  timeouts in a row. Existing settings files aren't changed; add the line
+  by hand (see the Ollama guide).
 - **Faster start.** `certo --version` and `certo --help` take about 0.1s
   instead of 3s, and `certo verify` on a small project 0.3s instead of
   3.2s: they no longer load the OpenHands SDK, which only commands that

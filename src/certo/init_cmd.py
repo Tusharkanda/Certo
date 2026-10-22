@@ -62,6 +62,8 @@ class Provider:
     key_url: str | None = None
     base_url: str | None = None
     small_model: str | None = None
+    # Written as CERTO_LLM_TIMEOUT_SECONDS when the provider is chosen.
+    llm_timeout_seconds: int | None = None
 
 
 def load_providers() -> list[Provider]:
@@ -116,6 +118,12 @@ def _active_lines(settings: Settings) -> list[str]:
         lines += [f"# Paste your API key after the ={where}.", "CERTO_LLM_API_KEY="]
     if settings.base_url:
         lines.append(f"CERTO_LLM_BASE_URL={settings.base_url}")
+    if settings.provider.llm_timeout_seconds:
+        lines += [
+            "# How long one answer may take, in seconds: a local model can need",
+            "# more than the default 300 to think.",
+            f"CERTO_LLM_TIMEOUT_SECONDS={settings.provider.llm_timeout_seconds}",
+        ]
     return lines
 
 

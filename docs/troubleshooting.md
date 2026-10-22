@@ -327,10 +327,13 @@ runs part of it on the CPU.
 column shows a CPU share, use a smaller model (for example
 `qwen2.5-coder:7b` instead of `qwen3.8:27b`) or a smaller quantization.
 
-If one step takes more than 5 minutes, the call to the model hits its
-timeout and starts over, so the step never finishes. Raise
+If one answer takes longer than `CERTO_LLM_TIMEOUT_SECONDS` (300 seconds
+by default; `certo init` writes 1200 for Ollama), the call to the model
+fails and starts over, so the step may never finish. The log shows
+`litellm.Timeout: ... timed out after 300.0 seconds`. Raise
 `CERTO_LLM_TIMEOUT_SECONDS` (or `timeout_seconds` in the model files), for
-example to `900`. See [Ollama and local models](guides/ollama-and-local-models.md#make-sure-the-model-fits-in-memory).
+example to `1200`. A model that thinks at length can need that even when
+it runs fully on the GPU. See [Ollama and local models](guides/ollama-and-local-models.md#slow-answers-and-the-call-timeout).
 
 ## Verdicts
 

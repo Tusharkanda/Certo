@@ -31,11 +31,16 @@ With `certo init`, choose **Ollama**. It asks for the server address
 with the recommended model preselected when it is installed. If the server can't be reached, or has no
 models yet, it says so and prints the `ollama pull` command to run.
 
+`certo init` also sets `CERTO_LLM_TIMEOUT_SECONDS=1200`, so a slow
+answer has 20 minutes instead of the default 5 (see
+[Slow answers and the call timeout](#slow-answers-and-the-call-timeout)).
+
 By hand:
 
 ```bash
 CERTO_LLM_MODEL=ollama/qwen3.8:27b
 CERTO_LLM_BASE_URL=http://localhost:11434
+CERTO_LLM_TIMEOUT_SECONDS=1200
 ```
 
 No API key is needed when `CERTO_LLM_BASE_URL` is set. Then run
@@ -76,17 +81,22 @@ Check with `ollama ps` while the model is loaded: the `PROCESSOR` column
 should say `100% GPU`. If it shows a CPU share, pick a smaller model, or a
 smaller quantization of the same model.
 
-**Slow answers and the call timeout.** One call to the model may take 300
-seconds. A call that takes longer fails and is tried again from the start,
-up to 5 more times, so a model that needs 400 seconds per answer never
-gets one, and spends the whole time budget trying. If your model is slow
-but you want to use it anyway, raise the limit:
+### Slow answers and the call timeout
+
+One call to the model may take `CERTO_LLM_TIMEOUT_SECONDS`: 300 seconds
+by default, and 1200 in the settings `certo init` writes for Ollama. A
+call that takes longer fails and is tried again from the start, up to 5
+more times, so a model that needs 400 seconds per answer never gets one
+with the default, and spends the whole time budget trying. A model that
+thinks at length, such as `qwen3.8:27b`, can need more than 300 seconds
+for one answer once the task has grown. If you set Ollama up by hand,
+raise the limit:
 
 ```bash
-CERTO_LLM_TIMEOUT_SECONDS=900
+CERTO_LLM_TIMEOUT_SECONDS=1200
 ```
 
-For one model, set `timeout_seconds: 900` on it in `models_list.yaml`, or
+For one model, set `timeout_seconds: 1200` on it in `models_list.yaml`, or
 as an override in your `models.yaml`. A longer
 call timeout also makes the whole task longer, so you may need to raise
 `CERTO_MAX_TASK_SECONDS` too.

@@ -203,6 +203,7 @@ def test_ollama_lists_installed_models_and_preselects_a_coder(tmp_path, monkeypa
     assert _active(tmp_path / "w") == [
         "CERTO_LLM_MODEL=ollama/qwen3-coder:30b",
         "CERTO_LLM_BASE_URL=http://gpu-box:11434",
+        "CERTO_LLM_TIMEOUT_SECONDS=1200",
     ]
     assert "local model may take a minute" in script.text
     assert "Anthropic (Claude)" in (tmp_path / "w" / ".env").read_text()
@@ -239,6 +240,7 @@ def test_ollama_unreachable_says_so_and_still_writes(tmp_path, monkeypatch, no_c
     assert _active(tmp_path / "w") == [
         "CERTO_LLM_MODEL=ollama/qwen3.8:27b",
         "CERTO_LLM_BASE_URL=http://localhost:11434",
+        "CERTO_LLM_TIMEOUT_SECONDS=1200",
     ]
 
 
@@ -322,6 +324,7 @@ def test_model_flag_alone_infers_the_provider(tmp_path, monkeypatch, no_check):
     assert _active(tmp_path / "w") == [
         "CERTO_LLM_MODEL=ollama/qwen2.5-coder:7b",
         "CERTO_LLM_BASE_URL=http://h:1",
+        "CERTO_LLM_TIMEOUT_SECONDS=1200",
     ]
 
 
@@ -484,6 +487,9 @@ def test_global_with_a_used_sample_folder_saves_settings_and_skips_samples(
 
     assert code == 0
     assert _active_lines(_user_file(tmp_path))[0] == "CERTO_LLM_MODEL=ollama/qwen3.8:27b"
+    # Live 2026-10-22: with the default 300 seconds, qwen3.8:27b's slow
+    # answers timed out and restarted.
+    assert "CERTO_LLM_TIMEOUT_SECONDS=1200" in _active_lines(_user_file(tmp_path))
     assert sorted(os.listdir(tmp_path / "w")) == ["notes.txt"]
     assert "Skipped the sample folder" in script.text
 
