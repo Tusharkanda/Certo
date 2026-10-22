@@ -13,13 +13,13 @@ permissions:
   contents: read
 
 # Every action runs on Node.js 24. setup-uv publishes no major tags any more,
-# so it is pinned to an exact release. The runner is pinned to ubuntu-24.04
-# until a release has passed on the Ubuntu 26 image behind ubuntu-latest
-# (TODO.md).
+# so it is pinned to an exact release. ci.yml runs the same checks on
+# ubuntu-latest for every push to main, so a runner image change shows up
+# there before a release.
 
 jobs:
   verify:
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v7
         with:
@@ -47,7 +47,7 @@ jobs:
 
   build:
     needs: verify
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v7
         with:
@@ -70,7 +70,7 @@ jobs:
 
   publish:
     needs: build
-    runs-on: ubuntu-24.04
+    runs-on: ubuntu-latest
     environment: pypi
     permissions:
       id-token: write

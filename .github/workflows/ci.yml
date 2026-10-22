@@ -16,8 +16,8 @@ concurrency:
   group: ci-${{ github.ref }}
   cancel-in-progress: true
 
-# Runs on ubuntu-latest on purpose: a green run here is what allows the
-# release workflow to drop its ubuntu-24.04 pin (TODO.md).
+# Runs on ubuntu-latest, like the release workflow, so a runner image
+# change shows up here before a release.
 
 jobs:
   test:

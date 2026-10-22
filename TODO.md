@@ -56,14 +56,6 @@ first item is the suggested next one.
     `PROMPT_TOOLKIT_NO_CPR=1`).
 
   Done when each is checked, or fixed.
-- **Unpin the release runner from `ubuntu-24.04`.** Pinned for 0.1.18
-  because `ubuntu-latest` moved to Ubuntu 26 on 2026-10-19. Switch the
-  three jobs back once `.github/workflows/ci.yml`, which runs on
-  `ubuntu-latest`, has passed on GitHub.
-  While there, check the 0.1.18 release run showed no Node.js 20 warning.
-
-## 1. Prove it
-
 - **A baseline per release.** `docs/benchmark/baseline-<version>.md` for
   every release (local vs cloud, fooled rate, cost per solved task), and
   a README badge. 0.1.13, 0.1.15 and 0.1.18 (local only) exist; no badge
