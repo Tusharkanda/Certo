@@ -79,22 +79,6 @@ first item is the suggested next one.
   Wordle's time. Run each on `qwen3.8:27b`, fix any spec that doesn't end
   `verified`, and record the times in `init_cmd.py`. Done when each one
   has ended `verified` locally and the menu quotes a local time.
-- **Check the arrow-key menus by hand in a real terminal.** The tests
-  drive them through a pipe, and a pseudo-terminal run worked, but
-  neither shows what a person sees. In `certo init` and `certo init
-  models`, check by hand:
-  - the ▸ symbol, the highlight and the grey notes look right with your
-    font and colours (light and dark theme);
-  - the checklist redraws cleanly when it's taller than the window, and
-    after the window is resized;
-  - the keys work over SSH (for example on turing.local) and inside
-    tmux;
-  - no "your terminal doesn't support cursor position requests (CPR)"
-    warning. A pseudo-terminal that doesn't answer CPR prints it; if a
-    real terminal does too, hide it (prompt_toolkit's
-    `PROMPT_TOOLKIT_NO_CPR=1`).
-
-  Done when each is checked, or fixed.
 - **A baseline per release.** `docs/benchmark/baseline-<version>.md` for
   every release (local vs cloud, fooled rate, cost per solved task), and
   a README badge. 0.1.13, 0.1.15 and 0.1.18 (local only) exist; no badge
