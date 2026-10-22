@@ -71,7 +71,9 @@ step limit) as they happen. At the end: the
 `Model used:` line with `--auto-model`, then `Verification: <verdict>`,
 any limitations as `-` lines, and the run summary. After a failing
 verdict, a last line names `.certo/STATUS.md` and the `certo --resume`
-command (unless `CERTO_SAVE_STATE` is off).
+command (unless `CERTO_SAVE_STATE` is off). When `CERTO_PROJECTS_DIR` is
+not the default, that command starts with `CERTO_PROJECTS_DIR=...` so a
+copy-paste resume uses the same projects folder.
 
 **State.** Every run keeps its state in the project's `.certo/` folder,
 which git ignores. See [Resume an interrupted run](../guides/resume-a-run.md#the-certo-folder).

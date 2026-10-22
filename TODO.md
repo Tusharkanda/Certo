@@ -365,10 +365,6 @@ database).
   --auto-model)", although nothing was picked or run. Print the error
   alone, after the banner or instead of it, and write nothing. Open for
   contributors: [#12](https://github.com/alessioricco/certo/issues/12).
-- **The `--resume` hint ignores `CERTO_PROJECTS_DIR` from the
-  environment.** It prints `certo --resume --project NAME`, which then
-  looks in the default projects folder. Print the setting too when it
-  isn't the default. Starter issue: [#9](https://github.com/alessioricco/certo/issues/9).
 - **`--model` alone fails when no model is configured.** `certo TASK
   --model X` with no `CERTO_LLM_MODEL` anywhere stops with "CERTO_LLM_MODEL
   is required": `load_config()` validates before `override_llm()` applies

@@ -30,6 +30,11 @@ When a run ends with a failing verdict, Certo prints the command to use:
 Where it stopped: projects/wordle/.certo/STATUS.md. Continue with: certo --resume --project wordle
 ```
 
+If that run set `CERTO_PROJECTS_DIR` to something other than the default
+`./projects`, the printed command includes it, for example
+`CERTO_PROJECTS_DIR=/home/me/work certo --resume --project wordle` (the
+path is quoted when it contains spaces).
+
 After Ctrl-C or an error it prints `Continue with: certo --resume ...`
 and exits with code 130 (Ctrl-C) or 1 (error).
 
