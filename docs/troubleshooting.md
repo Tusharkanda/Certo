@@ -85,12 +85,13 @@ Configuration error: CERTO_LLM_MODEL is required (e.g. 'anthropic/claude-sonnet-
 ```
 
 **Cause:** `CERTO_LLM_MODEL` isn't set in your shell, in `.env` in this
-folder, or in the user settings file.
+folder, or in the user settings file, and you didn't pass `--model`.
 
 **Fix:** run `certo init`. Or set it yourself in one of those places, as
 in [OpenAI, Claude and Gemini](guides/openai-claude-gemini.md#set-up-by-hand).
-If `init` saved the settings for "this folder only", run `certo` from that
-folder, or run `certo init --global`.
+Or pass `--model MODEL` for this run only (and `--api-key` or `--base-url`
+as needed). If `init` saved the settings for "this folder only", run
+`certo` from that folder, or run `certo init --global`.
 
 ### "CERTO_LLM_MODEL is required" although `LLM_MODEL` is set
 

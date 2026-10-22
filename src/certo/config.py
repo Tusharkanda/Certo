@@ -12,11 +12,13 @@ provider, model, or base URL.
 
 from __future__ import annotations
 
+import contextvars
 import logging
 import math
 import os
 import platform as _platform
-from collections.abc import Mapping, MutableMapping
+from collections.abc import Iterator, Mapping, MutableMapping
+from contextlib import contextmanager
 from dataclasses import dataclass, replace
 from pathlib import Path
 
@@ -456,6 +458,36 @@ def _missing_model_message(env: Mapping[str, str], dotenv_path: str, user_path: 
     )
 
 
+def _missing_api_key_message(env: Mapping[str, str]) -> str:
+    return (
+        "CERTO_LLM_API_KEY is required unless CERTO_LLM_BASE_URL is set (e.g. a "
+        "local Ollama/vLLM/LM Studio endpoint that needs no key)."
+        + _old_llm_names_hint(env, "API_KEY", "BASE_URL")
+    )
+
+
+# When False, load_config skips the model/key required checks so a caller can
+# apply CLI or request overrides first, then validate the final values (see
+# defer_llm_check and ensure_llm_configured). Default True keeps every other
+# caller unchanged.
+_llm_check: contextvars.ContextVar[bool] = contextvars.ContextVar("certo_llm_check", default=True)
+
+
+@contextmanager
+def defer_llm_check() -> Iterator[None]:
+    """Skip model/key required checks inside load_config for this context.
+
+    Use when CLI flags or request fields will supply the model (and key or
+    base URL) via override_llm afterwards. Call ensure_llm_configured on the
+    result so a cloud model with no key is still an error.
+    """
+    token = _llm_check.set(False)
+    try:
+        yield
+    finally:
+        _llm_check.reset(token)
+
+
 def load_config(
     env: Mapping[str, str] | None = None,
     *,
@@ -481,18 +513,18 @@ def load_config(
         load_settings_files(dotenv_path, user_path)
         env = os.environ
 
+    check_llm = _llm_check.get()
     model = _clean(env.get(LLM_ENV_PREFIX + "MODEL"))
     if model is None:
-        raise ConfigError(_missing_model_message(env, dotenv_path, user_path))
+        if check_llm:
+            raise ConfigError(_missing_model_message(env, dotenv_path, user_path))
+        # Placeholder until override_llm (or the caller) fills it in.
+        model = ""
 
     api_key = _clean(env.get(LLM_ENV_PREFIX + "API_KEY"))
     base_url = _clean(env.get(LLM_ENV_PREFIX + "BASE_URL"))
-    if api_key is None and base_url is None:
-        raise ConfigError(
-            "CERTO_LLM_API_KEY is required unless CERTO_LLM_BASE_URL is set (e.g. a "
-            "local Ollama/vLLM/LM Studio endpoint that needs no key)."
-            + _old_llm_names_hint(env, "API_KEY", "BASE_URL")
-        )
+    if api_key is None and base_url is None and check_llm:
+        raise ConfigError(_missing_api_key_message(env))
     reasoning_effort = _clean_reasoning_effort(env.get(LLM_ENV_PREFIX + "REASONING_EFFORT"))
     llm_timeout_seconds = _parse_nonnegative_int(
         env, "LLM_TIMEOUT_SECONDS", default=DEFAULT_LLM_TIMEOUT_SECONDS
@@ -688,6 +720,27 @@ def load_config(
     )
 
 
+def ensure_llm_configured(
+    cfg: Config,
+    *,
+    env: Mapping[str, str] | None = None,
+    dotenv_path: str = ".env",
+    user_dotenv_path: str | None = None,
+) -> Config:
+    """Raise ConfigError unless cfg has a model and either an api_key or a base_url.
+
+    Same messages as load_config. Call after override_llm when load_config ran
+    under defer_llm_check, so CLI flags are checked on the final values.
+    """
+    env = os.environ if env is None else env
+    user_path = user_settings_path() if user_dotenv_path is None else user_dotenv_path
+    if not cfg.model:
+        raise ConfigError(_missing_model_message(env, dotenv_path, user_path))
+    if cfg.api_key is None and cfg.base_url is None:
+        raise ConfigError(_missing_api_key_message(env))
+    return cfg
+
+
 def override_llm(
     cfg: Config,
     *,
@@ -703,11 +756,11 @@ def override_llm(
 
     Lets a single call (CLI flag or a server request field) swap provider/model
     (or just the reasoning effort, independent of provider) for one run without
-    touching `.env` — e.g. to compare how two models, or two effort levels of
+    touching `.env` - e.g. to compare how two models, or two effort levels of
     the same model, handle the same task. Only arguments that are not None are
-    applied; anything else keeps `cfg`'s existing value. Does not re-validate
-    the api_key-or-base_url-required rule from `load_config` — `cfg` already
-    satisfied it, and an override is additive, not a fresh load.
+    applied; anything else keeps `cfg`'s existing value. Does not re-check the
+    api_key-or-base_url rule from load_config; callers that used
+    defer_llm_check should call ensure_llm_configured on the result.
     """
     updates: dict[str, str | int | None] = {}
     if model is not None:

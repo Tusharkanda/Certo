@@ -29,6 +29,8 @@ from certo.config import (
     Config,
     ConfigError,
     SettingSource,
+    defer_llm_check,
+    ensure_llm_configured,
     load_config,
     load_settings_files,
     override_llm,
@@ -294,6 +296,27 @@ def test_override_llm_blank_model_raises():
 
     with pytest.raises(ConfigError, match="Model override must not be blank"):
         override_llm(cfg, model="   ")
+
+
+def test_defer_llm_check_allows_load_then_override_fills_model():
+    with defer_llm_check():
+        cfg = load_config({})
+    assert cfg.model == ""
+    assert cfg.api_key is None
+    assert cfg.base_url is None
+
+    filled = ensure_llm_configured(
+        override_llm(cfg, model="ollama/qwen3.8:27b", base_url="http://localhost:11434")
+    )
+    assert filled.model == "ollama/qwen3.8:27b"
+    assert filled.base_url == "http://localhost:11434"
+
+
+def test_ensure_llm_configured_rejects_cloud_model_with_no_key():
+    with defer_llm_check():
+        cfg = load_config({})
+    with pytest.raises(ConfigError, match="CERTO_LLM_API_KEY is required"):
+        ensure_llm_configured(override_llm(cfg, model="openai/gpt-5.6-luna"))
 
 
 def test_override_llm_does_not_mutate_original():

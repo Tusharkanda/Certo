@@ -39,9 +39,9 @@ current folder, the file is read instead.
 | `--version` | | Print the version, e.g. `certo 0.1.5`, and exit. |
 | `--project NAME` | none | Work in `CERTO_PROJECTS_DIR/NAME`, created if missing. Without it, Certo works in `CERTO_WORKSPACE` (default: the current folder). `NAME` must be a relative path with no `..`, and must stay inside `CERTO_PROJECTS_DIR`. |
 | `--execution {local,docker}` | `CERTO_EXECUTION` | Where the agent's tools run, for this run. `docker` is [experimental](../README.md#experimental-features). See [Run in Docker](../guides/run-in-docker.md). |
-| `--model MODEL` | `CERTO_LLM_MODEL` | Model for this run only. |
+| `--model MODEL` | `CERTO_LLM_MODEL` | Model for this run only. Enough on its own: you do not need `CERTO_LLM_MODEL` set already. |
 | `--api-key KEY` | `CERTO_LLM_API_KEY` | API key for this run only. It ends up in your shell history. |
-| `--base-url URL` | `CERTO_LLM_BASE_URL` | Server address for this run only. |
+| `--base-url URL` | `CERTO_LLM_BASE_URL` | Server address for this run only. With `--model`, enough for a local model that needs no key. |
 | `--reasoning-effort LEVEL` | `CERTO_LLM_REASONING_EFFORT` | Reasoning effort for this run only: `none`, `minimal`, `low`, `medium`, `high`, `xhigh`, `max`, or any value the provider accepts. `none` or `off` turns it off. |
 | `--agents-md TEXT` | none | Write `TEXT` as the project's `AGENTS.md` before the task. Needs `--project`. |
 | `--interactive` | off (`CERTO_INTERACTIVE`) | Let the agent stop and ask you questions. See [Interactive and confirm mode](../guides/interactive-mode.md). |
