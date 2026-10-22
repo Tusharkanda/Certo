@@ -754,8 +754,7 @@ def main(argv: list[str] | None = None) -> int:
 
 def _models_that_ran(cfg, outcome) -> list[str]:
     if outcome.rungs:
-        # A rung that changed no file wrote none of the code.
-        return [r.model for r in outcome.rungs if not r.did_no_work]
+        return [r.model for r in outcome.rungs if r.wrote_code]
     summary = outcome.run_summary
     return [m.model for m in summary.models] if summary and summary.models else [cfg.model]
 

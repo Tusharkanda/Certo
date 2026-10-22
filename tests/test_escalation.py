@@ -6,6 +6,8 @@ import pytest
 from model_file_helpers import write_model_files
 
 from certo.escalation import (
+    FileChanges,
+    RungResult,
     handoff_task,
     failure_reason,
     EscalationError,
@@ -186,6 +188,7 @@ def test_an_explicit_default_ladder_wins_over_derivation(tmp_path):
     assert ladder.kind == "explicit"
     assert ladder.name == "default"
     assert _names(ladder) == ["local", "strong"]
+    assert ladder.source == "escalation.yaml"
     assert ladder.rungs[0].retries == 1
     assert ladder.rungs[1].reasoning_effort == "max"
     assert ladder.skipped == ("parked (activated: false)",)
@@ -213,6 +216,7 @@ def test_an_unknown_ladder_without_any_ladders(tmp_path):
 def test_a_ladder_from_model_names(tmp_path):
     ladder = ladder_from_models(_catalog(tmp_path), ["local", "parked", "strong"])
     assert _names(ladder) == ["local", "strong"]
+    assert ladder.source == "the benchmark arm's models"
 
 
 def test_which_verdicts_escalate(tmp_path):
@@ -289,3 +293,15 @@ def test_an_unknown_failure_has_no_plain_reason():
 def test_handoff_task_finds_the_task_only_in_a_handoff():
     assert handoff_task("Note.\n\nThe task:\n\n# Title\n\nBody") == "# Title\n\nBody"
     assert handoff_task("# Title\n\nThe task: is in this sentence") is None
+
+
+def _rung(verdict, created=()):
+    return RungResult(1, "m", "x/m", verdict, 0, 1.0, None, changes=FileChanges(created=created))
+
+
+def test_which_rungs_wrote_code():
+    assert _rung("verified").wrote_code
+    assert _rung(None, created=("a.py",)).wrote_code  # failed after writing a file
+    assert not _rung(None).wrote_code  # stopped at a provider error first
+    assert not _rung("unchanged").wrote_code
+    assert not _rung("inconclusive").wrote_code

@@ -29,7 +29,7 @@ from __future__ import annotations
 import math
 import os
 from collections.abc import Callable, Sequence
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from typing import Any
 
 from .catalog_check import load_checked_catalog, usable_rungs
@@ -88,6 +88,8 @@ class ResolvedLadder:
     escalate_on_acceptance_failed: bool = False
     # Plain-language notes on rungs left out (inactive models).
     skipped: tuple[str, ...] = ()
+    # Where an explicit ladder was written, for MODEL_DECISIONS.md.
+    source: str = "escalation.yaml"
 
     @property
     def label(self) -> str:
@@ -180,7 +182,7 @@ def ladder_from_models(
 ) -> ResolvedLadder:
     """An explicit ladder from a list of model names (`certo bench` arms)."""
     ladder = Ladder(name=name, rungs=tuple(LadderRung(model=n) for n in names))
-    return explicit_ladder(catalog, ladder)
+    return replace(explicit_ladder(catalog, ladder), source="the benchmark arm's models")
 
 
 def resolve_ladder(catalog: ModelCatalog, name: str | None) -> ResolvedLadder:
@@ -343,6 +345,16 @@ class RungResult:
         return self.verdict == "inconclusive" and not (
             changes.created or changes.modified or changes.deleted
         )
+
+    @property
+    def wrote_code(self) -> bool:
+        """Whether this rung's model may have written any of the result:
+        not a rung that did no work, nor one that stopped at a provider
+        error before changing a file (seen live 2026-10-22: a rejected key
+        was credited in the project's README)."""
+        if self.did_no_work:
+            return False
+        return self.verdict is not None or _changed_any(self)
 
     def to_dict(self) -> dict[str, Any]:
         summary = self.summary

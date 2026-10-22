@@ -1899,7 +1899,7 @@ def _ladder_reason(ladder: ResolvedLadder) -> str:
             "than every cheaper one; the longest ladder is escalation.max_rungs."
         )
     else:
-        reason = f"Explicit ladder '{ladder.name}' from models_list.yaml."
+        reason = f"Explicit ladder '{ladder.name}' from {ladder.source}."
     if ladder.skipped:
         reason += f" Skipped: {', '.join(ladder.skipped)}."
     return reason

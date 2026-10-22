@@ -489,7 +489,7 @@ def test_model_decisions_records_the_ladder_every_climb_and_the_stop(tmp_path, f
         "escalation_stop",
     ]
     text = (tmp_path / "MODEL_DECISIONS.md").read_text()
-    assert "Explicit ladder 'default' from models_list.yaml." in text
+    assert "Explicit ladder 'default' from escalation.yaml." in text
     assert "Ladder (explicit ladder 'default'):" in text
     assert "- **local** (capability" in text
     assert (
