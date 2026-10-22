@@ -136,9 +136,14 @@ def execute_run(
     workspace = tempfile.mkdtemp(prefix="certo-bench-")
     isolation = tempfile.mkdtemp(prefix="certo-bench-iso-")
     messages: list[Any] = []
+    seconds: list[float] = []
+
+    def keep(message: Any) -> None:
+        messages.append(message)
+        seconds.append(round(time.monotonic() - start, 1))
 
     def recording_stream(task: str, **kwargs: Any) -> Any:
-        return stream(task, on_message=messages.append, **kwargs)
+        return stream(task, on_message=keep, **kwargs)
 
     try:
         prepare_workspace(planned.task, workspace)
@@ -161,7 +166,7 @@ def execute_run(
         except Exception as exc:  # noqa: BLE001 - recorded; the benchmark goes on
             error = f"{type(exc).__name__}: {exc}"
         wall = time.monotonic() - start
-        write_transcript(out_dir, planned.run_id, messages)
+        write_transcript(out_dir, planned.run_id, messages, seconds, started_at)
         graded = grade(planned.task, workspace)
         snapshot = out_dir / "workspaces" / planned.run_id
         if snapshot.exists():
@@ -225,16 +230,29 @@ def _message_dict(message: Any) -> Any:
         return {"text": str(message)}
 
 
-def write_transcript(out_dir: Path, run_id: str, messages: list[Any]) -> None:
+def write_transcript(
+    out_dir: Path,
+    run_id: str,
+    messages: list[Any],
+    seconds: list[float] | None = None,
+    started_at: str | None = None,
+) -> None:
     """Every message of one run (the agent's, the tools', and Certo's own
     notices), as the artifacts transcript stores them. Beside the run
-    records, not among them: `load_records` reads only `runs/*.json`."""
+    records, not among them: `load_records` reads only `runs/*.json`.
+
+    `seconds[i]` is when `messages[i]` arrived, counted from `started_at`:
+    the only way to see where a long run spent its time (a slow model
+    call, a long test run), which the 0.1.15 benchmark couldn't."""
     folder = out_dir / "runs" / "transcripts"
     folder.mkdir(parents=True, exist_ok=True)
-    _write_json(
-        folder / f"{run_id}.json",
-        {"run_id": run_id, "messages": [_message_dict(m) for m in messages]},
-    )
+    data: dict[str, Any] = {"run_id": run_id}
+    if started_at is not None:
+        data["started_at"] = started_at
+    data["messages"] = [_message_dict(m) for m in messages]
+    if seconds is not None:
+        data["seconds"] = list(seconds)
+    _write_json(folder / f"{run_id}.json", data)
 
 
 def load_records(out_dir: Path) -> list[dict[str, Any]]:

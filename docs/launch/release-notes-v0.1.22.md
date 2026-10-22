@@ -29,3 +29,9 @@ to keep what works, finish the task and add tests that check it. If that
 model also ends `inconclusive`, the project most likely has nothing Certo
 can check, and the climb stops there instead of paying for every model.
 
+## Also
+
+- **Benchmark transcripts say when each message arrived.**
+  `runs/transcripts/<run>.json` has a `seconds` list beside the messages,
+  counted from the run's start, so a slow run shows where its time went.
+

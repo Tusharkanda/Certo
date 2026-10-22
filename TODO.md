@@ -175,7 +175,8 @@ first item is the suggested next one.
     `CERTO_LLM_TIMEOUT_SECONDS` × 6 attempts (the SDK retries timeouts 5
     times). `devstral` `token-bucket` r3 (timeout 1200s) wrote its files
     in the first 6 minutes, then spent ~50 on 4 calls: 57 minutes in all.
-    Unproven, since bench transcripts carry no timestamps; add them.
+    Unproven: bench transcripts have arrival times since 0.1.22, so the
+    next slow run will show where the time went.
     Fix by pausing the conversation at the deadline (SDK
     `conversation.pause()`, verify first) and capping the per-call
     timeout at the time left.

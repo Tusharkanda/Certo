@@ -107,6 +107,11 @@ def test_each_run_keeps_its_conversation_beside_the_records(tmp_path, project_ve
     )
     assert transcript["run_id"] == "a__temperature-table__r1"
     assert transcript["messages"][0]["text"].startswith("working on: ")
+    # When each message arrived, from the start of the run.
+    assert len(transcript["seconds"]) == len(transcript["messages"])
+    assert transcript["seconds"] == sorted(transcript["seconds"])
+    assert all(s >= 0 for s in transcript["seconds"])
+    assert transcript["started_at"].endswith("+00:00")
     assert len(_records(out)) == 1  # the transcript is not read as a run record
 
 

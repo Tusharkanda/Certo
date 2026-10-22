@@ -171,7 +171,7 @@ Each benchmark writes a folder, by default `bench-results/<date-time>/`:
 | `results.csv` | One row per run, for a spreadsheet. |
 | `cost.json` | The real total cost, the cost per model, and the plan's estimate. |
 | `runs/*.json` | Every detail of each run. |
-| `runs/transcripts/<run>.json` | The run's whole conversation: the agent's messages, the tools' output and Certo's notes. Read it to see why a run ended as it did. |
+| `runs/transcripts/<run>.json` | The run's whole conversation: the agent's messages, the tools' output and Certo's notes. Read it to see why a run ended as it did. `seconds` says when each message arrived, counted from `started_at`: it shows where a long run spent its time. |
 | `workspaces/<run>/` | The code each run left behind (without `.venv` and `node_modules`). |
 | `meta.json` | Certo version, date, hardware, task set, the benchmark itself, and the plan's cost estimate. |
 
