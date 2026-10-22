@@ -823,3 +823,12 @@ considered and live-verification detail: `docs/ROADMAP.txt`.
   Existing Windows layouts can also be identified from their interpreter
   file, so portable tests exercise both layouts without replacing `os.name`.
   The test helper uses Python's installation scheme to locate site-packages.
+- **A run that ends after its time budget is still checked** (0.1.22,
+  the Author). The budget is checked only between runs, so the last run
+  can end past it; the checks need no model, so they run once, with no
+  fix attempt, and passing work is `verified` (with a limitation line).
+  Failing or missing checks stay `budget_exhausted`, now with the check
+  results; a run that ended in an error, or with checks off, is not
+  checked. The task-list gate leaves a late finish with no open items to
+  the checks. Why: three runs in the 0.1.15 local benchmark passed the
+  hidden tests and were reported `budget_exhausted` unchecked.

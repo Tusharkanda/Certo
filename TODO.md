@@ -176,13 +176,8 @@ first item is the suggested next one.
   Starter issue: [#5](https://github.com/alessioricco/certo/issues/5).
 - **Slow local models lose correct work to the time budget.** Three runs
   in the 0.1.15 local benchmark passed the hidden tests but ended
-  `budget_exhausted`. Two causes, found 2026-10-19 (documented in
-  configuration and troubleshooting, not fixed):
-  - **Certo doesn't check the work once the budget is gone**
-    (`_verify_and_report` returns `budget_exhausted` first). The checks
-    need no model; running them would turn these into `verified` or a
-    real failure. Decided 2026-10-22: run the checks, and the verdict is
-    `verified` when they pass.
+  `budget_exhausted`. Since 0.1.22 the checks run once when the last run
+  ends after the budget, so passing work is `verified`. Left:
   - **The budget can't stop a run in progress.** It is checked only
     before each `.run()`; one run makes up to 50 model calls, each up to
     `CERTO_LLM_TIMEOUT_SECONDS` × 6 attempts (the SDK retries timeouts 5

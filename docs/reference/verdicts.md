@@ -29,7 +29,7 @@ works this way is in
 | `timed_out` | A check ran longer than 300 seconds and was stopped, and it still did after the fix attempts. Usually a program that hangs or waits for input. | 1 |
 | `incomplete` | The agent's own to-do list still had open items after Certo asked it to finish them. Certo doesn't run the project's checks in this case. | 1 |
 | `confirmation_required` | Confirm mode (`CERTO_CONFIRM_MODE=always`) needed an approval and nobody could give it (server mode). The action was rejected and the task stopped. | 1 |
-| `budget_exhausted` | The task's time budget (`CERTO_MAX_TASK_SECONDS`, 30 minutes by default) ran out. | 1 |
+| `budget_exhausted` | The task's time budget (`CERTO_MAX_TASK_SECONDS`, 30 minutes by default) ran out before the work could be shown to pass. If it ran out during the agent's last step, the checks still ran once, with no fix attempt; work that passed them is `verified` instead. | 1 |
 | `acceptance_failed` | Everything else passed, but a required [acceptance check](../guides/acceptance-checks.md) failed. | 1 |
 | `stuck` | The agent's run ended in a stuck or error state instead of finishing. Certo doesn't verify a run that broke off; `certo verify` checks the files it left. A run that used all its steps (`CERTO_MAX_ITERATIONS`) is checked instead, and ends `stuck` only when the checks can't show the task is done. | 1 |
 
@@ -94,7 +94,9 @@ no file.
 Certo checks, in this order, and stops at the first that applies:
 
 1. Before and during every agent run (the first one and each retry): is
-   the time budget used up? → `budget_exhausted`. Did confirm mode need an
+   the time budget used up? → `budget_exhausted`. When the agent's last
+   run ended after the budget, the checks still run once, with no fix
+   attempt, and passing work is `verified`. Did confirm mode need an
    answer nobody could give? → `confirmation_required`
 2. After a run: did it end stuck or in error? → `stuck`. Not when the
    only error is that the agent used all its steps (`CERTO_MAX_ITERATIONS`):

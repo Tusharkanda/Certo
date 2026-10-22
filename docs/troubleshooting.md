@@ -454,11 +454,14 @@ failed after the allowed attempts.
 minutes by default). Certo checks the budget only between runs of the
 agent, so a task can end well past it: one model call can wait up to
 `CERTO_LLM_TIMEOUT_SECONDS` and be tried again up to 5 times. When the
-budget is gone, Certo doesn't run the project's checks either, so the work
-may be fine.
+agent's last run ends after the budget, Certo still runs the project's
+checks once: if they pass, the verdict is `verified`, not this one. So
+`budget_exhausted` means the checks failed or couldn't run, or the time
+ran out before a fix attempt; the check results are shown above the
+verdict.
 
-**Fix:** run `certo verify` on the folder to check the work without a
-model. If the model is slow, see [very slow steps](#every-step-is-very-slow).
+**Fix:** if the checks failed, there was no time left to fix them. If the
+model is slow, see [very slow steps](#every-step-is-very-slow).
 Otherwise split the task into smaller ones, or raise
 `CERTO_MAX_TASK_SECONDS`. The work done so far stays in the folder, and
 `certo --resume` continues it with a fresh time budget.

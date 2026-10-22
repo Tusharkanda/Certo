@@ -610,18 +610,73 @@ def test_run_with_confirmation_reports_budget_exhausted_mid_confirm_loop(monkeyp
     assert conversation.run_calls == 1  # the initial run only — no approved retry
 
 
-def test_verify_and_report_reports_budget_exhausted_at_entry(monkeypatch):
+def test_verify_and_report_checks_the_work_when_the_budget_ran_out_and_it_passes(monkeypatch):
+    # The budget is checked only between runs, so the last run can end after
+    # it. The checks need no model: passing work is verified, with a note,
+    # and no fix attempt is made.
     monkeypatch.setattr(
         runner, "_run_verification", lambda _dir, *_a: _run(_check(summary="3 passed"))
     )
     conversation = _FakeConversation()
+    notices: list = []
 
     outcome = runner._verify_and_report(
-        conversation, _cfg(verify_tests="always"), lambda _m: None, "do the thing", deadline=-1.0
+        conversation, _cfg(verify_tests="always"), notices.append, "do the thing", deadline=-1.0
+    )
+
+    assert outcome.verification_state == "verified"
+    assert len(outcome.checks) == 1
+    assert any(
+        "ran out before the agent finished" in n for n in outcome.completion_contract.limitations
+    )
+    assert any("time budget" in str(n) for n in notices)
+    assert conversation.run_calls == 0
+
+
+def test_verify_and_report_keeps_budget_exhausted_with_the_checks_when_they_fail(monkeypatch):
+    monkeypatch.setattr(
+        runner,
+        "_run_verification",
+        lambda _dir, *_a: _run(_check(status="failed", exit_code=1, summary="1 failed")),
+    )
+    conversation = _FakeConversation()
+
+    outcome = runner._verify_and_report(
+        conversation,
+        _cfg(verify_tests="always", max_verify_retries=5),
+        lambda _m: None,
+        "do the thing",
+        deadline=-1.0,
     )
 
     assert outcome.verification_state == "budget_exhausted"
-    assert conversation.run_calls == 0
+    assert [c.status for c in outcome.checks] == ["failed"]
+    assert outcome.retries_used == 0
+    assert conversation.run_calls == 0  # no time left for a fix attempt
+
+
+@pytest.mark.parametrize(
+    ("status", "verify_tests"),
+    [
+        (ConversationExecutionStatus.ERROR, "always"),
+        (ConversationExecutionStatus.FINISHED, "never"),
+    ],
+)
+def test_verify_and_report_skips_the_checks_after_the_budget_for_an_error_or_checks_off(
+    monkeypatch, status, verify_tests
+):
+    def _must_not_verify(*_a):
+        raise AssertionError("checks must not run")
+
+    monkeypatch.setattr(runner, "_run_verification", _must_not_verify)
+    conversation = _FakeConversation(initial_status=status)
+
+    outcome = runner._verify_and_report(
+        conversation, _cfg(verify_tests=verify_tests), lambda _m: None, "do", deadline=-1.0
+    )
+
+    assert outcome.verification_state == "budget_exhausted"
+    assert outcome.checks == ()
 
 
 def test_verify_and_report_reports_budget_exhausted_mid_retry(monkeypatch):
@@ -662,6 +717,21 @@ def test_enforce_task_tracker_completion_reports_budget_exhausted_at_entry():
 
     assert outcome is not None
     assert outcome.verification_state == "budget_exhausted"
+    assert conversation.run_calls == 0
+
+
+@pytest.mark.parametrize(
+    "events", [[], [_task_list_event({"title": "B", "status": "done"})]], ids=["no-list", "done"]
+)
+def test_enforce_task_tracker_completion_leaves_a_late_finish_to_the_checks(events):
+    # Budget gone, but nothing left on the list: the project's checks decide.
+    conversation = _FakeConversation(initial_events=events)
+
+    outcome = runner._enforce_task_tracker_completion(
+        conversation, _cfg(max_verify_retries=2), lambda _m: None, "do the thing", deadline=-1.0
+    )
+
+    assert outcome is None
     assert conversation.run_calls == 0
 
 

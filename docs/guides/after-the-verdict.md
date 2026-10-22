@@ -144,7 +144,10 @@ Fix the check before you use it again.
 ## `budget_exhausted`
 
 The task's time budget (`CERTO_MAX_TASK_SECONDS`, 30 minutes by default)
-ran out. The work so far is in the folder.
+ran out, and the work so far couldn't be shown to pass: either the
+checks failed, or the time ran out before a fix attempt. (If the budget
+runs out during the agent's last step and the checks then pass, the
+verdict is `verified`.) The work so far is in the folder.
 
 - `certo --resume` continues with a fresh time budget.
 - If every step is slow, the model is probably too big for your machine:

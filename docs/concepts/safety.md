@@ -33,7 +33,9 @@ Three limits stop a task that goes wrong:
 The step limit applies to each run separately, and a task can have
 several runs (the first one, then retries). The time budget covers all of
 them. It is checked between runs, so one very slow step can go a little
-past it. When it runs out, the verdict is `budget_exhausted`. Time spent
+past it. When it runs out, the verdict is `budget_exhausted`, unless the
+agent's last step went past it and the checks then pass: work that passes
+is `verified`. Time spent
 waiting for your answer in interactive mode doesn't count.
 
 ## Confirm mode

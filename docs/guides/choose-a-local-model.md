@@ -20,8 +20,9 @@ Three things matter, in this order:
    `verified` but wrong (see
    [Write a task Certo can check](write-a-good-task.md#3-give-the-expected-answers-yourself)).
 3. **It is fast enough.** A task has a 30-minute budget by default
-   (`CERTO_MAX_TASK_SECONDS`). A model that is right but slow ends
-   `budget_exhausted`.
+   (`CERTO_MAX_TASK_SECONDS`). A model that is right but slow can end
+   `budget_exhausted`: its work is still checked if its last step ends
+   after the budget, but there is no time left for a fix attempt.
 
 ## What Certo's benchmark found
 

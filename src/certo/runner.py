@@ -773,6 +773,57 @@ def _run_with_confirmation(
     return _RUN_OK
 
 
+def _verify_after_budget(
+    conversation: Conversation,
+    cfg: Config,
+    emit: Callable[[Message], None],
+    task: str,
+    runner: CommandRunner | None,
+    on_verification: Callable[[VerificationRun], None] | None,
+) -> TaskOutcome:
+    """The time budget ran out while the agent's last run was still going
+    (it is checked only between runs). The checks need no model, so they
+    run once, with no fix attempt: work that passes is `verified`, anything
+    else stays `budget_exhausted`, now with the check results. Found by the
+    0.1.15 local benchmark: three slow runs passed the hidden tests but
+    were reported `budget_exhausted` unchecked. A run that ended in an
+    error, or with checks turned off, stays `budget_exhausted` as before."""
+    exhausted = TaskOutcome(
+        verification_state="budget_exhausted",
+        completion_contract=_budget_exhausted_contract(task, cfg),
+    )
+    status = conversation.state.execution_status
+    if cfg.verify_tests != "always" or (
+        status in _ABORTED_STATUSES and not _hit_step_limit(conversation)
+    ):
+        return exhausted
+    run = _run_verification(os.path.abspath(cfg.workspace), runner)
+    _emit_verification_notices(emit, run)
+    if on_verification is not None:
+        on_verification(run)
+    if run.state != "verified":
+        return replace(exhausted, checks=tuple(run.checks))
+    _emit_notice(
+        emit,
+        "Certo: the time budget "
+        f"(CERTO_MAX_TASK_SECONDS={cfg.max_task_seconds}) ran out during the agent's "
+        "last step, but the project's checks pass, so the work is verified.",
+    )
+    contract = _build_completion_contract(task, run, skipped=False, aborted=False)
+    limitations = [
+        *contract.limitations,
+        (
+            "The time budget ran out before the agent finished its last step; the "
+            "checks ran once afterwards, with no time left for a fix attempt."
+        ),
+    ]
+    return TaskOutcome(
+        verification_state="verified",
+        completion_contract=replace(contract, limitations=limitations),
+        checks=tuple(run.checks),
+    )
+
+
 def _verify_and_report(
     conversation: Conversation,
     cfg: Config,
@@ -796,10 +847,7 @@ def _verify_and_report(
     bug the model can't fix, doesn't loop forever.
     """
     if time.monotonic() >= deadline:
-        return TaskOutcome(
-            verification_state="budget_exhausted",
-            completion_contract=_budget_exhausted_contract(task, cfg),
-        )
+        return _verify_after_budget(conversation, cfg, emit, task, runner, on_verification)
 
     status = conversation.state.execution_status
     step_limited = status in _ABORTED_STATUSES and _hit_step_limit(conversation)
@@ -1051,10 +1099,19 @@ def _enforce_task_tracker_completion(
     for this closely related concern.
     """
     if time.monotonic() >= deadline:
-        return TaskOutcome(
-            verification_state="budget_exhausted",
-            completion_contract=_budget_exhausted_contract(task, cfg),
-        )
+        # The budget is checked only between runs, so the agent's last run
+        # can end after it. The list needs no model: unfinished items can't
+        # be followed up any more, but a finished list leaves the verdict to
+        # the project's checks (see _verify_after_budget).
+        status = conversation.state.execution_status
+        aborted = status in _ABORTED_STATUSES and not _hit_step_limit(conversation)
+        snapshot = None if aborted else _task_tracker_snapshot(conversation)
+        if aborted or (snapshot is not None and _pending_task_items(snapshot)):
+            return TaskOutcome(
+                verification_state="budget_exhausted",
+                completion_contract=_budget_exhausted_contract(task, cfg),
+            )
+        return None
 
     status = conversation.state.execution_status
     if status in _ABORTED_STATUSES and _hit_step_limit(conversation):
