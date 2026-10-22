@@ -13,9 +13,9 @@ Certo runs coding tasks on any model, local or cloud. It can pick the best model
 
 It knows when to switch because it doesn't take the agent's word for it: when the agent says it's done, Certo runs your real tests and build itself, with no AI involved, and ends with one verdict and an exit code a script can rely on. *Certo* is Italian for "sure".
 
-[![A task moves from claude-sonnet-5-5 to gpt-5.6-luna when Anthropic rejects the key, and still ends verified](https://raw.githubusercontent.com/alessioricco/certo/main/docs/assets/escalation-provider-failure-0.1.22.gif)](https://github.com/alessioricco/certo/blob/main/docs/benchmark/escalation-provider-failure-0.1.22.md)
+[![A task moves from claude-sonnet-5-5 to gpt-5.6-luna when Anthropic rejects the key, and still ends verified](https://raw.githubusercontent.com/alessioricco/Certo/main/docs/assets/escalation-provider-failure-0.1.22.gif)](https://github.com/alessioricco/Certo/blob/main/docs/benchmark/escalation-provider-failure-0.1.22.md)
 
-*A real run: the first model's key was rejected (invalid on purpose, for the demo), so Certo handed the task to the next model, which passed the checks. 1m 32s, $0.02. [The record of this run](https://github.com/alessioricco/certo/blob/main/docs/benchmark/escalation-provider-failure-0.1.22.md).*
+*A real run: the first model's key was rejected (invalid on purpose, for the demo), so Certo handed the task to the next model, which passed the checks. 1m 32s, $0.02. [The record of this run](https://github.com/alessioricco/Certo/blob/main/docs/benchmark/escalation-provider-failure-0.1.22.md).*
 
 ```bash
 pip install certo
