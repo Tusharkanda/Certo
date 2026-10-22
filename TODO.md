@@ -14,24 +14,10 @@ first item is the suggested next one.
 
 ## Before the next release
 
-- **A recorded demo of escalation on a provider failure.** Urgent: it
-  checks live an assumption Certo's escalation rests on, that `--escalate`
-  climbs to the next rung when a provider fails. Only `--auto-model`'s
-  switch on a provider failure has been seen live (2026-10-19). A short GIF
-  for the top of the README: a task moves to another provider's model
-  when the first fails, and still ends `verified`. Setup: a two-rung
-  ladder across providers in `escalation.yaml` (for example
-  `claude-sonnet-5-5` → `gpt-5.6-luna`, chosen 2026-10-22), with an invalid key for
-  rung 1 in `models.yaml`; the bundled Wordle task, with `--escalate`.
-  The dry run was done on 2026-10-22: the climb worked (rung 1 failed in
-  1.4s, `gpt-5.6-luna` ended `verified` in 2m 26s, $0.03), and the
-  rung-failure line was made plain and printed once. Alessio records the real run with
-  asciinema and converts it to a GIF. Add a record page for that run
-  under `docs/benchmark/`, like `escalation-wordle-0.1.19.md`, and link
-  the GIF to it. The caption says rung 1's key was rejected for the demo;
-  don't call it an outage. Related: a small `certo bench` run of the
-  Haiku → Sonnet ladder, so the README can drop one "not benchmarked
-  yet" ([#24](https://github.com/alessioricco/certo/issues/24), open for contributors). Done when the GIF is in the README, linked to its record page.
+- **A small `certo bench` run of the Haiku → Sonnet ladder**, so the
+  README can drop one "not benchmarked yet"
+  ([#24](https://github.com/alessioricco/certo/issues/24), open for
+  contributors).
 - **Run the new sample tasks on a local model.** `hanoi.md`,
   `mazeman.md`, `invaders.md` and `space-rocks.md` each ended `verified`
   once on `claude-sonnet-5-5` (2026-10-21, 37s to 2m34s, $0.11 to $0.43),

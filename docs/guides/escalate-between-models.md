@@ -331,6 +331,9 @@ produced the final result** show where the money went. See
 
 Certo's own run of two ladders, with the numbers, is
 [Escalation in 0.1.17](../benchmark/escalation-0.1.17.md).
+A recorded run where the first model's provider fails (its key was
+rejected on purpose) and the next model finishes the task is
+[Escalation past a provider failure](../benchmark/escalation-provider-failure-0.1.22.md).
 
 ## Related
 

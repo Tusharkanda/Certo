@@ -51,7 +51,12 @@ can check, and the climb stops there instead of paying for every model.
   printed twice), the SDK's warning about an unshown error event is gone,
   the next model is no longer told that a model which never started
   "couldn't finish", and its `Task:` line shows the task's title, not the
-  start of Certo's note.
+  start of Certo's note. A rung that stopped at a provider error before
+  changing a file is no longer credited in the project's `README.md`,
+  and `MODEL_DECISIONS.md` says an explicit ladder comes from
+  `escalation.yaml` (it said `models_list.yaml`). Seen live in a recorded
+  run, now at the top of the README:
+  [Escalation past a provider failure](../benchmark/escalation-provider-failure-0.1.22.md).
 - **Benchmark transcripts say when each message arrived.**
   `runs/transcripts/<run>.json` has a `seconds` list beside the messages,
   counted from the run's start, so a slow run shows where its time went.
