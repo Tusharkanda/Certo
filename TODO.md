@@ -32,7 +32,7 @@ first item is the suggested next one.
   the GIF to it. The caption says rung 1's key was rejected for the demo;
   don't call it an outage. Related: a small `certo bench` run of the
   Haiku → Sonnet ladder, so the README can drop one "not benchmarked
-  yet". Done when the GIF is in the README, linked to its record page.
+  yet" ([#24](https://github.com/alessioricco/certo/issues/24), open for contributors). Done when the GIF is in the README, linked to its record page.
 - **Run the new sample tasks on a local model.** `hanoi.md`,
   `mazeman.md`, `invaders.md` and `space-rocks.md` each ended `verified`
   once on `claude-sonnet-5-5` (2026-10-21, 37s to 2m34s, $0.11 to $0.43),
@@ -79,7 +79,7 @@ first item is the suggested next one.
   every release (local vs cloud, fooled rate, cost per solved task), and
   a README badge. 0.1.13, 0.1.15 and 0.1.18 (local only) exist; no badge
   yet. A `qwen2.5-coder:7b` arm would replace "unmeasured" for the
-  small-machine suggestion.
+  small-machine suggestion ([#18](https://github.com/alessioricco/certo/issues/18) asks contributors for local runs).
 - **Bench task set v2: app-scale tasks.** Multi-file, multi-language: Go
   REST API with a database, React frontend + API, Rust CLI with
   subcommands, a fix inside an existing mid-size repo. Grading supports
@@ -154,7 +154,8 @@ first item is the suggested next one.
   ships a browser tool) for a blank page or console errors.
 - **Node: "no tests" counts as verified.** `node --test` exits 0 with no
   test files, so `npm test` passes. Found by the first bench integration
-  run (2026-10-16). Documented, not fixed.
+  run (2026-10-16). Documented, not fixed. Open for contributors:
+  [#23](https://github.com/alessioricco/certo/issues/23).
 - **Node: detect jest/vitest/mocha.** Today `build`/`test` scripts run as
   opaque commands; the runner and its results aren't parsed.
 - **Node: infer ESLint/`tsc` from config**, as `_ruff_configured()` does
@@ -162,7 +163,8 @@ first item is the suggested next one.
 - **Java: a Maven/Gradle toolchain** in the Docker image and the dev
   environment. Java is detection-only in both today.
 - **New ecosystems**, in order: C#/.NET, PHP (Composer), Ruby, Kotlin/
-  Android (Gradle), C/C++ (CMake), Swift.
+  Android (Gradle), C/C++ (CMake), Swift. Open for contributors: Ruby
+  [#19](https://github.com/alessioricco/certo/issues/19), PHP [#20](https://github.com/alessioricco/certo/issues/20), .NET [#21](https://github.com/alessioricco/certo/issues/21), Swift [#22](https://github.com/alessioricco/certo/issues/22).
 - **Interactive programs can't be driven** (menus, `SOLVE`-style choices).
   Deliberately not built: no safe general way to guess input. Would need
   the agent to declare an interaction script. Keep as a known gap unless
