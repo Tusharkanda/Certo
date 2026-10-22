@@ -15,3 +15,17 @@ no model. Work that passes is `verified`, with a note that the budget ran
 out. Work that fails stays `budget_exhausted`, and the check results are
 shown. A run that ended in an error, or with checks turned off, is
 reported as before.
+
+## Changed: escalation moves on when nothing could be checked
+
+With `--escalate`, a model that wrote code but nothing Certo could check
+(no test ran) ended `inconclusive`, and the climb stopped there. In the
+0.1.17 escalation run, a local model wrote the module, then wrote its test
+file as plain text instead of a tool call, so the next model was never
+asked.
+
+Now `inconclusive` moves the task to the next model, with a note asking it
+to keep what works, finish the task and add tests that check it. If that
+model also ends `inconclusive`, the project most likely has nothing Certo
+can check, and the climb stops there instead of paying for every model.
+

@@ -172,9 +172,8 @@ limitation below.
   there is nothing to run. See
   [Verification by language](reference/verification-by-language.md#node-in-detail).
 - **Escalation climbs only on a verification signal or a provider
-  failure.** A rung that wrote files the project can't check (code with
-  no tests) ends `inconclusive` and stops the climb; a rung that changed
-  no file at all climbs.
+  failure.** In a project with nothing to check, each rung ends
+  `inconclusive`: the task moves to one more model, then the climb stops.
   In Docker mode a provider failure can't be told apart from another run
   error. See [Escalate between models](guides/escalate-between-models.md).
 - **Resume in Docker mode starts a new conversation**: the agent gets the

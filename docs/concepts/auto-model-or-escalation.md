@@ -94,14 +94,15 @@ Two things follow from how it works:
    attempts.
 3. **It reads the verdict.** `verified` ends the task. A verdict that says
    the model couldn't finish (`retry_exhausted`, `no_progress`,
-   `timed_out`, `incomplete`, `stuck`), `unchanged` (the model changed no
-   file) or a provider failure moves the task to the next rung. The next model starts a new conversation in the
+   `timed_out`, `incomplete`, `stuck`), `inconclusive` (nothing could be
+   checked), `unchanged` (the model changed no file) or a provider failure
+   moves the task to the next rung. The next model starts a new conversation in the
    same folder, with the files as they are, the failing checks, and a note
    from Certo on what the previous model did.
 4. **It stops** at `verified`, at a verdict that gives no reason to climb
-   (`inconclusive`, `budget_exhausted`, `confirmation_required`), when
-   `CERTO_MAX_TASK_COST` is reached, when two rungs in a row end
-   `unchanged`, or after the last rung.
+   (`budget_exhausted`, `confirmation_required`), when
+   `CERTO_MAX_TASK_COST` is reached, when two rungs in a row change no
+   file or both end `inconclusive`, or after the last rung.
 
 The full list of verdicts and what each does is in
 [Escalate between models](../guides/escalate-between-models.md#what-makes-certo-climb).
@@ -127,9 +128,9 @@ claude-sonnet.
   want to pay for a strong model only when it can't. This is the main
   use case.
 - The project has tests or a build that Certo can run. Escalation climbs
-  on Certo's verdict, so it needs something to verify. A project with
-  nothing to check ends `inconclusive` and doesn't climb (unless the model
-  wrote no file at all).
+  on Certo's verdict, so it needs something to verify. In a project with
+  nothing to check, each model ends `inconclusive`, and the climb stops
+  after two of them.
 - You run many tasks unattended (a batch, a benchmark, CI) and want the
   total cost low without picking a model per task.
 

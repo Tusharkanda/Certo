@@ -215,11 +215,17 @@ def test_a_ladder_from_model_names(tmp_path):
 
 def test_which_verdicts_escalate(tmp_path):
     ladder = resolve_ladder(_catalog(tmp_path, _LADDERS), "cloud")
-    for verdict in ("retry_exhausted", "no_progress", "timed_out", "incomplete", "stuck"):
+    for verdict in (
+        "retry_exhausted",
+        "no_progress",
+        "timed_out",
+        "incomplete",
+        "stuck",
+        "inconclusive",
+    ):
         assert ladder.escalates_on(verdict), verdict
     for verdict in (
         "verified",
-        "inconclusive",
         "budget_exhausted",
         "confirmation_required",
         "acceptance_failed",

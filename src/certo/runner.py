@@ -1970,9 +1970,9 @@ def _stream_escalation(
     """Run `task` up `ladder`: each rung is the normal run (verification,
     retries, to-do enforcement) in a fresh conversation with its own model,
     in the same workspace. Stops at the first verdict that doesn't escalate
-    (see `ResolvedLadder.escalates_on`; an `inconclusive` rung that changed no
-    file does, see `RungResult.did_no_work`), after two rungs in a row that
-    did no work, at the last rung, when the shared
+    (see `ResolvedLadder.escalates_on`), after two rungs in a row that did no
+    work (see `RungResult.did_no_work`) or that both ended `inconclusive`,
+    at the last rung, when the shared
     time budget or `CERTO_MAX_TASK_COST` is spent, or when the user declines
     a climb. The final verdict is the last rung's.
 
@@ -2156,17 +2156,23 @@ def _stream_escalation(
                     )
                     break
                 if (
-                    outcome is not None
-                    and not result.did_no_work
-                    and not ladder.escalates_on(outcome.verification_state)
+                    result.verdict == "inconclusive"
+                    and previous is not None
+                    and previous.verdict == "inconclusive"
                 ):
-                    if outcome.verification_state == "inconclusive":
-                        io.notify(
-                            f"Certo: {rung.name} ended inconclusive: nothing in the project "
-                            "could be checked, so there is no signal to escalate on. "
-                            "Escalation needs a project with something to check, such as "
-                            "tests or a build."
-                        )
+                    io.notify(
+                        f"Certo: {rung.name} ended inconclusive too, after {previous.name}: two "
+                        "models in a row left nothing Certo could check, so escalation stops. "
+                        "Escalation needs a project with something to check, such as tests "
+                        "or a build."
+                    )
+                    decide(
+                        "escalation_stop",
+                        rung.name,
+                        f"{rung.name} and {previous.name} both ended inconclusive.",
+                    )
+                    break
+                if outcome is not None and not ladder.escalates_on(outcome.verification_state):
                     decide(
                         "escalation_stop",
                         rung.name,

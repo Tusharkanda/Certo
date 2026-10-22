@@ -76,14 +76,6 @@ first item is the suggested next one.
   a cloud model (qwen3.8 is about 3× faster; gemma never wrote tool calls
   as text, qwen3.8's only failure mode). Bench it as three arms: each
   model alone, and the ladder.
-- **An `inconclusive` rung that wrote code but no tests stops the
-  ladder.** 0.1.17 escalation run, `q36-ladder` · `temperature-table`:
-  qwen3.6 wrote the module, then its test file as a text tool call, so
-  nothing could be checked and haiku was never asked. Decide whether a
-  rung whose last message is a tool call written as text should climb.
-  Decided 2026-10-22: it climbs (the simpler of the two options; the next
-  rung is already told what the last one left). Done when built, tested
-  and recorded in DECISIONS.md.
 - **Re-verify the "confident but wrong" fixes live**: #1, #3, #5, #10
   and #6 for Java in `ARCHITECTURE.md` say "not re-verified live" (#2, #4
   and #6 for Go/Rust were, 2026-10-19). #1 and #5 are hard to trigger on

@@ -832,3 +832,12 @@ considered and live-verification detail: `docs/ROADMAP.txt`.
   checked. The task-list gate leaves a late finish with no open items to
   the checks. Why: three runs in the 0.1.15 local benchmark passed the
   hidden tests and were reported `budget_exhausted` unchecked.
+- **An `inconclusive` rung climbs** (0.1.22, the Author; supersedes the
+  0.1.17 rule that it climbs only when the rung changed no file). A model
+  that wrote code but no tests (in the 0.1.17 escalation run, its test
+  file was a tool call written as text) leaves the next model something
+  to finish; the handoff asks it to add the missing tests. Of the two
+  options (just climb, or climb and ask for tests first), the simpler was
+  chosen; the handoff note covers the second. Two `inconclusive` rungs in
+  a row stop the climb, so a project with nothing to check doesn't pay
+  for every rung.

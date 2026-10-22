@@ -146,17 +146,20 @@ model), write an explicit ladder.
 | `retry_exhausted`, `no_progress`, `timed_out`, `incomplete`, `stuck` | Climb to the next rung. |
 | The model used all its steps (`CERTO_MAX_ITERATIONS`) | The checks run first. If they pass, stop: `verified`. If they fail, the rung gets its fix attempts, then climbs like any failure. |
 | `acceptance_failed` | Stop, unless the ladder sets `escalate_on_acceptance_failed: true`. |
-| `inconclusive`, and the model changed files | Stop. |
-| `inconclusive`, and the model changed no file | Climb, unless the rung before also changed no file: then stop. |
+| `inconclusive` | Climb, unless the rung before also ended `inconclusive`, or both changed no file: then stop. |
 | `unchanged` | Climb, unless the rung before also changed no file: then stop. |
 | `budget_exhausted`, `confirmation_required` | Stop: these are your own limits. |
 | A provider failure (outage, rate limit, rejected key) | Climb, recorded as a provider failure rather than a quality failure. |
 
-**Why `inconclusive` usually stops.** It means there was nothing to
-check: no tests, no build. When the model wrote files and none of them can
-be checked, a stronger model would face the same blank, so Certo stops and
-says so. Escalation needs a project with something to check. Ask for tests
-in the task ("with pytest tests") to give it one.
+**Why `inconclusive` climbs, but only once in a row.** It means nothing
+could be checked: no test ran, or no check could run. Often the model
+wrote the code and not the tests, for example because it wrote its last
+tool call as text. The next model gets the files and a note asking it to
+finish the task and add tests that check it. If that model also ends
+`inconclusive`, the project most likely has nothing Certo can check (a
+plain HTML page, a missing tool such as `npm`), and Certo stops instead of
+paying for every rung. Asking for tests in the task ("with pytest tests")
+avoids this.
 
 **Why a model that changed nothing climbs, but only once in a row.** The
 model did no work: it ended `unchanged` (see
@@ -207,6 +210,10 @@ FAILED tests/test_wordle.py::test_repeated_letters - AssertionError: assert ['pr
 1 failed, 7 passed in 0.12s
 ...
 ```
+
+When the previous model ended `inconclusive` after writing files, the
+note says so instead, and asks the next model to keep what works, finish
+the task and add tests that check it.
 
 The file lists come from a listing of the folder before and after the
 rung, leaving out caches, environments (`.venv`, `node_modules`) and

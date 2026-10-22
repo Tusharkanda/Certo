@@ -208,10 +208,9 @@ def test_these_verdicts_climb_to_the_next_rung(tmp_path, fake_run, verdict):
 
 
 @pytest.mark.parametrize(
-    "verdict", ["inconclusive", "budget_exhausted", "confirmation_required", "acceptance_failed"]
+    "verdict", ["budget_exhausted", "confirmation_required", "acceptance_failed"]
 )
 def test_these_verdicts_stop_the_climb(tmp_path, fake_run, verdict):
-    # The rung wrote a file: an `inconclusive` rung that wrote none climbs.
     fake_run.script[:] = [(verdict, 0.0, {"app.py": "x"})]
     outcome, _ = _run(tmp_path, _ladder(tmp_path))
 
@@ -219,10 +218,38 @@ def test_these_verdicts_stop_the_climb(tmp_path, fake_run, verdict):
     assert len(outcome.rungs) == 1
 
 
-def test_inconclusive_says_escalation_needs_something_to_check(tmp_path, fake_run):
-    fake_run.script[:] = [("inconclusive", 0.0, {"app.py": "x"})]
-    _, progress = _run(tmp_path, _ladder(tmp_path))
-    assert any("Escalation needs a project with something to check" in p for p in progress)
+def test_inconclusive_with_files_climbs_and_asks_for_tests(tmp_path, fake_run):
+    """The 0.1.17 escalation run: a local model wrote the module, then its
+    test file as a tool call written as text, so nothing could be checked
+    and the next model was never asked."""
+    fake_run.script[:] = [("inconclusive", 0.0, {"app.py": "x"}), ("verified", 0.0, {})]
+    outcome, progress = _run(tmp_path, _ladder(tmp_path))
+
+    assert [r.verdict for r in outcome.rungs] == ["inconclusive", "verified"]
+    assert outcome.verification_state == "verified"
+    assert (
+        "Certo: local ended inconclusive: it changed files, but nothing could be checked; "
+        "escalating to mid (rung 2 of 3)." in progress
+    )
+    handoff = fake_run.calls[1]["first_message"]
+    assert "left nothing Certo could check" in handoff
+    assert "add tests that check what the task asks" in handoff
+
+
+def test_two_inconclusive_rungs_in_a_row_stop_the_climb(tmp_path, fake_run):
+    # Nothing in the project can be checked (a plain HTML page, a missing
+    # tool): climbing on would pay for every rung and face the same blank.
+    fake_run.script[:] = [
+        ("inconclusive", 0.0, {"index.html": "x"}),
+        ("inconclusive", 0.0, {"style.css": "y"}),
+        ("verified", 0.0, {}),
+    ]
+    outcome, progress = _run(tmp_path, _ladder(tmp_path))
+
+    assert outcome.verification_state == "inconclusive"
+    assert len(outcome.rungs) == 2
+    assert any("two models in a row left nothing Certo could check" in p for p in progress)
+    assert outcome.model_decisions[-1].kind == "escalation_stop"
 
 
 def test_acceptance_failed_climbs_when_the_ladder_opts_in(tmp_path, fake_run):

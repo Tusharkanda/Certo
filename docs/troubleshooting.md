@@ -40,7 +40,7 @@ setting comes from and makes one small call to the model.
   [problems](#the-model-files-have-problems),
   [warnings](#warnings-about-the-model-files),
   [`--escalate` refuses to start](#--escalate-refuses-to-start),
-  [stops with inconclusive](#escalation-stops-on-the-first-rung-with-inconclusive),
+  [stops after two `inconclusive` rungs](#escalation-stops-after-two-rungs-with-inconclusive),
   [stops before the last rung](#escalation-stops-before-the-last-rung),
   [`--models` failures](#certo-check---models-a-model-fails)
 - Benchmark: [no bench.yaml or model files](#certo-bench-no-benchyaml-or-model-files),
@@ -590,18 +590,18 @@ once.
 | `--model can't be used while CERTO_MODEL_SELECTION=escalate` | Drop `--model`, or set `CERTO_MODEL_SELECTION=manual` for this run. |
 | `--resume can't be combined with escalation` | Resume without `--escalate`: it continues the last model's conversation. |
 
-### Escalation stops on the first rung with `inconclusive`
+### Escalation stops after two rungs with `inconclusive`
 
-**You see:** `Certo: ... ended inconclusive: nothing in the project could
-be checked, so there is no signal to escalate on.`
+**You see:** `Certo: ... ended inconclusive too, after ...: two models in a
+row left nothing Certo could check, so escalation stops.`
 
-**Cause:** the model wrote files, but the project has no tests or build to
-run, so Certo can't tell whether the model succeeded. A stronger model
-would face the same blank. (When the model wrote no file at all, Certo
-climbs to the next model instead.)
+**Cause:** neither model left anything Certo could run: no test ran, or no
+check could run (no tests or build in the project, or a missing tool such
+as `npm`). A third model would most likely face the same blank, so Certo
+stops instead of paying for it.
 
 **Fix:** ask for tests in the task ("... with pytest tests"), or add them
-first. See [`inconclusive`: the project has no tests](#inconclusive-the-project-has-no-tests).
+first. If a tool is missing, install it. See [`inconclusive`: the project has no tests](#inconclusive-the-project-has-no-tests).
 
 ### Escalation stops before the last rung
 

@@ -480,7 +480,7 @@ def test_earlier_results_give_a_likely_cost(tmp_path, monkeypatch, capsys):
             _single("local-coder", "ollama/qwen3-coder:30b", "verified"),
             _single("local-coder", "ollama/qwen3-coder:30b", "retry_exhausted"),
             _single("cloud-a", "anthropic/test-model-a", "verified"),
-            _single("cloud-a", "anthropic/test-model-a", "inconclusive"),
+            _single("cloud-a", "anthropic/test-model-a", "budget_exhausted"),
             {
                 "strategy": "escalate",
                 "models": [],
