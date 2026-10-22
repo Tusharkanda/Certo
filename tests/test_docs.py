@@ -15,7 +15,7 @@ from pathlib import Path
 import pytest
 
 from certo import admin_cli, bench, cli, config, init_cmd, init_models, models_cmd, server
-from certo.custom_tools.run_tests_tool import CHECK_STATUSES
+from certo.verification import CHECK_STATUSES
 from certo.runner import VERIFICATION_STATES
 
 _ROOT = Path(__file__).resolve().parent.parent

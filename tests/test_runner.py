@@ -26,7 +26,7 @@ from openhands.tools.task_tracker import TaskTrackerObservation, TaskTrackerTool
 from certo import runner
 from certo.acceptance import AcceptanceCheck
 from certo.config import Config, ConfigError, load_config
-from certo.custom_tools.run_tests_tool import CheckOutcome, VerificationRun
+from certo.verification import CheckOutcome, VerificationRun
 
 _REAL_AGENT_CHANGED_FILES = runner._agent_changed_files
 

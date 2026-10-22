@@ -51,7 +51,7 @@ _SETUP_TIMEOUT_SECONDS = 300
 _PROBE_TIMEOUT_SECONDS = 120
 
 # The same directories project detection skips (kept in sync by hand:
-# run_tests_tool imports this module, not the other way round).
+# verification.py imports this module, not the other way round).
 _SKIP_DIRS = {
     "node_modules",
     ".git",

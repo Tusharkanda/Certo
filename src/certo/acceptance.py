@@ -1,6 +1,6 @@
 """Optional, caller-supplied machine-checkable acceptance criteria.
 
-Distinct from `custom_tools/run_tests_tool.py`'s project-health checks
+Distinct from `verification.py`'s project-health checks
 (tests/lint/build, inferred from project metadata): these are checks the
 *caller* explicitly supplies for one specific task ("does the file this
 task asked for exist", "does it contain what was asked"), evaluated by the

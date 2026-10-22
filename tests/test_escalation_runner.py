@@ -16,7 +16,7 @@ from openhands.sdk.llm.exceptions.types import LLMRateLimitError
 
 from certo import runner
 from certo.config import Config
-from certo.custom_tools.run_tests_tool import CheckOutcome
+from certo.verification import CheckOutcome
 from certo.escalation import ladder_from_models, resolve_ladder
 from certo.model_catalog import load_model_catalog
 

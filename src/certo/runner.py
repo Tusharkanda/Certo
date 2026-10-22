@@ -38,7 +38,7 @@ from .artifacts import write_run_artifacts
 from .catalog_check import load_checked_catalog
 from .config import Config, load_config, override_llm
 from .console import quiet_sdk_logs, visualizer_for
-from .custom_tools.run_tests_tool import (
+from .verification import (
     CheckOutcome,
     VerificationRun,
     detect_project,
@@ -139,7 +139,7 @@ logging.getLogger("openhands.tools.terminal.terminal.subprocess_terminal").addFi
 # a *final* value here — it's the transient signal inside the retry loop
 # between "a check just failed" and "was it fixed, or did retries run out"
 # (see `_verify_and_report`); it's listed because `VerificationRun.state`
-# (run_tests_tool.py) uses the same vocabulary and a caller may inspect a
+# (verification.py) uses the same vocabulary and a caller may inspect a
 # `TaskOutcome.checks` mid-analysis. See MANUAL.md "Test verification" and
 # DECISIONS.md.
 VERIFICATION_STATES = (

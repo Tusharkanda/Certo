@@ -29,7 +29,7 @@ from .config import (
     override_llm,
     resolve_project_dir,
 )
-from .custom_tools.run_tests_tool import detect_project, run_full_verification
+from .verification import detect_project, run_full_verification
 from .escalation import format_rung_lines, load_ladder
 from .init_cmd import check_main, init_main, run_sample_task
 from .model_catalog import ModelCatalogEntry

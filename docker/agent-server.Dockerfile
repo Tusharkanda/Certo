@@ -20,6 +20,7 @@ FROM ${BASE_IMAGE}
 
 COPY src/certo/__init__.py /certo_src/certo/__init__.py
 COPY src/certo/project_env.py /certo_src/certo/project_env.py
+COPY src/certo/verification.py /certo_src/certo/verification.py
 COPY src/certo/custom_tools/ /certo_src/certo/custom_tools/
 
 # Read by openhands.agent_server.__main__.extend_python_path(). A plain

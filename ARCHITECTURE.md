@@ -91,8 +91,10 @@ given design was chosen.
   `CERTO_ARTIFACTS_DIR` mints a `run_id` (or uses the caller's, e.g.
   `server.py`'s `TaskRecord.id`) and writes `metadata.json`/`transcript.json`/
   `metrics.json` via `artifacts.py`.
-- **`custom_tools/run_tests_tool.py`** — language-neutral verification in
-  four stages: **detection** (`detect_project()` — Python/Node/Go/Rust/
+- **`verification.py`** — language-neutral verification in four stages,
+  with no SDK import (so `certo verify` starts without loading it; the
+  agent's `run_tests` tool in `custom_tools/run_tests_tool.py` builds on
+  it): **detection** (`detect_project()` — Python/Node/Go/Rust/
   Java-Maven/Java-Gradle marker walk, plus an `"ambiguous"` state for
   monorepos with sibling manifests at the same shallowest depth), **plan
   discovery** (`discover_verification_plan()`, pure), **execution**

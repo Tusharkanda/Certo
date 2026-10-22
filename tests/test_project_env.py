@@ -13,7 +13,7 @@ from types import SimpleNamespace
 
 import pytest
 
-from certo.custom_tools.run_tests_tool import prepare_python_env
+from certo.verification import prepare_python_env
 from certo.project_env import (
     CREATED_MARKER,
     LocalRunner,

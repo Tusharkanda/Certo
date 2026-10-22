@@ -16,13 +16,12 @@ import sys
 
 import pytest
 
-from certo.custom_tools.run_tests_tool import (
+from certo.custom_tools.run_tests_tool import RunTestsAction, RunTestsExecutor
+from certo.verification import (
     CheckOutcome,
     CheckSpec,
     ProjectDetection,
     PythonEnvState,
-    RunTestsAction,
-    RunTestsExecutor,
     VerificationRun,
     _entrypoint_ordering_spec,
     _find_python_entrypoints,

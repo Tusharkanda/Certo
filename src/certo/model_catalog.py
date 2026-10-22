@@ -633,7 +633,7 @@ def find_trigger(task_text: str, profile: TaskProfile) -> str | None:
 def classify_task(task_text: str, catalog: ModelCatalog) -> TaskProfile:
     """First declared task profile with a trigger in the task's title
     (`task_title`, whole words) wins — same tie-break convention as
-    `_LANGUAGE_MARKERS` in `run_tests_tool.py`. Falls back to a profile named
+    `_LANGUAGE_MARKERS` in `verification.py`. Falls back to a profile named
     `default` if one is declared, else a synthesized empty-weights profile
     (every model scores 0 and the declared order breaks the tie — see
     `rank_candidates`).
