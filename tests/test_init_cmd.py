@@ -1184,8 +1184,9 @@ def test_certo_check_reports_the_catalog(tmp_path, monkeypatch, checks):
     assert "Ladder 'default': qwen-local -> gpt-luna -> claude-sonnet" in text
     assert "Ladder 'local-only': qwen-local (1 rung(s) skipped)" in text
     assert (
-        "Derived ladder: qwen-local (capability 5, cost rating 5) "
-        "-> gpt-luna (capability 7, cost rating 4) -> claude-sonnet (capability 10, cost rating 2)"
+        "Derived ladder: qwen-local (capability 5, cost rating 5; effort default) "
+        "-> gpt-luna (capability 7, cost rating 4; effort default) "
+        "-> claude-sonnet (capability 10, cost rating 2; effort default)"
     ) in text
     assert "Warning: Ladder 'local-only', rung 2: gemma-local has 'activated: false'" in text
     assert "sk-CATALOG-SECRET" not in text
@@ -1278,7 +1279,10 @@ def test_certo_check_names_the_models_left_out_of_the_derived_ladder(tmp_path, m
     code, text = _check_with_catalog(tmp_path, monkeypatch, catalog)
 
     assert code == 0
-    assert "Derived ladder: qwen-local (capability 5, cost rating 5) -> gpt-luna" in text
+    assert (
+        "Derived ladder: qwen-local (capability 5, cost rating 5; effort default) -> gpt-luna"
+        in text
+    )
     assert (
         "Left out of the derived ladder: gemma-local "
         "(qwen-local is at least as capable and costs no more)"

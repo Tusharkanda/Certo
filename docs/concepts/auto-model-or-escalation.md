@@ -111,9 +111,9 @@ With the same three models, the derived ladder is:
 
 ```text
 Escalation: derived ladder (from the ratings), 3 rung(s):
-  1. local-coder (capability 4, cost rating 5)
-  2. claude-haiku (capability 10, cost rating 4)
-  3. claude-sonnet (capability 13, cost rating 2)
+  1. local-coder (capability 4, cost rating 5; effort default)
+  2. claude-haiku (capability 10, cost rating 4; effort default)
+  3. claude-sonnet (capability 13, cost rating 2; effort default)
 ```
 
 Every task starts on local-coder, whatever its words. A task it solves

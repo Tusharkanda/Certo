@@ -69,7 +69,7 @@ Verification: verified
 
 Run summary:
   Total running time: 16m 00s
-  Models: ollama/qwen3.8:27b
+  Models: ollama/qwen3.8:27b (effort default)
   Total tokens: 554,997 (input 536,968, of which cached 0; output 18,029)
   Total cost: $0.0000
   Rungs:

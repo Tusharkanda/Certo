@@ -81,6 +81,10 @@ escalation:
   local model before handing over.
 - `reasoning_effort` sets that rung's reasoning effort, instead of the
   model entry's own. Some local models do much better with `max`.
+  One model may be listed twice with different efforts, for example
+  `low` and then `high`. Everything Certo prints and records names the
+  effort next to the model (`default` when none is set), so the two rungs
+  can be told apart.
 
 An explicit ladder always wins over a derived one.
 
@@ -128,9 +132,9 @@ beat every cheaper model, so both stay:
 
 ```text
 Escalation: derived ladder (from the ratings), 3 rung(s):
-  1. gpt-luna (capability 9, cost rating 5)
-  2. claude-sonnet (capability 13, cost rating 3)
-  3. claude-opus (capability 15, cost rating 1)
+  1. gpt-luna (capability 9, cost rating 5; effort default)
+  2. claude-sonnet (capability 13, cost rating 3; effort default)
+  3. claude-opus (capability 15, cost rating 1; effort default)
   Skipped: gemma-local (gpt-luna is at least as capable and costs no more), qwen-local (gpt-luna is at least as capable and costs no more)
 ```
 
@@ -190,7 +194,7 @@ A real handoff message looks like this:
 ```text
 Another model already worked on this task in this folder and couldn't finish it. Its files are still here, exactly as it left them: look at them first, keep what works, and complete the task. This summary was written by Certo from what it recorded, not by a model.
 
-- Model: qwen-local (ollama/qwen3-coder:30b)
+- Model: qwen-local (ollama/qwen3-coder:30b, effort default)
 - Result: no_progress
 - Fix attempts after failed checks: 1
 - Files it created: tests/test_wordle.py, wordle.py
@@ -245,6 +249,12 @@ the error's name; the full error is in `MODEL_DECISIONS.md`:
 Certo: claude-sonnet-5-5 failed: the provider rejected its API key (LLMAuthenticationError); escalating to gpt-5.6-luna (rung 2 of 2).
 ```
 
+When the same model climbs to a higher effort, the line names both:
+
+```text
+Certo: local (effort low) ended no_progress after 1 fix attempt; escalating to local (effort high) (rung 2 of 2).
+```
+
 The reasons Certo knows are a rejected key, a refused request (no credit,
 or rate limited), no answer in time and a provider that can't be reached.
 Any other error is shown as it is.
@@ -254,8 +264,8 @@ the final result:
 
 ```text
   Rungs:
-    1. local (ollama/q): no_progress, 1 fix attempt, 1m 00s, 0 tokens, $0.0000
-    2. mid (openai/m): verified, 0 fix attempts, 30.0s, 0 tokens, $0.0000
+    1. local (ollama/q, effort default): no_progress, 1 fix attempt, 1m 00s, 0 tokens, $0.0000
+    2. mid (openai/m, effort default): verified, 0 fix attempts, 30.0s, 0 tokens, $0.0000
   Final result from rung 2 (mid).
 ```
 

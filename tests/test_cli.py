@@ -2052,7 +2052,10 @@ def test_an_escalation_run_prints_one_line_per_rung(monkeypatch, tmp_path, capsy
     assert cli.main(["do it", "--escalate"]) == 0
     out = capsys.readouterr().out
     assert "  Rungs:" in out
-    assert "    1. local (ollama/q): no_progress, 1 fix attempt, 1m 00s, 0 tokens, $0.0000" in out
+    assert (
+        "    1. local (ollama/q, effort default): no_progress, 1 fix attempt, 1m 00s, 0 tokens, "
+        "$0.0000" in out
+    )
     assert "  Final result from rung 2 (mid)." in out
 
 
@@ -2077,7 +2080,7 @@ def test_a_finished_run_is_recorded_with_its_model_and_verdict(monkeypatch, reco
 
     (entry,) = recorded_runs
     assert entry.ended == "verified"
-    assert entry.models == ["openai/gpt-4o"]
+    assert entry.models == ["openai/gpt-4o (effort default)"]
     assert entry.task.startswith("Build a CLI todo app")
 
 

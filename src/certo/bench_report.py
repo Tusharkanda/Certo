@@ -15,6 +15,7 @@ from pathlib import Path
 from typing import Any
 
 from .model_pricing import is_local_model_id
+from .run_summary import effort_label
 
 CSV_FIELDS = (
     "run_id",
@@ -22,6 +23,7 @@ CSV_FIELDS = (
     "strategy",
     "models",
     "model_ids",
+    "reasoning_efforts",
     "task",
     "repeat",
     "verdict",
@@ -45,6 +47,10 @@ CSV_FIELDS = (
 
 def _rate(count: int, total: int) -> str:
     return f"{count}/{total} ({count / total:.0%})" if total else "0/0"
+
+
+# The effort of a model in results written before Certo recorded it.
+_NOT_RECORDED = "not recorded"
 
 
 def _seconds(seconds: float) -> str:
@@ -76,11 +82,19 @@ def cost_summary(meta: dict[str, Any], records: list[dict[str, Any]]) -> dict[st
     """The benchmark's real, recorded cost: in total, per model, and next to
     the plan's estimate (kept in meta.json when the benchmark started).
     Escalation runs are split by rung, so each model gets what it spent."""
-    per_model: dict[tuple[str, str], dict[str, Any]] = {}
+    per_model: dict[tuple[str, str, str | None], dict[str, Any]] = {}
 
-    def add(name: str, model: str, cost: float, known: bool) -> None:
+    def add(name: str, model: str, effort: str | None, cost: float, known: bool) -> None:
         row = per_model.setdefault(
-            (name, model), {"name": name, "model": model, "runs": 0, "cost": 0.0, "complete": True}
+            (name, model, effort),
+            {
+                "name": name,
+                "model": model,
+                "reasoning_effort": effort,
+                "runs": 0,
+                "cost": 0.0,
+                "complete": True,
+            },
         )
         row["runs"] += 1
         row["cost"] += cost
@@ -92,14 +106,21 @@ def cost_summary(meta: dict[str, Any], records: list[dict[str, Any]]) -> dict[st
                 add(
                     rung.get("name", ""),
                     rung.get("model", ""),
+                    rung.get("reasoning_effort", _NOT_RECORDED),
                     rung.get("cost", 0.0),
                     _rung_known(rung),
                 )
         elif len(r.get("models", [])) == 1:
             m = r["models"][0]
-            add(m["name"], m["model"], r["cost"], _known(r))
+            add(
+                m["name"],
+                m["model"],
+                m.get("reasoning_effort", _NOT_RECORDED),
+                r["cost"],
+                _known(r),
+            )
         elif r["cost"]:
-            add("(not attributed)", "", r["cost"], _known(r))
+            add("(not attributed)", "", None, r["cost"], _known(r))
     models = sorted(per_model.values(), key=lambda row: (-row["cost"], row["name"]))
     for row in models:
         row["cost"] = round(row["cost"], 6)
@@ -279,11 +300,12 @@ def render_markdown(meta: dict[str, Any], records: list[dict[str, Any]]) -> str:
     summary = cost_summary(meta, records)
     lines += ["", "## Cost", "", cost_line(summary) + ".", ""]
     lines += _table(
-        ["Model", "Model id", "Runs", "Cost", "Average per run"],
+        ["Model", "Model id", "Effort", "Runs", "Cost", "Average per run"],
         [
             [
                 row["name"],
                 f"`{row['model']}`" if row["model"] else "-",
+                effort_label(row.get("reasoning_effort")) if row["model"] else "-",
                 str(row["runs"]),
                 _money(row["cost"], row["complete"]),
                 _money(row["average_per_run"], row["complete"]),
@@ -314,6 +336,10 @@ def render_markdown(meta: dict[str, Any], records: list[dict[str, Any]]) -> str:
         "- **Median time:** wall time of one run, including Certo's checks and retries.",
         "- **Cost:** from LiteLLM's prices; `+ unknown` when a model has no price.",
         (
+            "- **Effort:** the reasoning effort the model ran at; `default` when none was "
+            f"set, `{_NOT_RECORDED}` in results from before Certo 0.1.22."
+        ),
+        (
             "- **Cost per model:** what each model spent; an escalation run is split by "
             "rung. A run counts once per model it used."
         ),
@@ -340,6 +366,9 @@ def write_csv(path: Path, records: list[dict[str, Any]]) -> None:
                     **{k: r.get(k) for k in CSV_FIELDS if k in r},
                     "models": ";".join(m["name"] for m in r["models"]),
                     "model_ids": ";".join(m["model"] for m in r["models"]),
+                    "reasoning_efforts": ";".join(
+                        effort_label(m.get("reasoning_effort", _NOT_RECORDED)) for m in r["models"]
+                    ),
                     "hidden_status": r["hidden_tests"]["status"],
                     "hidden_passed": r["hidden_tests"]["passed"],
                     "unconfirmed_pass": r.get("unconfirmed_pass", False),

@@ -8,6 +8,7 @@ from model_file_helpers import write_model_files
 from certo.escalation import (
     FileChanges,
     RungResult,
+    climb_line,
     handoff_task,
     failure_reason,
     EscalationError,
@@ -252,9 +253,9 @@ def test_describe_a_derived_ladder(tmp_path):
     lines = describe_ladder(derive_ladder(_catalog(tmp_path)))
     assert lines == [
         "Escalation: derived ladder (from the ratings), 3 rung(s):",
-        "  1. local (capability 5, cost rating 5)",
-        "  2. mid (capability 7, cost rating 4)",
-        "  3. strong (capability 10, cost rating 2)",
+        "  1. local (capability 5, cost rating 5; effort default)",
+        "  2. mid (capability 7, cost rating 4; effort default)",
+        "  3. strong (capability 10, cost rating 2; effort default)",
         (
             "  Skipped: tiny (local is at least as capable and costs no more), "
             "twin (mid is at least as capable and costs no more)"
@@ -266,8 +267,8 @@ def test_describe_an_explicit_ladder(tmp_path):
     lines = describe_ladder(resolve_ladder(_catalog(tmp_path, _LADDERS), None))
     assert lines == [
         "Escalation: explicit ladder 'default', 2 rung(s):",
-        "  1. local (1 fix attempt(s))",
-        "  2. strong (reasoning max)",
+        "  1. local (1 fix attempt(s); effort default)",
+        "  2. strong (effort max)",
         "  Skipped: parked (activated: false)",
     ]
 
@@ -305,3 +306,28 @@ def test_which_rungs_wrote_code():
     assert not _rung(None).wrote_code  # stopped at a provider error first
     assert not _rung("unchanged").wrote_code
     assert not _rung("inconclusive").wrote_code
+
+
+_TWO_EFFORTS = """escalation:
+  ladders:
+    default:
+      - model: local
+        reasoning_effort: low
+      - model: local
+        reasoning_effort: high
+"""
+
+
+def test_one_model_at_two_efforts_is_told_apart_by_its_effort(tmp_path):
+    ladder = resolve_ladder(_catalog(tmp_path, _TWO_EFFORTS), None)
+    first = RungResult(1, "local", "ollama/q", "no_progress", 1, 1.0, None, reasoning_effort="low")
+
+    assert [r.label for r in ladder.rungs] == ["local (effort low)", "local (effort high)"]
+    assert climb_line(first, ladder.rungs[1], 2, 2) == (
+        "Certo: local (effort low) ended no_progress after 1 fix attempt; "
+        "escalating to local (effort high) (rung 2 of 2)."
+    )
+    assert first.described == "local (ollama/q, effort low)"
+    assert first.to_dict()["reasoning_effort"] == "low"
+    # A rung without its own effort runs at its model entry's, if any.
+    assert _rung("verified").described == "m (x/m, effort default)"

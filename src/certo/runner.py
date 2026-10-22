@@ -1391,7 +1391,14 @@ def stream_task(
         if save_state or resume_from is not None:
             model_name = model_chain.current.model if model_chain is not None else agent_cfg.model
             conversation, state_writer, first_message = _open_saved_conversation(
-                new_conversation, cfg, task, model_name, resume_from, resume_instruction, emit
+                new_conversation,
+                cfg,
+                task,
+                model_name,
+                agent_cfg.reasoning_effort,
+                resume_from,
+                resume_instruction,
+                emit,
             )
         else:
             conversation = new_conversation()
@@ -1447,7 +1454,11 @@ def stream_task(
             if model_chain is not None:
                 write_model_decisions(cfg.workspace, model_chain.decisions)
             per_model_metrics = _per_model_metrics(conversation)
-            run_summary = summarize_run(time.monotonic() - run_started, per_model_metrics)
+            run_summary = summarize_run(
+                time.monotonic() - run_started,
+                per_model_metrics,
+                _usage_efforts(cfg, agent_cfg, model_chain),
+            )
             if cfg.artifacts_dir:
                 stats = conversation.conversation_stats
                 write_run_artifacts(
@@ -1458,6 +1469,11 @@ def stream_task(
                     execution=cfg.execution,
                     model=(
                         model_chain.current.model if model_chain is not None else agent_cfg.model
+                    ),
+                    reasoning_effort=(
+                        config_for_entry(cfg, model_chain.current).reasoning_effort
+                        if model_chain is not None
+                        else agent_cfg.reasoning_effort
                     ),
                     model_selection=cfg.model_selection,
                     started_at=started_at,
@@ -1521,6 +1537,7 @@ def _open_saved_conversation(
     cfg: Config,
     task: str,
     model: str,
+    effort: str | None,
     resume_from: RunRecord | None,
     instruction: str | None,
     emit: Callable[[Message], None],
@@ -1589,12 +1606,14 @@ def _open_saved_conversation(
         record.resumes += 1
         record.conversation_id = conversation_id
         record.model = model
+        record.reasoning_effort = effort
         record.execution = cfg.execution
     else:
         record = RunRecord(
             task=task,
             conversation_id=conversation_id,
             model=model,
+            reasoning_effort=effort,
             execution=cfg.execution,
             started_at=now(),
             updated_at=now(),
@@ -1603,6 +1622,19 @@ def _open_saved_conversation(
     writer = _ProjectStateWriter(workspace, record)
     writer.save()
     return conversation, writer, first_message
+
+
+def _usage_efforts(
+    cfg: Config, agent_cfg: Config, model_chain: ModelChain | None
+) -> dict[str, str | None]:
+    """Each usage_id's reasoning effort, for the run summary: the agent's
+    own, and every auto-model candidate's (a fallback gets its own
+    usage_id)."""
+    efforts = {"certo": agent_cfg.reasoning_effort}
+    if model_chain is not None:
+        for entry in model_chain.candidates:
+            efforts[f"certo:{entry.name}"] = config_for_entry(cfg, entry).reasoning_effort
+    return efforts
 
 
 def _per_model_metrics(conversation: Conversation) -> dict[str, dict]:
@@ -1946,12 +1978,13 @@ def _stream_escalation(
     io.notify("\n".join(describe_ladder(ladder)))
     rungs: list[RungResult] = []
     per_model_metrics: dict[str, dict] = {}
+    efforts: dict[str, str | None] = {}  # usage_id -> reasoning effort
     final_outcome: TaskOutcome | None = None
     final_rung: int | None = None
     last_error: BaseException | None = None
     failing_output = ""
     total = len(ladder.rungs)
-    scores = tuple((r.name, r.capability) for r in ladder.rungs)
+    scores = tuple((r.label, r.capability) for r in ladder.rungs)
     decisions: list[ModelDecisionRecord] = []
     if cfg.artifacts_dir:
         run_id = run_id or str(uuid.uuid4())
@@ -1981,6 +2014,7 @@ def _stream_escalation(
             task=task,
             execution=cfg.execution,
             model=result.model,
+            reasoning_effort=result.reasoning_effort,
             model_selection="escalate",
             started_at=started_at,
             ended_at=datetime.now(UTC).isoformat(),
@@ -1993,7 +2027,7 @@ def _stream_escalation(
             rungs=[result.to_dict()],
         )
 
-    decide("ladder", ladder.rungs[0].name, _ladder_reason(ladder))
+    decide("ladder", ladder.rungs[0].label, _ladder_reason(ladder))
     captured_error: BaseException | None = None
     try:
         with build_workspace(cfg) as workspace:
@@ -2004,6 +2038,7 @@ def _stream_escalation(
             for number, rung in enumerate(ladder.rungs, start=1):
                 rung_cfg = _rung_config(cfg, rung)
                 usage_id = f"certo:rung{number}:{rung.name}"
+                efforts[usage_id] = rung_cfg.reasoning_effort
 
                 def new_conversation(
                     rung_cfg: Config = rung_cfg, usage_id: str = usage_id, **persistence: Any
@@ -2025,7 +2060,14 @@ def _stream_escalation(
                 state_writer: _ProjectStateWriter | None = None
                 if save_state:
                     conversation, state_writer, _ = _open_saved_conversation(
-                        new_conversation, rung_cfg, task, rung.entry.model, None, None, io.emit
+                        new_conversation,
+                        rung_cfg,
+                        task,
+                        rung.entry.model,
+                        rung_cfg.reasoning_effort,
+                        None,
+                        None,
+                        io.emit,
                     )
                 else:
                     conversation = new_conversation()
@@ -2077,10 +2119,11 @@ def _stream_escalation(
                     number=number,
                     name=rung.name,
                     model=rung.entry.model,
+                    reasoning_effort=rung_cfg.reasoning_effort,
                     verdict=outcome.verification_state if outcome is not None else None,
                     retries_used=outcome.retries_used if outcome is not None else 0,
                     duration_seconds=duration,
-                    summary=summarize_run(duration, rung_metrics),
+                    summary=summarize_run(duration, rung_metrics, efforts),
                     failure=failure,
                     changes=FileChanges.between(before, workspace_listing(cfg.workspace)),
                     failing_checks=tuple(f"{c.name} (`{c.command}`)" for c in failing),
@@ -2105,7 +2148,7 @@ def _stream_escalation(
                     )
                     decide(
                         "escalation_stop",
-                        rung.name,
+                        rung.label,
                         f"{rung.name} ({result.ended}) and {previous.name} ({previous.ended}) "
                         "both changed no file.",
                     )
@@ -2123,14 +2166,14 @@ def _stream_escalation(
                     )
                     decide(
                         "escalation_stop",
-                        rung.name,
+                        rung.label,
                         f"{rung.name} and {previous.name} both ended inconclusive.",
                     )
                     break
                 if outcome is not None and not ladder.escalates_on(outcome.verification_state):
                     decide(
                         "escalation_stop",
-                        rung.name,
+                        rung.label,
                         f"{rung.name} ended {result.ended}, which doesn't escalate.",
                     )
                     break
@@ -2151,7 +2194,7 @@ def _stream_escalation(
                 if stop:
                     io.notify(f"Certo: {rung.name} ended {result.ended}; escalation stops: {stop}.")
                     decide(
-                        "escalation_stop", rung.name, f"{rung.name} ended {result.ended}; {stop}."
+                        "escalation_stop", rung.label, f"{rung.name} ended {result.ended}; {stop}."
                     )
                     if outcome is None:
                         raise last_error  # type: ignore[misc]
@@ -2163,7 +2206,7 @@ def _stream_escalation(
                 if outcome is None and failure_reason(failure):
                     # The line keeps only the plain reason; the record keeps the error.
                     reason += f" The error: {failure}"
-                decide(kind, nxt.name, reason)
+                decide(kind, nxt.label, reason)
                 failing_output = "\n\n---\n\n".join(_check_followup(c) for c in failing)
     except BaseException as exc:
         captured_error = exc
@@ -2179,6 +2222,11 @@ def _stream_escalation(
                 task=task,
                 execution=cfg.execution,
                 model=rungs[-1].model if rungs else ladder.rungs[0].entry.model,
+                reasoning_effort=(
+                    rungs[-1].reasoning_effort
+                    if rungs
+                    else _rung_config(cfg, ladder.rungs[0]).reasoning_effort
+                ),
                 model_selection="escalate",
                 started_at=started_at,
                 ended_at=datetime.now(UTC).isoformat(),
@@ -2188,7 +2236,7 @@ def _stream_escalation(
                 combined_metrics={},
                 per_model_metrics=per_model_metrics,
                 run_summary=summarize_run(
-                    time.monotonic() - run_started, per_model_metrics
+                    time.monotonic() - run_started, per_model_metrics, efforts
                 ).to_dict(),
                 rungs=rung_dicts(rungs, final_rung if captured_error is None else None),
             )
@@ -2201,7 +2249,7 @@ def _stream_escalation(
         rungs=tuple(rungs),
         final_rung=final_rung,
         model_decisions=tuple(decisions),
-        run_summary=summarize_run(time.monotonic() - run_started, per_model_metrics),
+        run_summary=summarize_run(time.monotonic() - run_started, per_model_metrics, efforts),
     )
 
 

@@ -345,7 +345,7 @@ Model files:
       claude-sonnet (score 12), gpt-luna (score 11), qwen-local (score 10)
   Ladder 'default': qwen-local -> gpt-luna -> claude-sonnet
   Ladder 'local-only': qwen-local (1 rung(s) skipped)
-  Derived ladder: qwen-local (capability 5, cost rating 5) -> gpt-luna (capability 7, cost rating 4) -> claude-sonnet (capability 10, cost rating 2)
+  Derived ladder: qwen-local (capability 5, cost rating 5; effort default) -> gpt-luna (capability 7, cost rating 4; effort default) -> claude-sonnet (capability 10, cost rating 2; effort default)
   Warning: Ladder 'local-only', rung 2: gemma-local has 'activated: false', so this rung is skipped.
   Warning: Ladder 'local-only' has only one usable rung (qwen-local), so it can't escalate.
 ```

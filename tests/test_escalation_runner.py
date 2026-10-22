@@ -379,7 +379,7 @@ def test_the_handoff_message_is_built_from_facts(tmp_path, fake_run):
     message = fake_run.calls[1]["first_message"]
     assert fake_run.calls[0]["first_message"] is None  # rung 1 gets the task itself
     assert "This summary was written by Certo from what it recorded, not by a model." in message
-    assert "- Model: local (ollama/qwen3-coder:30b)" in message
+    assert "- Model: local (ollama/qwen3-coder:30b, effort default)" in message
     assert "- Result: no_progress" in message
     assert "- Fix attempts after failed checks: 1" in message
     assert "- Files it created: wordle.py" in message
@@ -393,7 +393,7 @@ def test_a_third_rung_hears_about_both_earlier_ones(tmp_path, fake_run):
     fake_run.script[:] = [("no_progress", 0, {}), ("stuck", 0, {}), ("verified", 0, {})]
     _run(tmp_path, _ladder(tmp_path))
     message = fake_run.calls[2]["first_message"]
-    assert "- Model: mid (openai/gpt-5.6-luna)" in message
+    assert "- Model: mid (openai/gpt-5.6-luna, effort low)" in message
     assert "- Earlier models on this task: local: no_progress" in message
 
 
@@ -491,7 +491,7 @@ def test_model_decisions_records_the_ladder_every_climb_and_the_stop(tmp_path, f
     text = (tmp_path / "MODEL_DECISIONS.md").read_text()
     assert "Explicit ladder 'default' from escalation.yaml." in text
     assert "Ladder (explicit ladder 'default'):" in text
-    assert "- **local** (capability" in text
+    assert "- **local (effort default)** (capability" in text
     assert (
         "local failed: the provider refused the request (out of credit, or rate limited) "
         "(LLMRateLimitError); escalating to mid (rung 2 of 3). "
@@ -557,7 +557,9 @@ def test_the_per_rung_summary_lines(tmp_path, fake_run):
     lines = format_rung_lines(outcome.rungs, outcome.final_rung)
 
     assert lines[0] == "Rungs:"
-    assert lines[1].startswith("  1. local (ollama/qwen3-coder:30b): no_progress, 1 fix attempt, ")
+    assert lines[1].startswith(
+        "  1. local (ollama/qwen3-coder:30b, effort default): no_progress, 1 fix attempt, "
+    )
     assert lines[1].endswith(", 1,100 tokens, $0.0000")
     assert lines[2].endswith(", 1,100 tokens, $0.2500")
     assert lines[3] == "Final result from rung 2 (mid)."

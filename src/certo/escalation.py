@@ -40,7 +40,7 @@ from .model_catalog import (
     ModelCatalogEntry,
     capability,
 )
-from .run_summary import RunSummary, format_duration
+from .run_summary import RunSummary, effort_label, format_duration
 
 # Final verdicts that mean "this model couldn't finish the job": the next
 # rung gets the task. Never `budget_exhausted` or `confirmation_required`
@@ -77,6 +77,17 @@ class Rung:
     @property
     def name(self) -> str:
         return self.entry.name
+
+    @property
+    def effort(self) -> str | None:
+        """The reasoning effort this rung runs at: its own, else its model
+        entry's; None when neither sets one."""
+        return self.reasoning_effort or self.entry.reasoning_effort or None
+
+    @property
+    def label(self) -> str:
+        """The name and the effort: a ladder may list one model twice."""
+        return f"{self.name} (effort {effort_label(self.effort)})"
 
 
 @dataclass(frozen=True)
@@ -233,8 +244,7 @@ def describe_rung(rung: Rung, *, scores: bool) -> str:
         extra.append(f"capability {rung.capability:g}, cost rating {cost}")
     if rung.retries is not None:
         extra.append(f"{rung.retries} fix attempt(s)")
-    if rung.reasoning_effort:
-        extra.append(f"reasoning {rung.reasoning_effort}")
+    extra.append(f"effort {effort_label(rung.effort)}")
     return rung.name + (f" ({'; '.join(extra)})" if extra else "")
 
 
@@ -321,6 +331,13 @@ class RungResult:
     failure: str | None = None  # the provider or run failure, when there was one
     changes: FileChanges = FileChanges()
     failing_checks: tuple[str, ...] = ()  # "name (`command`)"
+    reasoning_effort: str | None = None  # None: no effort set
+
+    @property
+    def described(self) -> str:
+        """The rung's name, model and effort, e.g. "local
+        (ollama/qwen3.8:27b, effort default)"."""
+        return f"{self.name} ({self.model}, effort {effort_label(self.reasoning_effort)})"
 
     @property
     def cost(self) -> float:
@@ -362,6 +379,7 @@ class RungResult:
             "rung": self.number,
             "name": self.name,
             "model": self.model,
+            "reasoning_effort": self.reasoning_effort,
             "verdict": self.verdict,
             "failure": self.failure,
             "fix_attempts": self.retries_used,
@@ -451,7 +469,7 @@ def handoff_message(task: str, previous: Sequence[RungResult], failing_output: s
     lines = [
         intro,
         "",
-        f"- Model: {last.name} ({last.model})",
+        f"- Model: {last.described}",
         f"- Result: {last.ended}" + (f" ({last.failure})" if last.failure else ""),
         f"- Fix attempts after failed checks: {last.retries_used}",
         f"- Files it created: {_files(last.changes.created)}",
@@ -506,7 +524,14 @@ def climb_line(previous: RungResult, nxt: Rung, number: int, total: int) -> str:
         why = "ended inconclusive: it changed files, but nothing could be checked"
     else:
         why = f"ended {previous.verdict} after {_attempts(previous.retries_used)}"
-    return f"Certo: {previous.name} {why}; escalating to {nxt.name} (rung {number} of {total})."
+    # One model on two rungs, at two efforts: the names alone would read
+    # "qwen ...; escalating to qwen".
+    same = previous.name == nxt.name
+    before = previous.name + (
+        f" (effort {effort_label(previous.reasoning_effort)})" if same else ""
+    )
+    after = nxt.label if same else nxt.name
+    return f"Certo: {before} {why}; escalating to {after} (rung {number} of {total})."
 
 
 def format_rung_lines(rungs: Sequence[RungResult], final_rung: int | None) -> list[str]:
@@ -516,7 +541,7 @@ def format_rung_lines(rungs: Sequence[RungResult], final_rung: int | None) -> li
         tokens = r.summary.total_tokens if r.summary else 0
         cost = f"${r.cost:.4f}" if r.cost_known else f"${r.cost:.4f} + unknown"
         lines.append(
-            f"  {r.number}. {r.name} ({r.model}): {r.ended}, {_attempts(r.retries_used)}, "
+            f"  {r.number}. {r.described}: {r.ended}, {_attempts(r.retries_used)}, "
             f"{format_duration(r.duration_seconds)}, {tokens:,} tokens, {cost}"
         )
     if final_rung is not None:

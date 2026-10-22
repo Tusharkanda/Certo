@@ -31,6 +31,13 @@ can check, and the climb stops there instead of paying for every model.
 
 ## Also
 
+- **The reasoning effort is shown next to the model.** The run summary,
+  the escalation lines and rungs, `STATUS.md`, `.certo/RUNS.md`,
+  `MODEL_DECISIONS.md`, the run artifacts, server results and the
+  benchmark's cost table now say which effort a model ran at, for example
+  `ollama/qwen3.8:27b (effort default)`. A run time or a result means
+  little without it, and a ladder that lists one model twice, at `low`
+  and then `high`, used to show two rungs with the same name.
 - **`certo init` gives Ollama a longer call timeout.** It now writes
   `CERTO_LLM_TIMEOUT_SECONDS=1200` when you choose Ollama. With the
   default, 300 seconds, `qwen3.8:27b` on a local server had answers that

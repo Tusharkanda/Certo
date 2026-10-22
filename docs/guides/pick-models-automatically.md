@@ -212,7 +212,7 @@ them again as often as you like:
 Before the verdict, the output says which model did the work:
 
 ```text
-Model used: claude-sonnet (see MODEL_DECISIONS.md for the full history)
+Model used: claude-sonnet (effort default) (see MODEL_DECISIONS.md for the full history)
 ```
 
 `MODEL_DECISIONS.md` in the project folder records every decision, even
@@ -228,10 +228,10 @@ Reason: Task classified as 'debugging': "fix" in the task's first line ('Fix the
 Task profile: `debugging` (weights: {'reasoning': 3.0, 'precision': 2.0, 'code': 2.0, 'cost': 0.5})
 
 Ranked candidates:
-- **claude-sonnet** (score 31.00)
-- local-coder (score 11.50)
+- **claude-sonnet (effort default)** (score 31.00)
+- local-coder (effort default) (score 11.50)
 
-Chosen: **claude-sonnet**
+Chosen: **claude-sonnet (effort default)**
 ```
 
 Each fallback adds a section of its own, with the reason for the switch.

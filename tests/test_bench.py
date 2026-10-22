@@ -143,7 +143,9 @@ def test_a_run_is_isolated_graded_and_recorded(tmp_path, project_venv, capsys):
     )
     assert (record["tokens_in"], record["tokens_out"], record["cost"]) == (1000, 50, 0.25)
     assert record["retries_used"] == 1
-    assert record["models"] == [{"name": "cloud-a", "model": "anthropic/test-model-a"}]
+    assert record["models"] == [
+        {"name": "cloud-a", "model": "anthropic/test-model-a", "reasoning_effort": None}
+    ]
     snapshot = out / "workspaces" / "a__temperature-table__r1"
     assert (snapshot / "temperature.py").is_file()
     assert not (snapshot / ".venv").exists()

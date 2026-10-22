@@ -171,7 +171,7 @@ Verification: verified
 
 Run summary:
   Total running time: 4m 03s
-  Models: openai/gpt-5.6-luna
+  Models: openai/gpt-5.6-luna (effort default)
   Total tokens: 801,191 (input 774,063, of which cached 725,104; output 27,128)
   Total cost: $0.0593
 ```

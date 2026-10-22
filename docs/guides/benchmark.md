@@ -168,8 +168,8 @@ Each benchmark writes a folder, by default `bench-results/<date-time>/`:
 | File | What it holds |
 |---|---|
 | `results.md` | The summary to read and share. |
-| `results.csv` | One row per run, for a spreadsheet. |
-| `cost.json` | The real total cost, the cost per model, and the plan's estimate. |
+| `results.csv` | One row per run, for a spreadsheet, with each model's reasoning effort (`reasoning_efforts`). |
+| `cost.json` | The real total cost, the cost per model and reasoning effort, and the plan's estimate. |
 | `runs/*.json` | Every detail of each run. |
 | `runs/transcripts/<run>.json` | The run's whole conversation: the agent's messages, the tools' output and Certo's notes. Read it to see why a run ended as it did. `seconds` says when each message arrived, counted from `started_at`: it shows where a long run spent its time. |
 | `workspaces/<run>/` | The code each run left behind (without `.venv` and `node_modules`). |

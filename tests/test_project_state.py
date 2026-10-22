@@ -78,6 +78,14 @@ def test_state_folder_ignores_itself_in_git(tmp_path):
     assert status.stdout == ""
 
 
+def test_status_md_names_the_model_with_its_reasoning_effort():
+    record = _record(status="finished", verdict="verified")
+    record.model = "ollama/qwen3.8:27b"
+    record.reasoning_effort = "high"
+
+    assert "- Model: ollama/qwen3.8:27b (effort high)" in project_state.render_status(record)
+
+
 def test_status_md_shows_the_verdict_failing_checks_and_their_output(tmp_path):
     record = _record(
         status="finished",
@@ -96,6 +104,7 @@ def test_status_md_shows_the_verdict_failing_checks_and_their_output(tmp_path):
 
     assert "finished, verdict `no_progress`" in text
     assert "Build a Wordle game" in text
+    assert "- Model: " in text and "(effort default)" in text
     assert "- `failed` pytest (`pytest -q`)" in text
     assert "E   assert 2 == 3" in text
     # Output is kept only for checks that didn't pass.

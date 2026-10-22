@@ -56,18 +56,6 @@ first item is the suggested next one.
   (`CERTO_SKILLS_DIR` and the third-party settings deprecated).
   Done when the commands exist with tests, the old folders print the
   move hint, and the docs describe only the new layout.
-- **Record the reasoning effort next to the model, everywhere.** An
-  explicit ladder may list one model twice with different
-  `reasoning_effort` (only an exact duplicate is an error), but the rung
-  lines, the run summary, `.certo/RUNS.md`, `MODEL_DECISIONS.md`, the run
-  artifacts, server results and the benchmark report name only the model,
-  so two such rungs look the same and a record can't say which effort
-  produced the result. Show "model (effort)" wherever the model is shown,
-  with "default" when no effort is set. Why now: run times are quoted
-  per model (e.g. hanoi, 42 minutes on `qwen3.8:27b` at its default
-  effort, 2026-10-22) and mean little without the effort. Done when every
-  output and record that names a model also names its effort, with tests
-  and the docs' output samples updated.
 - **A small `certo bench` run of the Haiku → Sonnet ladder**, so the
   README can drop one "not benchmarked yet"
   ([#24](https://github.com/alessioricco/certo/issues/24), open for
@@ -182,8 +170,7 @@ first item is the suggested next one.
   strategies only if the cheaper effort is much faster and rarely fails.
   Needs, per model in `models_list.yaml`, the effort levels it accepts:
   some models ignore the setting or name the levels differently, and a
-  wrong level fails only when the model is called. Depends on recording
-  the effort (above, "Before the next release").
+  wrong level fails only when the model is called.
 - **A `certo bench` strategy for `--auto-model`.** Only `single` and
   `escalate` exist (`bench_strategies.py`), so the README can say auto-model
   is unmeasured but not show a number. Add an `auto` strategy (task

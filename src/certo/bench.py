@@ -184,7 +184,14 @@ def execute_run(
         "run_id": planned.run_id,
         "arm": planned.arm.name,
         "strategy": planned.arm.strategy,
-        "models": [{"name": n, "model": cfg.catalog[n].model} for n in names],
+        "models": [
+            {
+                "name": n,
+                "model": cfg.catalog[n].model,
+                "reasoning_effort": cfg.catalog[n].reasoning_effort or None,
+            }
+            for n in names
+        ],
         "task": planned.task.name,
         "repeat": planned.repeat,
         "verdict": verdict,

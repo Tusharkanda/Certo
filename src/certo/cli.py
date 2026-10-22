@@ -33,6 +33,7 @@ from .escalation import format_rung_lines, load_ladder
 from .model_catalog import ModelCatalogEntry
 from .project_state import load_record, status_path
 from .run_history import RunEntry, append_run, note_models_in_readme
+from .run_summary import model_label
 from .worktree import record_created_project, was_created_by_certo, worktree_warning
 
 if TYPE_CHECKING:
@@ -764,15 +765,19 @@ def _run_entry(cfg, ladder, task: str, ended: str, started_at: datetime, outcome
     ran when the outcome says so, else the ones the settings name."""
     summary = outcome.run_summary if outcome is not None else None
     if outcome is not None and outcome.rungs:
-        models = [f"{r.number}. {r.name} ({r.model}): {r.ended}" for r in outcome.rungs]
+        models = [f"{r.number}. {r.described}: {r.ended}" for r in outcome.rungs]
         note = "escalation" + (
             f", final result from rung {outcome.final_rung}" if outcome.final_rung else ""
         )
     elif ladder is not None:
-        models = [f"{i}. {rung.name}" for i, rung in enumerate(ladder.rungs, 1)]
+        models = [f"{i}. {rung.label}" for i, rung in enumerate(ladder.rungs, 1)]
         note = "escalation ladder"
     else:
-        models = [m.model for m in summary.models] if summary and summary.models else [cfg.model]
+        models = (
+            [m.label for m in summary.models]
+            if summary and summary.models
+            else [model_label(cfg.model, cfg.reasoning_effort)]
+        )
         note = "picked by --auto-model" if cfg.model_selection == "auto" else ""
     return RunEntry(
         task=task, ended=ended, started_at=started_at, models=models, summary=summary, note=note

@@ -26,6 +26,8 @@ import tempfile
 from dataclasses import asdict, dataclass, field, fields
 from datetime import UTC, datetime
 
+from .run_summary import model_label
+
 STATE_DIR = ".certo"
 _RECORD_FILE = "run.json"
 _STATUS_FILE = "STATUS.md"
@@ -65,6 +67,7 @@ class RunRecord:
     limitations: list[str] = field(default_factory=list)
     error: str | None = None
     resumes: int = 0
+    reasoning_effort: str | None = None  # None: no effort set
 
     @classmethod
     def from_dict(cls, data: dict) -> RunRecord:
@@ -170,7 +173,7 @@ def render_status(record: RunRecord) -> str:
         ),
         "",
         f"- Status: {_status_line(record)}",
-        f"- Model: {record.model}",
+        f"- Model: {model_label(record.model, record.reasoning_effort)}",
         f"- Started: {record.started_at}",
         f"- Updated: {record.updated_at}",
         f"- Verification retries used: {record.retries_used}",

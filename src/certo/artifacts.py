@@ -81,6 +81,7 @@ def write_run_artifacts(
     per_model_metrics: dict[str, dict[str, Any]],
     run_summary: dict[str, Any] | None = None,
     rungs: list[dict[str, Any]] | None = None,
+    reasoning_effort: str | None = None,
 ) -> None:
     """Write `metadata.json`/`transcript.json`/`metrics.json` for one run.
 
@@ -100,6 +101,7 @@ def write_run_artifacts(
         "task": task,
         "execution": execution,
         "model": model,
+        "reasoning_effort": reasoning_effort,
         "model_selection": model_selection,
         "started_at": started_at,
         "ended_at": ended_at,

@@ -867,3 +867,11 @@ considered and live-verification detail: `docs/ROADMAP.txt`.
   automatically: a downloaded skill is untrusted text that goes into the
   agent's instructions, and each one that fires costs a local model
   context; selection at run time stays the SDK's deterministic matching.
+- **The reasoning effort is shown as configured, `default` when unset**
+  (0.1.22). Not the value the SDK ends up sending (`high` for most
+  providers, nothing for Ollama), because that depends on the provider
+  and on LiteLLM, and a guessed value in a record would be worse than an
+  honest "default". Two rungs of one model at two efforts are told apart
+  by the effort, so it is part of the merge key in the run summary and
+  the benchmark's cost table. Results written before 0.1.22 say `not
+  recorded`, never `default`.

@@ -71,7 +71,7 @@ Starts a task in the background and returns at once with `202 Accepted`:
 | `verification_state` | The verdict. See [Verdicts](verdicts.md). Set when the task ends. |
 | `completion_contract` | What the task was checked against: the goal, the acceptance criteria, the exact commands run (`verification_checks`) and what couldn't be checked (`limitations`). |
 | `acceptance_results` | One result per acceptance check, or `null` when none were given. |
-| `rungs` | With `escalate`: one object per rung that ran, in order, else `null`. Each has `rung`, `name`, `model`, `verdict` (`null` after a provider or run failure), `failure`, `fix_attempts`, `duration_seconds`, `tokens`, `cost`, `cost_known`, `files_created`, `files_modified`, `files_deleted`, `failing_checks`, and `final` (`true` on the rung whose verdict is the task's). |
+| `rungs` | With `escalate`: one object per rung that ran, in order, else `null`. Each has `rung`, `name`, `model`, `reasoning_effort` (`null` when none is set), `verdict` (`null` after a provider or run failure), `failure`, `fix_attempts`, `duration_seconds`, `tokens`, `cost`, `cost_known`, `files_created`, `files_modified`, `files_deleted`, `failing_checks`, and `final` (`true` on the rung whose verdict is the task's). |
 | `messages` | Every message so far, growing while the task runs. |
 | `error` | Why the task failed, once `failed`. |
 

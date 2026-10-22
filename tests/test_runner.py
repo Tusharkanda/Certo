@@ -2062,7 +2062,7 @@ def test_auto_mode_picks_the_best_fit_candidate_for_the_initial_run(monkeypatch,
     assert captured_agent_cfg["usage_id"] == "certo:cheap"
     assert len(outcome.model_decisions) == 1
     assert outcome.model_decisions[0].kind == "initial"
-    assert outcome.model_decisions[0].chosen == "cheap"
+    assert outcome.model_decisions[0].chosen == "cheap (effort default)"
 
 
 def test_auto_mode_writes_model_decisions_to_the_workspace(monkeypatch, tmp_path):
@@ -2108,7 +2108,9 @@ def test_auto_mode_interactive_prompts_for_the_initial_choice(monkeypatch, tmp_p
     assert len(prompts) == 1
     assert prompts[0][0] == ("cheap", "balanced", "strong")  # full ranked order
     assert prompts[0][1] == 0  # recommended index is always the top-ranked one
-    assert outcome.model_decisions[0].chosen == "strong"  # index 2 of the ranked list
+    assert (
+        outcome.model_decisions[0].chosen == "strong (effort default)"
+    )  # index 2 of the ranked list
 
 
 def test_api_failure_triggers_a_switch_to_the_next_candidate(monkeypatch, tmp_path):
@@ -2154,7 +2156,7 @@ def test_auto_mode_runs_the_profiles_pinned_model_first(monkeypatch, tmp_path):
     )
 
     decision = outcome.model_decisions[0]
-    assert decision.chosen == "strong"
+    assert decision.chosen == "strong (effort default)"
     assert "the profile names strong; fallbacks ranked by weights" in decision.reason
 
 
@@ -2172,7 +2174,10 @@ def test_after_the_pinned_model_fails_the_weights_pick_the_next(monkeypatch, tmp
         ),
     )
 
-    assert [d.chosen for d in outcome.model_decisions] == ["strong", "cheap"]
+    assert [d.chosen for d in outcome.model_decisions] == [
+        "strong (effort default)",
+        "cheap (effort default)",
+    ]
     assert outcome.verification_state == "verified"
 
 
@@ -2692,17 +2697,25 @@ def test_a_real_sdk_conversation_resumes_from_certo_and_never_saves_the_key(tmp_
         )
 
     conversation, writer, first_message = runner._open_saved_conversation(
-        new_conversation, cfg, "do it", cfg.model, None, None, first_messages.append
+        new_conversation, cfg, "do it", cfg.model, None, None, None, first_messages.append
     )
     assert first_message is None
     conversation.send_message("remember this: PROBE-42")
     record = writer.record
 
     resumed, _writer, message = runner._open_saved_conversation(
-        new_conversation, cfg, "do it", "anthropic/other-model", record, None, first_messages.append
+        new_conversation,
+        cfg,
+        "do it",
+        "anthropic/other-model",
+        "high",
+        record,
+        None,
+        first_messages.append,
     )
 
     assert "being resumed" in message
+    assert _writer.record.reasoning_effort == "high"
     texts = [str(event) for event in resumed.state.events]
     assert any("PROBE-42" in text for text in texts)
     assert first_messages == []  # no fallback notice

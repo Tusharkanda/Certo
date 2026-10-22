@@ -72,7 +72,7 @@ when it ends. Shortened, it looks like this:
 # Certo run status
 
 - Status: finished, verdict `retry_exhausted`
-- Model: ollama/qwen3-coder:30b
+- Model: ollama/qwen3-coder:30b (effort default)
 - Verification retries used: 2
 
 ## Task

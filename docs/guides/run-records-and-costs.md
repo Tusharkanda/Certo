@@ -11,7 +11,7 @@ Every `certo` run ends with a summary after the verdict:
 ```text
 Run summary:
   Total running time: 4m 03s
-  Models: openai/gpt-5.6-luna
+  Models: openai/gpt-5.6-luna (effort default)
   Total tokens: 801,191 (input 774,063, of which cached 725,104; output 27,128)
   Total cost: $0.0593
 ```
@@ -54,7 +54,7 @@ in a project's git history. Runs are never overwritten. In server mode,
 
 | File | What it holds |
 |---|---|
-| `metadata.json` | The task, project, model, execution mode, start and end time, verdict, what was checked and any limitations, acceptance results, the run summary, and the error if the run failed. Written even when the run fails. |
+| `metadata.json` | The task, project, model and its reasoning effort, execution mode, start and end time, verdict, what was checked and any limitations, acceptance results, the run summary, and the error if the run failed. Written even when the run fails. |
 | `transcript.json` | Every message of the run. |
 | `metrics.json` | Tokens and cost: `summary` (same as above), `combined`, and `per_model`. |
 
@@ -67,8 +67,8 @@ rung and the rung that produced the final result:
 
 ```text
   Rungs:
-    1. local (ollama/q): no_progress, 1 fix attempt, 1m 00s, 0 tokens, $0.0000
-    2. mid (openai/m): verified, 0 fix attempts, 30.0s, 0 tokens, $0.0000
+    1. local (ollama/q, effort default): no_progress, 1 fix attempt, 1m 00s, 0 tokens, $0.0000
+    2. mid (openai/m, effort default): verified, 0 fix attempts, 30.0s, 0 tokens, $0.0000
   Final result from rung 2 (mid).
 ```
 
@@ -84,7 +84,7 @@ later:
 
 - Task: Build a terminal Wordle game in Python, with pytest tests.
 - Certo: 0.1.19
-- Model: openai/gpt-5.6-luna
+- Model: openai/gpt-5.6-luna (effort default)
 - Time: 4m 03s · Tokens: 801,191 · Cost: $0.0593
 ```
 

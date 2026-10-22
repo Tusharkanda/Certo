@@ -112,3 +112,23 @@ def test_format_duration():
     assert format_duration(4.26) == "4.3s"
     assert format_duration(61) == "1m 01s"
     assert format_duration(3725) == "1h 02m 05s"
+
+
+def test_one_model_at_two_efforts_is_two_entries_each_named_with_its_effort():
+    summary = summarize_run(
+        10,
+        {
+            "certo:rung1:qwen": _metrics("ollama/qwen", 100, 10, 0.0),
+            "certo:rung2:qwen": _metrics("ollama/qwen", 200, 20, 0.0),
+        },
+        {"certo:rung1:qwen": None, "certo:rung2:qwen": "high"},
+    )
+
+    assert [m.label for m in summary.models] == [
+        "ollama/qwen (effort default)",
+        "ollama/qwen (effort high)",
+    ]
+    lines = summary.format_lines()
+    assert "Models: ollama/qwen (effort default), ollama/qwen (effort high)" in lines
+    assert "  - ollama/qwen (effort high): 220 tokens, $0.0000" in lines
+    assert [m["reasoning_effort"] for m in summary.to_dict()["models"]] == [None, "high"]

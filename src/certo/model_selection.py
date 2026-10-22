@@ -22,6 +22,7 @@ from openhands.sdk import LLM
 from .config import Config, override_llm
 from .llm import build_llm
 from .model_catalog import ModelCatalogEntry, score_entry
+from .run_summary import effort_label
 
 
 @dataclass(frozen=True)
@@ -84,6 +85,10 @@ class ModelChain:
         self.decisions: list[ModelDecisionRecord] = []
 
     @property
+    def candidates(self) -> tuple[ModelCatalogEntry, ...]:
+        return tuple(self._ranked)
+
+    @property
     def current(self) -> ModelCatalogEntry:
         return self._ranked[self._index]
 
@@ -92,7 +97,7 @@ class ModelChain:
         return self._index >= len(self._ranked) - 1
 
     def _scored_ranking(self) -> tuple[tuple[str, float], ...]:
-        return tuple((e.name, score_entry(e, self._weights)) for e in self._ranked)
+        return tuple((_label(e), score_entry(e, self._weights)) for e in self._ranked)
 
     def _record(self, kind: str, reason: str) -> None:
         self.decisions.append(
@@ -102,7 +107,7 @@ class ModelChain:
                 task_profile=self._task_profile,
                 weights=dict(self._weights),
                 ranked=self._scored_ranking(),
-                chosen=self.current.name,
+                chosen=_label(self.current),
                 reason=reason,
             )
         )
@@ -121,6 +126,11 @@ class ModelChain:
         self._index += 1
         self._record(kind, reason)
         return self.current
+
+
+def _label(entry: ModelCatalogEntry) -> str:
+    """A candidate in MODEL_DECISIONS.md: its name and reasoning effort."""
+    return f"{entry.name} (effort {effort_label(entry.reasoning_effort or None)})"
 
 
 def config_for_entry(cfg: Config, entry: ModelCatalogEntry) -> Config:

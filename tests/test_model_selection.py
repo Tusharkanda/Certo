@@ -64,7 +64,7 @@ def test_record_initial_logs_a_decision_without_moving_the_index():
     assert len(chain.decisions) == 1
     record = chain.decisions[0]
     assert record.kind == "initial"
-    assert record.chosen == "a"
+    assert record.chosen == "a (effort default)"
     assert record.task_profile == "debugging"
     assert record.reason == "Best fit for this task"
 
@@ -78,7 +78,7 @@ def test_advance_moves_to_the_next_candidate_and_logs_it():
     assert chain.current.name == "b"
     assert len(chain.decisions) == 1
     assert chain.decisions[0].kind == "escalation_api_failure"
-    assert chain.decisions[0].chosen == "b"
+    assert chain.decisions[0].chosen == "b (effort default)"
 
 
 def test_advance_returns_none_once_exhausted_and_current_stays_put():

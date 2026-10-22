@@ -20,6 +20,18 @@ from typing import Any
 from .model_pricing import is_local_model_id
 
 
+def effort_label(effort: str | None) -> str:
+    """A reasoning effort as Certo shows it: "default" when none is set
+    (the model's or the SDK's own default applies)."""
+    return effort or "default"
+
+
+def model_label(model: str, effort: str | None) -> str:
+    """A model and its reasoning effort, e.g. "ollama/qwen3.8:27b (effort
+    default)": one model at two efforts is two different runs."""
+    return f"{model} (effort {effort_label(effort)})"
+
+
 @dataclass(frozen=True)
 class ModelUsage:
     model: str
@@ -28,6 +40,11 @@ class ModelUsage:
     cache_read_tokens: int = 0
     reasoning_tokens: int = 0
     cost: float = 0.0
+    reasoning_effort: str | None = None
+
+    @property
+    def label(self) -> str:
+        return model_label(self.model, self.reasoning_effort)
 
     @property
     def total_tokens(self) -> int:
@@ -77,6 +94,7 @@ class RunSummary:
             "models": [
                 {
                     "model": m.model,
+                    "reasoning_effort": m.reasoning_effort,
                     "prompt_tokens": m.prompt_tokens,
                     "completion_tokens": m.completion_tokens,
                     "cache_read_tokens": m.cache_read_tokens,
@@ -100,7 +118,7 @@ class RunSummary:
         if not self.models:
             lines.append("Models: none (no LLM calls were recorded)")
         else:
-            lines.append("Models: " + ", ".join(m.model for m in self.models))
+            lines.append("Models: " + ", ".join(m.label for m in self.models))
         lines.append(
             f"Total tokens: {self.total_tokens:,} "
             f"(input {self.prompt_tokens:,}, of which cached {self.cache_read_tokens:,}; "
@@ -109,14 +127,14 @@ class RunSummary:
         if self.cost_complete:
             lines.append(f"Total cost: ${self.total_cost:.4f}")
         else:
-            unpriced = ", ".join(m.model for m in self.models if not m.cost_known)
+            unpriced = ", ".join(m.label for m in self.models if not m.cost_known)
             lines.append(
                 f"Total cost: ${self.total_cost:.4f} + unknown (no pricing data for {unpriced})"
             )
         if len(self.models) > 1:
             for m in self.models:
                 cost = f"${m.cost:.4f}" if m.cost_known else "cost unknown"
-                lines.append(f"  - {m.model}: {m.total_tokens:,} tokens, {cost}")
+                lines.append(f"  - {m.label}: {m.total_tokens:,} tokens, {cost}")
         return lines
 
 
@@ -136,17 +154,22 @@ def _int(value: Any) -> int:
 
 
 def summarize_run(
-    duration_seconds: float, per_model_metrics: Mapping[str, Mapping[str, Any]]
+    duration_seconds: float,
+    per_model_metrics: Mapping[str, Mapping[str, Any]],
+    efforts: Mapping[str, str | None] | None = None,
 ) -> RunSummary:
     """Build a `RunSummary` from `{usage_id: Metrics.get()}` dicts.
 
-    Entries with no tokens and no cost (e.g. auto-selection candidates that
-    were never actually called) are dropped; entries naming the same model
-    are merged. Missing/partial fields count as zero rather than raising —
+    `efforts` is each usage_id's configured reasoning effort (the SDK's
+    metrics don't carry it); a usage_id missing from it counts as no
+    effort set. Entries with no tokens and no cost (e.g. auto-selection
+    candidates that were never actually called) are dropped; entries naming
+    the same model at the same effort are merged. Missing/partial fields count as zero rather than raising —
     this runs in `stream_task`'s `finally` and must never mask the run's own
     outcome or exception.
     """
-    merged: dict[str, dict[str, float]] = {}
+    efforts = efforts or {}
+    merged: dict[tuple[str, str | None], dict[str, float]] = {}
     for usage_id, metrics in per_model_metrics.items():
         usage = metrics.get("accumulated_token_usage")
         if not isinstance(usage, Mapping):
@@ -157,7 +180,7 @@ def summarize_run(
             first = costs[0] if isinstance(costs, list) and costs else None
             model = (first.get("model") if isinstance(first, Mapping) else None) or usage_id
         totals = merged.setdefault(
-            model,
+            (model, efforts.get(usage_id)),
             {"prompt": 0, "completion": 0, "cache_read": 0, "reasoning": 0, "cost": 0.0},
         )
         totals["prompt"] += _int(usage.get("prompt_tokens"))
@@ -175,8 +198,9 @@ def summarize_run(
             cache_read_tokens=int(t["cache_read"]),
             reasoning_tokens=int(t["reasoning"]),
             cost=t["cost"],
+            reasoning_effort=effort,
         )
-        for model, t in merged.items()
+        for (model, effort), t in merged.items()
         if t["prompt"] or t["completion"] or t["cost"]
     )
     return RunSummary(duration_seconds=duration_seconds, models=models)

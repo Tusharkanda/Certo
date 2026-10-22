@@ -6,7 +6,7 @@ import csv
 import json
 from pathlib import Path
 
-from certo.bench_report import render_markdown, write_report
+from certo.bench_report import cost_summary, render_markdown, write_report
 
 META = {
     "certo_version": "0.1.6",
@@ -124,6 +124,7 @@ def test_write_report_writes_markdown_and_csv(tmp_path: Path):
     first = rows[0]
     assert first["arm"] == "local" and first["task"] == "page-ranges"
     assert first["models"] == "qwen" and first["model_ids"] == "ollama/qwen3-coder:30b"
+    assert first["reasoning_efforts"] == "not recorded"  # written before 0.1.22
     assert first["hidden_passed"] == "True" and first["fooled"] == "False"
 
 
@@ -216,6 +217,7 @@ def test_cost_summary_totals_and_splits_escalation_by_rung():
         {
             "name": "sonnet",
             "model": "anthropic/claude-sonnet-5-5",
+            "reasoning_effort": "not recorded",
             "runs": 3,
             "cost": 1.5,
             "complete": True,
@@ -224,6 +226,7 @@ def test_cost_summary_totals_and_splits_escalation_by_rung():
         {
             "name": "qwen",
             "model": "ollama/qwen3-coder:30b",
+            "reasoning_effort": "not recorded",
             "runs": 1,
             "cost": 0.0,
             "complete": True,
@@ -287,8 +290,25 @@ def test_results_md_has_a_cost_section_and_cost_json_is_written(tmp_path):
     markdown = write_report(out).read_text()
     assert "## Cost" in markdown
     assert "(the plan estimated at most ~$2.00)" in markdown
-    assert "| sonnet | `anthropic/claude-sonnet-5-5` |" in markdown
+    assert "| sonnet | `anthropic/claude-sonnet-5-5` | not recorded |" in markdown
 
     saved = json.loads((out / "cost.json").read_text())
     assert saved["estimate"] == {"at_most": 2.0, "likely": None}
     assert saved["total"] == round(sum(r["cost"] for r in RECORDS), 6)
+
+
+def test_the_cost_table_names_each_models_reasoning_effort():
+    record = _record("cloud", "slugify", 1, verdict="verified", passed=True, cost=0.5)
+    record["models"][0]["reasoning_effort"] = "high"
+    unset = _record("local", "slugify", 1, verdict="verified", passed=True)
+    unset["models"][0]["reasoning_effort"] = None
+
+    rows = cost_summary(META, [record, unset])["per_model"]
+
+    assert [(r["name"], r["reasoning_effort"]) for r in rows] == [
+        ("sonnet", "high"),
+        ("qwen", None),
+    ]
+    markdown = render_markdown(META, [record, unset])
+    assert "| sonnet | `anthropic/claude-sonnet-5-5` | high |" in markdown
+    assert "| qwen | `ollama/qwen3-coder:30b` | default |" in markdown
