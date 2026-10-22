@@ -5,6 +5,7 @@ from __future__ import annotations
 import argparse
 import json
 import os
+import shlex
 import sys
 import urllib.error
 import urllib.request
@@ -18,7 +19,13 @@ from openhands.sdk.event import ActionEvent
 from . import __version__
 from .acceptance import AcceptanceCheck, AcceptanceCheckError, parse_acceptance_checks
 from .banner import format_banner
-from .config import ConfigError, load_config, override_llm, resolve_project_dir
+from .config import (
+    ConfigError,
+    DEFAULT_PROJECTS_DIR,
+    load_config,
+    override_llm,
+    resolve_project_dir,
+)
 from .custom_tools.run_tests_tool import detect_project, run_full_verification
 from .escalation import format_rung_lines, load_ladder
 from .init_cmd import check_main, init_main, run_sample_task
@@ -591,6 +598,8 @@ def main(argv: list[str] | None = None) -> int:
     )
     save_state = cfg.save_state or resume_from is not None
     resume_hint = "certo --resume" + (f" --project {args.project}" if args.project else "")
+    if cfg.projects_dir != DEFAULT_PROJECTS_DIR:
+        resume_hint = f"CERTO_PROJECTS_DIR={shlex.quote(cfg.projects_dir)} {resume_hint}"
     started_at = datetime.now(UTC)
     history_task = resume_from.task if resume_from is not None else (task or "")
 

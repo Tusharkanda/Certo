@@ -131,9 +131,10 @@ Two settings change how it runs:
   time budget and the number of fix attempts, apply to every run.
 - **To continue one model's run**, for example after `stuck` or
   `budget_exhausted`, give Certo the same projects folder the script
-  used, from the folder you ran it in:
+  used, from the folder you ran it in. The command printed at the end of
+  the log already includes `CERTO_PROJECTS_DIR=...` when the run used a
+  non-default projects folder:
   `CERTO_PROJECTS_DIR=compare-results/<task>-<date>-<time>/projects certo --resume --project <model>`.
-  The command printed at the end of the log leaves that setting out.
 - **The `compare-results/` folder is yours.** In a checkout of Certo, git
   ignores it and your `compare-models.sh`.
 

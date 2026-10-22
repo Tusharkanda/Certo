@@ -1635,6 +1635,33 @@ def test_a_failing_verdict_points_at_status_md_and_resume(monkeypatch, tmp_path,
     assert "certo --resume --project game" in out
 
 
+def test_resume_hint_includes_projects_dir_only_when_not_default(monkeypatch, tmp_path, capsys):
+    """The printed resume command must carry CERTO_PROJECTS_DIR when the
+    run used a non-default projects folder; with the default it stays plain.
+    """
+    import shlex
+
+    from certo.config import DEFAULT_PROJECTS_DIR
+
+    calls: list = []
+    monkeypatch.setattr(cli, "run_task", _recording_run_task(calls, "retry_exhausted"))
+    monkeypatch.chdir(tmp_path)
+
+    monkeypatch.setattr(cli, "load_config", lambda: _cfg(projects_dir=DEFAULT_PROJECTS_DIR))
+    assert cli.main(["do it", "--project", "leap"]) == 1
+    default_out = capsys.readouterr().out
+    assert "Continue with: certo --resume --project leap" in default_out
+    assert "CERTO_PROJECTS_DIR=" not in default_out
+
+    custom = str(tmp_path / "my work")
+    monkeypatch.setattr(cli, "load_config", lambda: _cfg(projects_dir=custom))
+    assert cli.main(["do it", "--project", "leap"]) == 1
+    custom_out = capsys.readouterr().out
+    assert (
+        f"Continue with: CERTO_PROJECTS_DIR={shlex.quote(custom)} certo --resume --project leap"
+    ) in custom_out
+
+
 def test_ctrl_c_prints_how_to_resume_and_exits_130(monkeypatch, tmp_path, capsys):
     def interrupted(task, **kwargs):
         raise KeyboardInterrupt
