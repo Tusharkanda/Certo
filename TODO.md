@@ -60,13 +60,12 @@ first item is the suggested next one.
   README can drop one "not benchmarked yet"
   ([#24](https://github.com/alessioricco/certo/issues/24), open for
   contributors).
-- **Run the new sample tasks on a local model.** `hanoi.md`,
-  `mazeman.md`, `invaders.md` and `space-rocks.md` each ended `verified`
-  once on `claude-sonnet-5-5` (2026-10-21, 37s to 2m34s, $0.11 to $0.43),
-  but were never run on a local model, so on Ollama the menu quotes only
-  Wordle's time. Run each on `qwen3.8:27b`, fix any spec that doesn't end
-  `verified`, and record the times in `init_cmd.py`. Done when each one
-  has ended `verified` locally and the menu quotes a local time.
+- **A longer time budget from `certo init` for Ollama?** The mazeman
+  sample took 41 minutes on `qwen3.8:27b` (2026-10-22), past the default
+  30-minute `CERTO_MAX_TASK_SECONDS`; it ended `verified` only because the
+  checks now run once after the budget, with no time left for a fix
+  attempt. Decide whether init writes a longer budget for Ollama (as it
+  does the 1200s call timeout), from more than one run.
 - **A baseline per release.** `docs/benchmark/baseline-<version>.md` for
   every release (local vs cloud, fooled rate, cost per solved task), and
   a README badge. 0.1.13, 0.1.15 and 0.1.18 (local only) exist; no badge

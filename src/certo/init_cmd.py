@@ -880,10 +880,13 @@ _OWN_TASK_EXAMPLE = '"A command-line to-do list in Python, with tests"'
 # docs/benchmark/first-run-0.1.19.md); 9m28s, 11m49s and 15m04s on
 # qwen3.8:27b over Ollama (2026-10-20). The other samples, once each on
 # claude-sonnet-5-5 (2026-10-21), all verified: hanoi 37s, space-rocks
-# 1m41s, invaders 1m38s, mazeman 2m34s; not timed on a local model yet.
-# No cost figure is quoted: one measurement isn't one.
+# 1m41s, invaders 1m38s, mazeman 2m34s; and once each on qwen3.8:27b over
+# Ollama with a 1200s call timeout (2026-10-22), all verified: space-rocks
+# 8m39s, hanoi 20m13s, invaders 27m26s, mazeman 41m09s (past the 30-minute
+# budget; verified by the check after it). No cost figure is quoted: one
+# measurement isn't one.
 _SAMPLE_TIME_CLOUD = "a few minutes"
-_SAMPLE_TIME_LOCAL = "10 to 15 minutes"
+_SAMPLE_TIME_LOCAL = "10 to 40 minutes: Wordle and space rocks the least, mazeman the most"
 
 
 @dataclass(frozen=True)
@@ -896,7 +899,7 @@ class Sample:
     needs_node: bool = False
 
 
-# The menu's order. Only Wordle has measured times (above).
+# The menu's order. Measured times are above.
 SAMPLES = (
     Sample("wordle.md", "wordle", "Wordle in the terminal (Python)"),
     Sample("hanoi.md", "hanoi", "Tower of Hanoi in the terminal (Python)"),
@@ -918,11 +921,7 @@ def _offer_sample(
 ) -> Sample | None:
     """Ask which sample task to run now; the one that ran, or None."""
     local = settings.provider.id == "ollama"
-    took = (
-        f"Wordle takes {_SAMPLE_TIME_LOCAL}; the others weren't timed yet."
-        if local
-        else f"Each takes {_SAMPLE_TIME_CLOUD}."
-    )
+    took = f"A sample takes {_SAMPLE_TIME_LOCAL}." if local else f"Each takes {_SAMPLE_TIME_CLOUD}."
     cost = (
         "A run is free on your local model."
         if local

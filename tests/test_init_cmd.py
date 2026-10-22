@@ -631,7 +631,9 @@ def test_a_local_model_is_said_to_be_free_and_slower(tmp_path, monkeypatch, chec
         tmp_path, monkeypatch, ["6", "", "", str(len(init_cmd.SAMPLES) + 1)], models=["qwen3.8:27b"]
     )
 
-    assert "Wordle takes 10 to 15 minutes; the others weren't timed yet." in text
+    assert (
+        "A sample takes 10 to 40 minutes: Wordle and space rocks the least, mazeman the most."
+    ) in text
     assert "A run is free on your local model." in text
 
 

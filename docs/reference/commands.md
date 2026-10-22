@@ -158,8 +158,9 @@ one you pick runs at once, in the sample folder, as a normal run (its
 output, verdict and cost as for any run), with `--project` set to its
 name: for example `tasks/hanoi.md --project hanoi`. Without Node, the
 browser games aren't in the menu. `init` says how long a sample takes (a
-few minutes each on a cloud model; on a local one, 10 to 15 for Wordle,
-and the others weren't timed yet), that a cloud model uses your credits, and that the result's
+few minutes each on a cloud model; on a local one, 10 to 40 minutes,
+Wordle and space rocks the least, mazeman the most), that a cloud model
+uses your credits, and that the result's
 quality depends on the model. It is never offered with `--yes` or
 `--no-check`. Under "Next", `init` then prints the command for the Wordle
 sample (unless a sample ran) and an example for a project of your own:
