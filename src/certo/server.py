@@ -185,6 +185,8 @@ def create_app():
         model: str
         messages: list[ChatMessage]
         stream: bool = False
+        # OpenAI's: {"include_usage": true} adds a last chunk with `usage`.
+        stream_options: dict[str, Any] | None = None
         # Harness extensions, ignored by strict OpenAI clients that don't send
         # them: same meaning as TaskRequest's fields.
         project: str | None = None
@@ -479,8 +481,8 @@ def create_app():
         Chat history isn't replayed: every `system` message is concatenated
         as leading context, the *last* `user` message is the task, and prior
         `assistant` turns are dropped — see `_task_from_chat_messages`'s
-        docstring for why. `usage` is always zeroed; token counts aren't
-        tracked across a whole agent loop today.
+        docstring for why. `usage` counts every model call of the whole
+        agent loop (the run summary), not one completion.
         """
         try:
             task = _task_from_chat_messages(request.messages)
@@ -517,7 +519,7 @@ def create_app():
                         "finish_reason": "stop",
                     }
                 ],
-                "usage": {"prompt_tokens": 0, "completion_tokens": 0, "total_tokens": 0},
+                "usage": _usage(getattr(messages, "outcome", None)),
             }
 
         def sse_chunk(delta: dict, finish_reason: str | None = None) -> str:
@@ -540,9 +542,11 @@ def create_app():
             def on_message(message) -> None:
                 events.put(message)
 
+            outcome: list = []
+
             def run() -> None:
                 try:
-                    stream_task(task, cfg=cfg, on_message=on_message)
+                    outcome.append(stream_task(task, cfg=cfg, on_message=on_message))
                 except Exception as exc:  # noqa: BLE001 - surfaced in-stream, not raised
                     events.put(exc)
                 finally:
@@ -565,11 +569,34 @@ def create_app():
                     if text:
                         yield sse_chunk({"content": text})
             yield sse_chunk({}, finish_reason="stop")
+            if (request.stream_options or {}).get("include_usage"):
+                payload = {
+                    "id": completion_id,
+                    "object": "chat.completion.chunk",
+                    "created": created,
+                    "model": request.model,
+                    "choices": [],
+                    "usage": _usage(outcome[0] if outcome else None),
+                }
+                yield f"data: {json.dumps(payload)}\n\n"
             yield "data: [DONE]\n\n"
 
         return StreamingResponse(event_stream(), media_type="text/event-stream")
 
     return app
+
+
+def _usage(outcome: Any) -> dict[str, int]:
+    """OpenAI's `usage` from a run's summary: every model call of the agent
+    loop, all models together. Zero when the run has no summary."""
+    summary = getattr(outcome, "run_summary", None)
+    if summary is None:
+        return {"prompt_tokens": 0, "completion_tokens": 0, "total_tokens": 0}
+    return {
+        "prompt_tokens": summary.prompt_tokens,
+        "completion_tokens": summary.completion_tokens,
+        "total_tokens": summary.total_tokens,
+    }
 
 
 def main(argv: list[str] | None = None) -> None:

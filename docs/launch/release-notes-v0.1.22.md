@@ -54,6 +54,10 @@ can check, and the climb stops there instead of paying for every model.
 
 ## Also
 
+- **`/v1/chat/completions` reports real token usage.** `usage` was always
+  zero; it now counts the whole task (every model call, all models).
+  Streaming adds a usage chunk with `stream_options: {"include_usage":
+  true}`, as OpenAI does.
 - **The reasoning effort is shown next to the model.** The run summary,
   the escalation lines and rungs, `STATUS.md`, `.certo/RUNS.md`,
   `MODEL_DECISIONS.md`, the run artifacts, server results and the

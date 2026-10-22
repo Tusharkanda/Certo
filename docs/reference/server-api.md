@@ -119,11 +119,14 @@ runs the same agent and checks, but returns only the agent's text.
 | `model` | Required by the format, echoed back, **never used** to pick a model. |
 | `messages` | Every `system` message is joined in front as context; the **last** `user` message is the task. Earlier assistant messages are ignored. |
 | `stream` | `true` for Server-Sent Events, one event per agent message (not per token), ending with `data: [DONE]`. |
+| `stream_options` | `{"include_usage": true}` adds a last chunk before `[DONE]` with empty `choices` and the `usage`, as OpenAI does. |
 | `project`, `execution` | Certo extensions, as above. No `agents_md` here. |
 | `llm_model`, `llm_api_key`, `llm_base_url`, `llm_reasoning_effort` | Certo extensions: the real per-request model settings. |
 
-The response has the usual `chat.completion` shape. It has no verdict,
-`usage` is always zero, and an `Authorization` header is ignored. A
+The response has the usual `chat.completion` shape. It has no verdict, and
+an `Authorization` header is ignored. `usage` counts the whole task: every
+model call of the agent loop, all models together (the run summary's
+tokens), so it is much larger than one chat answer. A
 run-time error returns `500`.
 
 ## `GET /v1/models`

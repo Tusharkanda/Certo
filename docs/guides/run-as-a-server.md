@@ -91,7 +91,9 @@ Know its limits:
   replayed.
 - The answer doesn't include Certo's verdict. Use `POST /tasks` when you
   need it.
-- `usage` is always zero, and streaming sends whole messages, not tokens.
+- `usage` counts the tokens of the whole task, every model call of the
+  agent and every model it used, not one answer. Streaming sends whole
+  messages, not tokens.
 - An `Authorization` header is ignored, not checked.
 
 ## Keep task records

@@ -247,8 +247,6 @@ cut that first run's output from 2,949 lines to 1,021.)
   for `verification_state`, so a caller gets the agent's own claim only.
   Needs a deliberate wire-format choice (a custom field, or a trailing
   message).
-- **`/v1/chat/completions` always reports zero token usage**, although
-  the conversation's metrics have the counts.
 - **`model_decisions` isn't on `GET /tasks/{id}`.** The SQL stores need a
   new column; the `rungs` column (0.1.9) already shows how
   (`ALTER TABLE ... ADD COLUMN` on startup).

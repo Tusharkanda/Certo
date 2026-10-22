@@ -1077,6 +1077,67 @@ def test_chat_completions_streaming_sends_sse_chunks(monkeypatch):
     assert chunks[-1]["choices"][0]["finish_reason"] == "stop"
 
 
+def _summary():
+    from certo.run_summary import ModelUsage, RunSummary
+
+    return RunSummary(
+        duration_seconds=5,
+        models=(
+            ModelUsage("openai/a", prompt_tokens=1000, completion_tokens=100),
+            ModelUsage("openai/b", prompt_tokens=200, completion_tokens=20),
+        ),
+    )
+
+
+def test_chat_completions_usage_counts_the_whole_run(monkeypatch):
+    from types import SimpleNamespace
+
+    from certo.runner import TaskResult
+
+    def _fake_run_task(task, cfg=None, **_kwargs):
+        outcome = SimpleNamespace(run_summary=_summary())
+        return TaskResult([_FakeMessage("tool", "Done.")], outcome)
+
+    monkeypatch.setattr(server, "load_config", lambda: _cfg())
+    monkeypatch.setattr(server, "run_task", _fake_run_task)
+
+    response = TestClient(server.create_app()).post(
+        "/v1/chat/completions",
+        json={"model": "gpt-4o", "messages": [{"role": "user", "content": "go"}]},
+    )
+
+    assert response.json()["usage"] == {
+        "prompt_tokens": 1200,
+        "completion_tokens": 120,
+        "total_tokens": 1320,
+    }
+
+
+def test_chat_completions_streaming_sends_usage_when_asked(monkeypatch):
+    from types import SimpleNamespace
+
+    def _fake_stream_task(task, cfg=None, on_message=None, **_kwargs):
+        on_message(_FakeMessage("tool", "Done."))
+        return SimpleNamespace(run_summary=_summary())
+
+    monkeypatch.setattr(server, "load_config", lambda: _cfg())
+    monkeypatch.setattr(server, "stream_task", _fake_stream_task)
+
+    def chunks(body):
+        with TestClient(server.create_app()).stream(
+            "POST", "/v1/chat/completions", json=body
+        ) as response:
+            lines = [ln[len("data: ") :] for ln in response.iter_lines() if ln.startswith("data: ")]
+        return [json.loads(p) for p in lines[:-1]]
+
+    body = {"model": "gpt-4o", "messages": [{"role": "user", "content": "go"}], "stream": True}
+    assert not any("usage" in c for c in chunks(body))
+
+    last = chunks({**body, "stream_options": {"include_usage": True}})[-1]
+    assert last["choices"] == []
+    assert last["usage"] == {"prompt_tokens": 1200, "completion_tokens": 120, "total_tokens": 1320}
+
+
 # --- escalate -------------------------------------------------------------------------
 
 _LADDER_CATALOG = """
