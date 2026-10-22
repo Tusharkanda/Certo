@@ -26,10 +26,10 @@ This table maps each section of the old manual to its new page.
 | Task registry persistence, `certo-admin` | [Run as a server](docs/guides/run-as-a-server.md#keep-task-records), [Commands: certo-admin](docs/reference/commands.md#certo-admin) |
 | Projects: one subfolder per generated project | [Commands: certo](docs/reference/commands.md#certo), [Safety](docs/concepts/safety.md#where-the-agent-may-work) |
 | Project environments (Python) | [Work on an existing project](docs/guides/work-on-an-existing-project.md#python-projects-get-their-own-environment) |
-| Skills, Third-party skills, Lifecycle skills, Per-project context | [Add skills and tools](docs/guides/add-skills-and-tools.md) |
+| Skills, Third-party skills, Lifecycle skills, Per-project context | [Manage skills](docs/guides/manage-skills.md) |
 | Execution modes | [Run in Docker](docs/guides/run-in-docker.md) |
 | Switching LLM provider / model | [OpenAI, Claude and Gemini](docs/guides/openai-claude-gemini.md), [Ollama and local models](docs/guides/ollama-and-local-models.md) |
-| Custom tools | [Add skills and tools: Custom tools](docs/guides/add-skills-and-tools.md#custom-tools), [Verification by language](docs/reference/verification-by-language.md) |
+| Custom tools | [Add custom tools](docs/guides/add-custom-tools.md), [Verification by language](docs/reference/verification-by-language.md) |
 | Test verification | [How verification works](docs/concepts/how-verification-works.md), [Verdicts](docs/reference/verdicts.md) |
 | Confirmation mode | [Interactive and confirm mode](docs/guides/interactive-mode.md#confirm-mode-approve-every-action) |
 | Task budget | [Safety: Budgets](docs/concepts/safety.md#budgets) |

@@ -875,3 +875,15 @@ considered and live-verification detail: `docs/ROADMAP.txt`.
   by the effort, so it is part of the merge key in the run summary and
   the benchmark's cost table. Results written before 0.1.22 say `not
   recorded`, never `default`.
+- **`certo skills`: how a third-party folder is laid out** (0.1.22).
+  Skills sit at the folder's top level only (`<name>.md`,
+  `<name>/SKILL.md`) and are loaded item by item: the SDK's
+  `load_skills_from_dir` `rglob`s, and the git cache in the same folder
+  holds whole repositories. A skill added from a file or folder is on at
+  once (the user chose it, as with the old `./skills`); one from git keeps
+  the old rules, off until enabled, in the folder's own
+  `skills.lock.json`. Both kinds are treated as untrusted text (inline
+  commands escaped, `.mcp.json` ignored). `--project NAME` means a project
+  in `CERTO_PROJECTS_DIR`, as for a run. The old folders are read between
+  the official skills and the global ones, as before; a downloaded skill
+  there still can't replace an official one.

@@ -85,7 +85,7 @@ certo "Add a /health endpoint" --project my-api --agents-md "This project uses F
 ```
 
 This replaces `AGENTS.md` in that project folder. `--agents-md` needs
-`--project`. More in [Add skills and tools](add-skills-and-tools.md).
+`--project`. More in [Manage skills](manage-skills.md).
 
 ## Python projects get their own environment
 

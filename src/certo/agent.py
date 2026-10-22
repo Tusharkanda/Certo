@@ -9,8 +9,7 @@ from openhands.sdk import Agent, AgentContext
 from .config import Config
 from .llm import build_llm
 from .project_env import ProjectEnv
-from .skills import load_first_party_skills
-from .third_party_skills import load_enabled_skills
+from .skill_library import collect
 from .tools import build_tools
 
 # The SDK ends a conversation turn (execution_status -> FINISHED) whenever the
@@ -215,21 +214,15 @@ def build_agent(
     # the terminal session's extra variables, and the one policy line above.
     if project_env is not None:
         suffixes.append(_project_env_suffix(project_env))
-    first_party_skills = load_first_party_skills(cfg.skills_dir)
-    # Third-party skills (third_party_skills.py) only when explicitly enabled
-    # in the lockfile; a name already used by a first-party skill is skipped,
-    # since AgentContext rejects duplicate skill names outright.
-    third_party = load_enabled_skills(
-        cfg.third_party_skills_dir,
-        cfg.third_party_skills_lock,
-        reserved_names={s.name for s in first_party_skills},
-    )
+    # Official, then third-party (global, then this project's), one skill
+    # per name: AgentContext rejects duplicate names (skill_library.py).
+    skills = collect(cfg, cfg.workspace, own=False).skills
     agent_context = AgentContext(
-        skills=[*first_party_skills, *third_party],
+        skills=skills,
         # Resolved lazily by the Conversation once the real workspace path is
         # known (AgentContext itself doesn't know it yet) — this is what makes
         # a project's AGENTS.md / .agents/skills/ (see skills.write_project_context)
-        # apply automatically, on top of the shared catalog above.
+        # apply automatically, on top of (and replacing) the skills above.
         load_project_skills=True,
         system_message_suffix="\n\n".join(suffixes),
     )

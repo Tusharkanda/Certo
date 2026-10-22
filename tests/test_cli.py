@@ -2145,3 +2145,26 @@ def test_a_folder_certo_did_not_create_keeps_its_readme(monkeypatch, tmp_path):
     assert cli.main(["build an app", "--project", "mine"]) == 0
 
     assert (tmp_path / "mine" / "README.md").read_text() == "# App\n"
+
+
+def test_a_run_says_when_a_third_party_skill_replaces_an_official_one(
+    tmp_path, monkeypatch, capsys
+):
+    monkeypatch.setenv("XDG_CONFIG_HOME", str(tmp_path / "xdg"))
+    skills = tmp_path / "xdg" / "certo" / "skills"
+    skills.mkdir(parents=True)
+    (skills / "pytest-conventions.md").write_text(
+        "---\nname: pytest-conventions\ntriggers:\n  - pytest\n---\nMine.\n"
+    )
+    monkeypatch.setattr(
+        cli, "load_config", lambda: _cfg(workspace=str(tmp_path), skills_dir=str(tmp_path / "none"))
+    )
+    monkeypatch.setattr(
+        cli, "run_task", lambda *a, **k: _fake_result(verification_state="verified")
+    )
+
+    assert cli.main(["do it"]) == 0
+    assert (
+        "Certo: your global skill 'pytest-conventions' replaces the official one."
+        in capsys.readouterr().out
+    )

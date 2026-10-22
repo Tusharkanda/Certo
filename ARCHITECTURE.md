@@ -368,7 +368,23 @@ given design was chosen.
   since `AgentContext` raises on duplicate names. `config.py` rejects a
   third-party dir that overlaps `CERTO_SKILLS_DIR` or the built-in dir, because the
   first-party `rglob("*.md")` would load downloaded files regardless of
-  enablement.
+  enablement. Since 0.1.22 this is the old layout, read for one release;
+  `certo-admin skills` prints a note pointing to `certo skills`.
+- **`skill_library.py`** + **`skills_cmd.py`** (`certo skills
+  list|add|remove|enable|disable|update|sync`) — where a run's skills come
+  from: official (`builtin_skills/`), the old folders, third-party global
+  (`~/.config/certo/skills/`), third-party project
+  (`<project>/.certo/skills/`), and the project's own `.agents/skills/` +
+  `AGENTS.md` (loaded by the SDK, listed only). `collect()` returns one
+  row per skill per layer, marks what a later layer replaces (one skill
+  per name, since `AgentContext` rejects duplicates), and the notices a
+  run prints (`cli.py`, before the run). `build_agent()` takes
+  `collect(cfg, cfg.workspace, own=False).skills`. A third-party folder is
+  read at its top level only, item by item (`<name>.md`, `<name>/SKILL.md`),
+  never with `load_skills_from_dir`: its `rglob` would load the git cache
+  (`.cache/`, whole repositories). Downloaded skills reuse
+  `third_party_skills.py` with the folder's own `skills.lock.json`.
+  `certo skills` loads config under `defer_llm_check()`: it needs no model.
 
 ## Known limitations and traps
 
@@ -388,8 +404,9 @@ rule 2):
   `render_content_with_commands()` on a skill body, which executes every
   unescaped ``!`cmd` `` in a shell (confirmed live against v1.47.0). A
   `SKILL.md` directory's `.mcp.json` becomes MCP server config unless it is
-  loaded with `skip_mcp=True`. `third_party_skills.py` neutralizes both for
-  third-party skills. First-party skills are trusted and left as-is.
+  loaded with `skip_mcp=True`. `third_party_skills.py` and
+  `skill_library.py` neutralize both for every third-party skill, added
+  from a file or downloaded. Official skills are left as-is.
 - `ConversationVisualizerBase.initialize` is `@final` (v1.47.0), so a
   visualizer that wraps another can't hand it the state its metrics line
   needs: `console.py` subclasses the default visualizer instead. The SDK

@@ -462,10 +462,10 @@ def verify_main(argv: list[str]) -> int:
 
 def main(argv: list[str] | None = None) -> int:
     argv = sys.argv[1:] if argv is None else list(argv)
-    # `verify`, `init`, `check`, `models` and `bench` are subcommands only as the exact, whole
-    # first argument. A task is always one argument (quoted), so "verify the
-    # login flow" or "init a repo" can never match, and `certo -- verify`
-    # still runs the one-word task.
+    # `verify`, `init`, `check`, `models`, `skills` and `bench` are
+    # subcommands only as the exact, whole first argument. A task is always
+    # one argument (quoted), so "verify the login flow" or "init a repo" can
+    # never match, and `certo -- verify` still runs the one-word task.
     if argv and argv[0] == "verify":
         return verify_main(argv[1:])
     if argv and argv[0] == "init":
@@ -476,6 +476,10 @@ def main(argv: list[str] | None = None) -> int:
         from .models_cmd import models_main
 
         return models_main(argv[1:])
+    if argv and argv[0] == "skills":
+        from .skills_cmd import skills_main
+
+        return skills_main(argv[1:])
     if argv and argv[0] == "bench":
         from .bench import bench_main
 
@@ -641,6 +645,12 @@ def main(argv: list[str] | None = None) -> int:
         print(line)
     if resume_from is not None:
         print(f"Resuming: {_first_line(resume_from.task)}")
+    # A third-party skill replacing an official one, and the old skill
+    # folders still in use, are said before the run (skill_library.py).
+    from .skill_library import collect
+
+    for line in collect(cfg, cfg.workspace, own=False).notices:
+        print(line)
 
     certo_made = args.project is not None and was_created_by_certo(cfg.projects_dir, args.project)
     if not cfg.no_worktree_warning and not certo_made:

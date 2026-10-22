@@ -1,0 +1,305 @@
+"""Where a run's skills come from, in order, and what `certo skills` shows.
+
+Layers, lowest to highest; a skill replaces one of the same name below it:
+
+1. official: Certo's own, in the package (`certo/builtin_skills/`),
+   changed only by a release;
+2. the old folders, read until the next release with a line asking to move
+   them: `CERTO_SKILLS_DIR` (`./skills`) and `CERTO_THIRD_PARTY_SKILLS_DIR`
+   with its lock file;
+3. third-party, global: `~/.config/certo/skills/`, for every project;
+4. third-party, project: `<project>/.certo/skills/`, never in git
+   (`.certo/` ignores itself);
+5. the project's own `.agents/skills/` and `AGENTS.md`: loaded by the SDK
+   itself (`load_project_skills`, which overrides a same-named skill), only
+   read here, never written.
+
+A third-party folder holds, at its top level only, `<name>.md` files and
+`<name>/SKILL.md` folders. A skill added from a file or folder is on as
+soon as it is there; a skill downloaded from git is listed in the folder's
+`skills.lock.json` and stays off until enabled, with its license and hash
+checked (`third_party_skills.py`). Names starting with a dot (the git
+cache, staging) are never skills. Nothing here is loaded recursively: a
+git cache holds whole repositories.
+
+Every third-party skill is untrusted text: its inline `` !`command` `` is
+escaped and its `.mcp.json` ignored, as for downloaded skills.
+"""
+
+from __future__ import annotations
+
+import os
+from collections.abc import Iterable
+from dataclasses import dataclass, replace
+from pathlib import Path
+
+from openhands.sdk.skills import KeywordTrigger, PathTrigger, Skill, TaskTrigger
+from openhands.sdk.skills.utils import find_skill_md
+
+from . import third_party_skills as tps
+from .config import BUILTIN_SKILLS_DIR, Config
+from .model_files import user_dir
+from .project_state import state_dir
+from .skills import load_skill_catalog
+
+LOCK_FILE = "skills.lock.json"
+
+OFFICIAL = "official"
+OLD = "old folder"
+GLOBAL = "global"
+PROJECT = "project"
+OWN = "project's own"
+THIRD_PARTY = (OLD, GLOBAL, PROJECT)
+# How a notice names a third-party layer's skill.
+_YOUR = {OLD: "skill in an old folder", GLOBAL: "global skill", PROJECT: "project skill"}
+
+
+def global_dir() -> Path:
+    """Third-party skills for every project on this computer."""
+    return Path(user_dir()) / "skills"
+
+
+def project_dir(workspace: str | Path) -> Path:
+    """Third-party skills for one project, inside its `.certo/`."""
+    return Path(state_dir(str(workspace))) / "skills"
+
+
+def lock_path(root: Path) -> Path:
+    return root / LOCK_FILE
+
+
+@dataclass(frozen=True)
+class SkillRow:
+    """One skill as found in one layer."""
+
+    name: str
+    layer: str
+    where: str  # the file or folder it came from
+    skill: Skill | None = None  # None when it isn't used (off, or can't load)
+    state: str = "on"  # "on", or why not, e.g. "off (downloaded; run ... enable)"
+    downloaded: bool = False  # from git, in the lock file
+    replaced_by: str | None = None  # the layer of the skill that replaces it
+
+    @property
+    def active(self) -> bool:
+        return self.skill is not None and self.replaced_by is None
+
+
+@dataclass(frozen=True)
+class SkillSet:
+    rows: tuple[SkillRow, ...]
+    # Lines a run prints: a third-party skill that replaces an official one,
+    # and the old folders still in use.
+    notices: tuple[str, ...]
+
+    @property
+    def skills(self) -> list[Skill]:
+        """What Certo passes to the agent. The project's own skills are left
+        to the SDK, which loads them from the workspace itself."""
+        return [r.skill for r in self.rows if r.active and r.layer != OWN]  # type: ignore[misc]
+
+
+def untrusted(skill: Skill) -> Skill:
+    return skill.model_copy(update={"content": tps.neutralize_inline_commands(skill.content)})
+
+
+def load_one(path: Path, root: Path) -> Skill:
+    """A `.md` file (named by its frontmatter, else its file name) or a
+    `SKILL.md` folder (named as the AgentSkills standard says)."""
+    if path.is_dir():
+        skill_md = find_skill_md(path)
+        if skill_md is None:
+            raise tps.ThirdPartySkillError(f"{path} has no SKILL.md")
+        return Skill.load(skill_md, strict=True, skip_mcp=True)
+    return Skill.load(path, root)
+
+
+def load_folder(root: Path, layer: str, command_scope: str) -> list[SkillRow]:
+    """Every skill at the top level of one third-party folder.
+    `command_scope` (`--global`, `--project NAME`) goes into the hints."""
+    if not root.is_dir():
+        return []
+    try:
+        locked = tps.read_lock(lock_path(root))
+    except tps.ThirdPartySkillError as exc:
+        return [SkillRow(LOCK_FILE, layer, str(lock_path(root)), state=f"can't read: {exc}")]
+    rows: list[SkillRow] = []
+    downloaded = {r.name: r for r in _downloaded_rows(root, layer, locked, command_scope)}
+    for item in sorted(root.iterdir()):
+        if item.name.startswith(".") or item.name == LOCK_FILE:
+            continue
+        if item.is_dir() and item.name in downloaded:
+            continue
+        if item.is_file() and (item.suffix != ".md" or item.name == "README.md"):
+            continue
+        try:
+            skill = untrusted(load_one(item, root))
+        except tps.SKILL_LOAD_ERRORS + (tps.ThirdPartySkillError,) as exc:
+            rows.append(SkillRow(item.stem, layer, str(item), state=f"can't load: {exc}"))
+            continue
+        rows.append(SkillRow(skill.name, layer, str(item), skill))
+    return rows + list(downloaded.values())
+
+
+def _downloaded_rows(
+    root: Path, layer: str, locked: dict[str, tps.LockEntry], command_scope: str
+) -> list[SkillRow]:
+    rows = []
+    loaded = {s.name: s for s in tps.load_enabled_skills(root, lock_path(root))}
+    for name, entry in sorted(locked.items()):
+        where = str(root / name)
+        if name in loaded:
+            rows.append(SkillRow(name, layer, where, loaded[name], downloaded=True))
+            continue
+        status = tps.integrity_status(root / name, entry)
+        if not entry.enabled:
+            state = f"off (downloaded; turn it on with: certo skills enable {name} {command_scope})"
+        elif status != "ok":
+            state = f"off (its files are {status}; run: certo skills sync {command_scope})"
+        else:
+            state = "off (its license isn't acknowledged)"
+        rows.append(SkillRow(name, layer, where, state=state, downloaded=True))
+    return rows
+
+
+def _old_rows(cfg: Config, official: set[str]) -> tuple[list[SkillRow], list[str]]:
+    """The folders Certo read before `certo skills`, with the line asking
+    to move them. Read relative to the folder `certo` runs from, as before."""
+    rows: list[SkillRow] = []
+    notices: list[str] = []
+    skills_dir = Path(cfg.skills_dir).resolve()
+    if skills_dir != Path(BUILTIN_SKILLS_DIR):
+        for skill in load_skill_catalog(skills_dir):
+            rows.append(SkillRow(skill.name, OLD, str(skills_dir), skill))
+    if rows:
+        notices.append(
+            f"Certo: skills in {cfg.skills_dir} (CERTO_SKILLS_DIR) are still used, until the "
+            "next release. Move each one with: certo skills add PATH --global "
+            "(or --project NAME)."
+        )
+    lock = Path(cfg.third_party_skills_lock)
+    try:
+        # As before: a downloaded skill never replaced an official one here.
+        old_downloaded = tps.load_enabled_skills(
+            cfg.third_party_skills_dir, lock, reserved_names=official
+        )
+    except tps.ThirdPartySkillError:
+        old_downloaded = []
+    for skill in old_downloaded:
+        rows.append(SkillRow(skill.name, OLD, cfg.third_party_skills_dir, skill, downloaded=True))
+    if lock.is_file() and old_downloaded:
+        notices.append(
+            f"Certo: downloaded skills in {cfg.third_party_skills_dir} are still used, until "
+            "the next release. Download each one again with: certo skills add "
+            "github:OWNER/REPO PATH --global (or --project NAME)."
+        )
+    return rows, notices
+
+
+def _own_rows(workspace: Path) -> list[SkillRow]:
+    from openhands.sdk.skills import load_project_skills
+
+    return [
+        SkillRow(s.name, OWN, s.source or str(workspace), s) for s in load_project_skills(workspace)
+    ]
+
+
+def collect(
+    cfg: Config,
+    workspace: str | Path | None,
+    *,
+    project_name: str | None = None,
+    own: bool = True,
+) -> SkillSet:
+    """Every skill a run in `workspace` gets, layer by layer, with what
+    replaces what. `workspace` None: no project (no project layers).
+    `own` False leaves out the project's own skills, which a run doesn't
+    need: the SDK loads them itself."""
+    official = [SkillRow(s.name, OFFICIAL, BUILTIN_SKILLS_DIR, s) for s in official_skills()]
+    old, notices = _old_rows(cfg, {r.name for r in official})
+    rows = official + old + load_folder(global_dir(), GLOBAL, "--global")
+    if workspace is not None:
+        scope = f"--project {project_name}" if project_name else "--project NAME"
+        rows += load_folder(project_dir(workspace), PROJECT, scope)
+        if own:
+            rows += _own_rows(Path(workspace))
+    rows = _mark_replaced(rows)
+    for row in rows:
+        if row.layer == OFFICIAL and row.replaced_by in THIRD_PARTY:
+            notices.append(
+                f"Certo: your {_YOUR[row.replaced_by]} '{row.name}' replaces the official one."
+            )
+    return SkillSet(tuple(rows), tuple(notices))
+
+
+def official_skills() -> list[Skill]:
+    return load_skill_catalog(BUILTIN_SKILLS_DIR)
+
+
+def _mark_replaced(rows: Iterable[SkillRow]) -> list[SkillRow]:
+    out = list(rows)
+    latest: dict[str, int] = {}
+    for i, row in enumerate(out):
+        if row.skill is None:
+            continue
+        if row.name in latest:
+            j = latest[row.name]
+            out[j] = replace(out[j], replaced_by=row.layer)
+        latest[row.name] = i
+    return out
+
+
+# --- How a skill fires, and what it costs -------------------------------------------
+
+_MAX_SHOWN = 6
+
+
+def _some(words: list[str]) -> str:
+    shown = ", ".join(words[:_MAX_SHOWN])
+    return shown + (f" and {len(words) - _MAX_SHOWN} more" if len(words) > _MAX_SHOWN else "")
+
+
+def how_it_fires(skill: Skill) -> str:
+    trigger = skill.trigger
+    if isinstance(trigger, KeywordTrigger):
+        return f"when the task says: {_some(trigger.keywords)}"
+    if isinstance(trigger, TaskTrigger):
+        return f"when the task says: {_some(trigger.triggers)}"
+    if isinstance(trigger, PathTrigger):
+        return f"when the agent touches: {_some(trigger.paths)}"
+    if skill.is_agentskills_format:
+        return "when the agent asks for it (its name and description are always listed)"
+    return "always"
+
+
+def size_in_tokens(skill: Skill) -> int:
+    """A rough count (four characters a token): enough to compare skills."""
+    return max(1, round(len(skill.content) / 4))
+
+
+def fires_for_task(skill: Skill, task: str) -> str | None:
+    """Why `skill` goes into a run of `task` from its first message, or None.
+    The same matching a run uses (`Skill.match_trigger`)."""
+    trigger = skill.trigger
+    if isinstance(trigger, KeywordTrigger | TaskTrigger):
+        word = skill.match_trigger(task)
+        return f'"{word}" is in the task' if word else None
+    if trigger is None and not skill.is_agentskills_format:
+        return "always on"
+    return None
+
+
+def later_for_task(skill: Skill) -> str | None:
+    """How `skill` may still come in later in a run, or None."""
+    if isinstance(skill.trigger, PathTrigger):
+        return f"if the agent touches {_some(skill.trigger.paths)}"
+    if skill.is_agentskills_format:
+        return "if the agent asks for it"
+    return None
+
+
+def describe_dir(path: Path) -> str:
+    """A folder as the user typed it, with `~` for the home folder."""
+    home = os.path.expanduser("~")
+    text = str(path)
+    return "~" + text[len(home) :] if text.startswith(home + os.sep) else text

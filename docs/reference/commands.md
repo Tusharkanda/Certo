@@ -296,6 +296,111 @@ at `  - name:` with their fields indented below), nothing is written and
 the message says so. Exit code 0, or 1 when there is no list or it can't
 be edited safely.
 
+## `certo skills`
+
+See, add and remove the skills a run gets. **Official** skills come with
+Certo and change only with a release. **Third-party** skills are yours:
+written by you or downloaded. They go in one of two folders, never where
+git sees them:
+
+| Flag | Folder | For |
+|---|---|---|
+| `--global` | `~/.config/certo/skills/` (`$XDG_CONFIG_HOME/certo/skills/` when set) | every project |
+| `--project NAME` | `<project>/.certo/skills/`, in `CERTO_PROJECTS_DIR` | one project |
+
+`add`, `remove`, `enable`, `disable`, `update` and `sync` need one of the
+two flags. A third-party skill may replace an official one of the same
+name; `list` shows it, and a run prints a line saying so. None of these
+commands needs a model. Guide: [Manage skills](../guides/manage-skills.md).
+
+### `certo skills list`
+
+```text
+certo skills list [--project NAME] [--task TEXT]
+```
+
+| Flag | Effect |
+|---|---|
+| `--project NAME` | Also list that project's skills, and its own `.agents/skills/` and `AGENTS.md`. |
+| `--task TEXT` | Say which skills would go into a run of this task, and why, with their size; and which may come in later. |
+
+Lists official and third-party skills in separate sections. For each:
+how it fires, its size in tokens (roughly), `from git` for a downloaded
+skill, and `replaced by ...` when a skill of the same name in a later
+layer replaces it. A downloaded skill that is off says why and how to
+turn it on.
+
+### `certo skills add`
+
+```text
+certo skills add FILE_OR_FOLDER_OR_SOURCE [PATH] (--global | --project NAME) [--ref REF] [--yes]
+```
+
+| Argument or flag | Effect |
+|---|---|
+| `FILE_OR_FOLDER_OR_SOURCE` | A `.md` skill file, a folder with a `SKILL.md`, or a git source: `github:owner/repo` or an `https://` git URL. |
+| `PATH` | With a git source: the skill's folder in the repository, e.g. `skills/pdf`. It must contain a `SKILL.md`. |
+| `--ref REF` | With a git source: a branch, tag or commit. Default: the repository's default branch. |
+| `--yes`, `-y` | Replace a skill of the same name in that folder without asking. Needed without a terminal. |
+
+A file or folder is loaded first, as a run would load it; if it can't be,
+nothing is copied. Certo prints how it fires and its size. It is **on** at
+once. A skill from git is downloaded at an exact commit with its license
+checked, and stays **off** until `certo skills enable`.
+
+### `certo skills remove`
+
+```text
+certo skills remove NAME (--global | --project NAME)
+```
+
+Delete a third-party skill from that folder (a downloaded one with its
+lock-file entry). Official skills can't be removed.
+
+### `certo skills enable`
+
+```text
+certo skills enable NAME (--global | --project NAME) [--accept-unknown-license]
+```
+
+Turn on a skill downloaded from git. Its files must still match their
+recorded hash.
+
+| Flag | Effect |
+|---|---|
+| `--accept-unknown-license` | Needed when the license couldn't be established. Read the license first. |
+
+### `certo skills disable`
+
+```text
+certo skills disable NAME (--global | --project NAME)
+```
+
+Turn off a skill downloaded from git. The files stay.
+
+### `certo skills update`
+
+```text
+certo skills update NAME (--global | --project NAME) [--ref REF]
+```
+
+| Flag | Effect |
+|---|---|
+| `--ref REF` | Default: the ref it was added at. |
+
+Download a git skill again. If its content or license changed, it is
+turned off until you enable it again.
+
+### `certo skills sync`
+
+```text
+certo skills sync (--global | --project NAME)
+```
+
+Restore every downloaded skill in that folder at its recorded commit, and
+check its files against the recorded hash. A skill whose files don't match
+is not restored (exit 1). Never turns a skill on or off.
+
 ## `certo check`
 
 Check that the configured model works.
@@ -495,8 +600,11 @@ removed from any error text. Exit 0 on success, 1 otherwise.
 
 ### `certo-admin skills`
 
-Manage third-party skills ([experimental](../README.md#experimental-features)). Guide:
-[Add skills and tools](../guides/add-skills-and-tools.md#third-party-skills).
+**Moving to [`certo skills`](#certo-skills); goes away in the next
+release.** These commands manage only the old folder,
+`CERTO_THIRD_PARTY_SKILLS_DIR` (`./third_party_skills/`), and print a note
+saying so. Download each skill again with `certo skills add ... --global`
+(or `--project NAME`).
 
 #### `certo-admin skills install`
 

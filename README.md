@@ -264,7 +264,7 @@ The exit code is nonzero for every failure state, so Certo works in scripts and 
 - **Run records.** Full transcript, token counts and cost per run, plus a log of which model was picked and why.
 - **Sandboxed runs** ([experimental](https://github.com/alessioricco/certo/blob/main/docs/README.md#experimental-features)). Add `--execution docker` to run the agent in a container.
 - **Server mode.** REST and WebSocket streaming. The OpenAI-compatible `/v1/chat/completions` endpoint and the SQL and Redis task stores are [experimental](https://github.com/alessioricco/certo/blob/main/docs/README.md#experimental-features).
-- **Skills and custom tools.** Add project conventions or new tools by dropping files in a folder. Installing third-party skills is [experimental](https://github.com/alessioricco/certo/blob/main/docs/README.md#experimental-features).
+- **Skills and custom tools.** `certo skills add` gives the agent your conventions, for every project or one, kept out of git; `certo skills list --task "..."` shows what a task would get. Downloading skills from git is [experimental](https://github.com/alessioricco/certo/blob/main/docs/README.md#experimental-features). See [Manage skills](https://github.com/alessioricco/certo/blob/main/docs/guides/manage-skills.md).
 
 ## More ways to run it
 
@@ -299,7 +299,7 @@ Certo is built on the [OpenHands Software Agent SDK](https://docs.openhands.dev/
 
 - Server mode has no authentication. Run it on localhost or behind your own gateway.
 - Java projects are detected, but verification needs Maven or Gradle installed.
-- Docker execution, the OpenAI-compatible endpoint, the SQL and Redis task stores and third-party skills are [experimental](https://github.com/alessioricco/certo/blob/main/docs/README.md#experimental-features): tested, not yet proven in real use. Under Docker, automatic model selection makes the initial pick but does not fall back mid-task.
+- Docker execution, the OpenAI-compatible endpoint, the SQL and Redis task stores and skills downloaded from git are [experimental](https://github.com/alessioricco/certo/blob/main/docs/README.md#experimental-features): tested, not yet proven in real use. Under Docker, automatic model selection makes the initial pick but does not fall back mid-task.
 - Some local models, on some Ollama setups, write their tool calls as plain text and end the run with no work done. `certo check` tests for it; with `--escalate`, such a task goes to the next model. Which models worked in Certo's benchmark: [Choose a local model](https://github.com/alessioricco/certo/blob/main/docs/guides/choose-a-local-model.md).
 - `verified` proves what the project's tests test, and nothing more. Read the tests: [Write a task Certo can check](https://github.com/alessioricco/certo/blob/main/docs/guides/write-a-good-task.md).
 

@@ -2,6 +2,29 @@
 
 Not released yet.
 
+## New: `certo skills`, for official and third-party skills
+
+`certo skills list` shows every skill a run gets: Certo's official ones
+and yours, in separate sections, with how each one fires, its size in
+tokens, and which skill replaces which. `--task "..."` says which skills
+would go into a run of that task, and why.
+
+`certo skills add FILE_OR_FOLDER --global` (every project) or
+`--project NAME` (one project) adds a skill you wrote, after checking that
+it loads; `certo skills remove` takes it away. A skill from git
+(`certo skills add github:OWNER/REPO PATH --global`) keeps the old rules:
+exact commit, license check, off until `certo skills enable`. One of the
+two flags is always required, so a skill never lands in the wrong place.
+
+Third-party skills now live in `~/.config/certo/skills/` and
+`<project>/.certo/skills/`, never in a folder git tracks. Until now they
+lived in `./skills` and `./third_party_skills/`, relative to the folder
+`certo` ran from, where they could end up in a repository. Those folders
+are still read until the next release, and a run prints a line asking you
+to move them. A skill of yours may still replace an official one of the
+same name, but a run now says so. `certo-admin skills` moves into
+`certo skills` and goes away in the next release.
+
 ## Changed: a run that ends after its time budget is still checked
 
 Certo checks the time budget (`CERTO_MAX_TASK_SECONDS`, 30 minutes by

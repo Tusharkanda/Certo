@@ -50,7 +50,7 @@ from openhands.sdk.skills.utils import find_skill_md
 logger = logging.getLogger(__name__)
 
 # What the SDK's own load_skills_from_dir() treats as "this skill failed to load".
-_SKILL_LOAD_ERRORS = (SkillError, OSError, yaml.YAMLError, ValueError)
+SKILL_LOAD_ERRORS = (SkillError, OSError, yaml.YAMLError, ValueError)
 
 LOCK_VERSION = 1
 UNKNOWN_LICENSE = "unknown"
@@ -214,7 +214,7 @@ def validate_skill_path(skill_path: str) -> str:
     return str(path)
 
 
-def _check_name(name: str) -> None:
+def check_name(name: str) -> None:
     try:
         validate_extension_name(name)
     except ValueError as exc:
@@ -250,7 +250,7 @@ def integrity_status(skill_dir: Path, entry: LockEntry) -> str:
     return "ok" if actual == entry.integrity else "modified"
 
 
-def _copy_regular_files(src: Path, dst: Path) -> None:
+def copy_regular_files(src: Path, dst: Path) -> None:
     """Copy regular files only (no symlinks, no `.git`, no exec bits)."""
     for dirpath, dirnames, filenames in os.walk(src):
         dirnames[:] = [d for d in dirnames if d != ".git"]
@@ -403,7 +403,7 @@ def _fetch_and_stage(
     # Stage under the upstream directory's own name: strict SKILL.md loading
     # requires the frontmatter name to match its directory name.
     staged = staging_root / fetched.name
-    _copy_regular_files(fetched, staged)
+    copy_regular_files(fetched, staged)
     root_attribution = [
         p
         for p in sorted(repo_root.iterdir())
@@ -416,9 +416,9 @@ def _fetch_and_stage(
 
     try:
         skill = Skill.load(find_skill_md(staged), strict=True, skip_mcp=True)
-    except _SKILL_LOAD_ERRORS as exc:
+    except SKILL_LOAD_ERRORS as exc:
         raise ThirdPartySkillError(f"Upstream SKILL.md failed validation: {exc}") from exc
-    _check_name(skill.name)
+    check_name(skill.name)
 
     identifier, license_files, notes, license_url = _determine_license(
         staged, skill.license, skill_path, web_base, revision
@@ -465,7 +465,7 @@ def _staging_root(install_dir: Path) -> tempfile.TemporaryDirectory:
 
 
 def _require(entries: dict[str, LockEntry], name: str) -> LockEntry:
-    _check_name(name)
+    check_name(name)
     if name not in entries:
         raise ThirdPartySkillError(f"No third-party skill named {name!r} is installed.")
     return entries[name]
@@ -665,7 +665,7 @@ def load_enabled_skills(
             continue
         try:
             skill = Skill.load(find_skill_md(skill_dir), strict=True, skip_mcp=True)
-        except _SKILL_LOAD_ERRORS as exc:
+        except SKILL_LOAD_ERRORS as exc:
             logger.warning("Skipping third-party skill %r: %s", name, exc)
             continue
         if skill.name != name:

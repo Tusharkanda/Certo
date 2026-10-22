@@ -99,11 +99,10 @@ checks have no "run this command" kind.
 ## Third-party skills
 
 A skill is text that becomes part of the agent's instructions. A skill
-written by someone else is untrusted input. `certo-admin skills` handles
-them carefully:
+written by someone else is untrusted input. A skill downloaded with
+`certo skills add github:...` is handled carefully:
 
-- **Installed is not enabled.** A new skill does nothing until you enable
-  it.
+- **Downloaded is not on.** A new skill does nothing until you enable it.
 - **Licenses.** Only a few common open licenses are recognised. Anything
   else is `unknown` and can't be enabled without
   `--accept-unknown-license`.
@@ -120,8 +119,12 @@ them carefully:
   its scripts, using the agent's normal tools. Read a skill before
   enabling it, and consider confirm mode while you try it.
 
-Your own skills (in `CERTO_SKILLS_DIR`) and the built-in ones are trusted
-as they are.
+A skill you add from a file or folder is on at once: you chose it. Its
+`.mcp.json` is still ignored and its inline snippets still turned into
+text, as for a downloaded one. Third-party skills live in
+`~/.config/certo/skills/` or the project's `.certo/skills/`, never in a
+folder git tracks. Official skills, which come with Certo, are used as
+they are.
 
 ## Related
 

@@ -16,6 +16,7 @@ redis/mysql/postgres store.
 from __future__ import annotations
 
 import argparse
+import sys
 
 from . import __version__
 from . import third_party_skills as tps
@@ -145,6 +146,11 @@ def _skills_cmd(func):
     """Run a skills subcommand, turning a ThirdPartySkillError into exit 1."""
 
     def wrapper(args: argparse.Namespace) -> int:
+        print(
+            "Note: these commands manage the old folder (CERTO_THIRD_PARTY_SKILLS_DIR) and go "
+            "away in the next release. Use certo skills, with --global or --project NAME.",
+            file=sys.stderr,
+        )
         try:
             return func(args, load_config())
         except tps.ThirdPartySkillError as exc:

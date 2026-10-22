@@ -75,7 +75,7 @@ Or set `CERTO_EXECUTION=docker` to make it the default.
 | `CERTO_EXECUTION=docker requires the 'sandbox' extra` | Install `certo[sandbox]`. |
 | The image build fails right away | You installed from pip. Build the image from a checkout, as above. |
 | Hangs, or never becomes healthy | Check that Docker is running (`docker ps`) and that `CERTO_DOCKER_PLATFORM` is empty or matches your machine. |
-| A custom tool works locally but not in Docker | See [Add skills and tools](add-skills-and-tools.md#custom-tools). |
+| A custom tool works locally but not in Docker | See [Add custom tools](add-custom-tools.md#write-a-tool). |
 
 ## Related
 
