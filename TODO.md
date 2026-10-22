@@ -327,13 +327,6 @@ database).
   Since 0.1.20 they have their own files; the old sections are still read
   with a warning. Remove that path (and the tests that use the old layout
   through `write_model_files`) a version or two later.
-- **`--model` alone fails when no model is configured.** `certo TASK
-  --model X` with no `CERTO_LLM_MODEL` anywhere stops with "CERTO_LLM_MODEL
-  is required": `load_config()` validates before `override_llm()` applies
-  the flags. Same for a local `--base-url` with no key. Found 2026-10-19
-  writing `examples/compare-models.sh.example`, which works around it by
-  setting the variables. Done when the flags alone are enough. Open for
-  contributors: [#11](https://github.com/alessioricco/certo/issues/11).
 - **A configuration error after `--project` leaves an empty project
   folder.** `main()` creates the folder and records it in
   `.certo-created-projects` before the `--escalate`/`--auto-model`

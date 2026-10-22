@@ -841,3 +841,11 @@ considered and live-verification detail: `docs/ROADMAP.txt`.
   chosen; the handoff note covers the second. Two `inconclusive` rungs in
   a row stop the climb, so a project with nothing to check doesn't pay
   for every rung.
+- **CLI LLM flags are checked after they are applied** (issue #11).
+  `load_config()` used to require a model (and a key unless a base URL was
+  set) before `override_llm()` saw `--model` / `--base-url`, so the flags
+  alone could not start a run. `defer_llm_check()` skips those checks for
+  the load; `ensure_llm_configured()` then checks the final values after
+  `override_llm()`. Validation stays out of `override_llm` itself so
+  catalog swaps that clear a key can still set a base URL in the same
+  call. No flag and no setting still yields the same error as before.

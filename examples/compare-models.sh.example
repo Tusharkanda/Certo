@@ -45,13 +45,14 @@ run() {
     fi
   fi
   echo "== $model (log: $OUT/$slug.log)"
-  # The model and key go in the environment, not on the command line, so
-  # the key doesn't show up in the process list. --base-url "" clears any
+  # The key stays in the environment, not on the command line, so it
+  # doesn't show up in the process list. --model and --base-url are enough
+  # on their own (no CERTO_LLM_MODEL required). --base-url "" clears any
   # address set in .env, so a cloud model isn't sent to the Ollama server.
-  CERTO_LLM_MODEL="$model" CERTO_LLM_API_KEY="$key" CERTO_LLM_BASE_URL="$base_url" \
+  CERTO_LLM_API_KEY="$key" \
     CERTO_MODEL_SELECTION=manual \
     CERTO_PROJECTS_DIR="$OUT/projects" \
-    $CERTO "$TASK_FILE" --base-url "$base_url" --project "$slug" \
+    $CERTO "$TASK_FILE" --model "$model" --base-url "$base_url" --project "$slug" \
     > "$OUT/$slug.log" 2>&1 < /dev/null
   local code=$?
   local verdict time cost

@@ -76,10 +76,13 @@ out your active lines and remove the `#` from two others. Then run
 
 ## Try another model for one run
 
-Flags change the model for one run only. Your settings file is not touched:
+Flags change the model for one run only. Your settings file is not touched.
+They are enough on their own: you do not need `CERTO_LLM_MODEL` (or a key)
+already set when the flags supply them.
 
 ```bash
 certo "Add input validation to the signup form" --model openai/gpt-5.6-terra --api-key "$OPENAI_API_KEY"
+certo "Try a local model" --model ollama/qwen3.8:27b --base-url http://localhost:11434
 ```
 
 | Flag | Replaces, for this run |
@@ -89,10 +92,12 @@ certo "Add input validation to the signup form" --model openai/gpt-5.6-terra --a
 | `--base-url` | `CERTO_LLM_BASE_URL` |
 | `--reasoning-effort` | `CERTO_LLM_REASONING_EFFORT` |
 
-A flag you leave out keeps its configured value. This is useful to compare
-two models on the same task; to run one task on a whole list of models,
-see [Compare models on one task](compare-models-on-a-task.md). Note that `--api-key` puts the key in your
-shell history; prefer a variable as in the example.
+A flag you leave out keeps its configured value. A cloud model still needs
+a key (flag or settings); a local model with `--base-url` needs no key.
+This is useful to compare two models on the same task; to run one task on
+a whole list of models, see [Compare models on one task](compare-models-on-a-task.md).
+Note that `--api-key` puts the key in your shell history; prefer a variable
+as in the example.
 
 ## Reasoning effort
 

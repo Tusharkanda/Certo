@@ -50,7 +50,10 @@ missing, the error message names it.
 | `CERTO_LLM_TIMEOUT_SECONDS` | `300` | How long one call to the model may take, in seconds. A call that takes longer fails and is tried again from the start, up to 5 more times. `0` means no limit. Raise it for slow local models; see [Ollama and local models](../guides/ollama-and-local-models.md#make-sure-the-model-fits-in-memory). |
 
 Per-run overrides: `--model`, `--api-key`, `--base-url`,
-`--reasoning-effort` (see [Commands](commands.md#certo)).
+`--reasoning-effort` (see [Commands](commands.md#certo)). The flags are
+applied before the required-field checks, so `--model` alone is enough
+when `CERTO_LLM_MODEL` is unset, and `--model` with `--base-url` is
+enough for a local model that needs no key.
 
 ## Where the agent works
 

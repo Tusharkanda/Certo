@@ -487,6 +487,119 @@ def test_blank_model_override_reports_config_error(monkeypatch, capsys):
     assert "Model override must not be blank" in capsys.readouterr().err
 
 
+def _clear_llm_settings(monkeypatch, tmp_path):
+    """No CERTO_LLM_* in the environment, no folder .env, no user settings."""
+    monkeypatch.chdir(tmp_path)
+    monkeypatch.setenv("XDG_CONFIG_HOME", str(tmp_path / "xdg-config"))
+    for name in (
+        "CERTO_LLM_MODEL",
+        "CERTO_LLM_API_KEY",
+        "CERTO_LLM_BASE_URL",
+        "CERTO_LLM_REASONING_EFFORT",
+        "LLM_MODEL",
+        "LLM_API_KEY",
+        "LLM_BASE_URL",
+    ):
+        monkeypatch.delenv(name, raising=False)
+
+
+def test_model_and_api_key_flags_work_with_no_configured_model(monkeypatch, tmp_path):
+    """Issue #11: --model alone must satisfy CERTO_LLM_MODEL before checks run."""
+    _clear_llm_settings(monkeypatch, tmp_path)
+    calls = {}
+
+    def _fake_run_task(
+        task,
+        cfg=None,
+        on_confirm=None,
+        acceptance_checks=None,
+        on_awaiting_input=None,
+        on_model_choice=None,
+        run_id=None,
+        project=None,
+        **_state,
+    ):
+        calls["cfg"] = cfg
+        return _fake_result()
+
+    monkeypatch.setattr(cli, "run_task", _fake_run_task)
+
+    exit_code = cli.main(["hi", "--model", "openai/gpt-5.6-luna", "--api-key", "sk-test"])
+
+    assert exit_code == 0
+    assert calls["cfg"].model == "openai/gpt-5.6-luna"
+    assert calls["cfg"].api_key == "sk-test"
+
+
+def test_model_and_base_url_flags_work_with_no_api_key(monkeypatch, tmp_path):
+    """Issue #11: a local model needs no key when --base-url is set."""
+    _clear_llm_settings(monkeypatch, tmp_path)
+    calls = {}
+
+    def _fake_run_task(
+        task,
+        cfg=None,
+        on_confirm=None,
+        acceptance_checks=None,
+        on_awaiting_input=None,
+        on_model_choice=None,
+        run_id=None,
+        project=None,
+        **_state,
+    ):
+        calls["cfg"] = cfg
+        return _fake_result()
+
+    monkeypatch.setattr(cli, "run_task", _fake_run_task)
+
+    exit_code = cli.main(
+        [
+            "hi",
+            "--model",
+            "ollama/qwen3.8:27b",
+            "--base-url",
+            "http://localhost:11434",
+        ]
+    )
+
+    assert exit_code == 0
+    assert calls["cfg"].model == "ollama/qwen3.8:27b"
+    assert calls["cfg"].base_url == "http://localhost:11434"
+    assert calls["cfg"].api_key is None
+
+
+def test_no_model_and_no_flag_keeps_required_error(monkeypatch, tmp_path, capsys):
+    """Issue #11: with neither setting nor flag, the error stays the same."""
+    _clear_llm_settings(monkeypatch, tmp_path)
+
+    def _fail_if_called(*args, **kwargs):
+        raise AssertionError("run_task should not be called")
+
+    monkeypatch.setattr(cli, "run_task", _fail_if_called)
+
+    exit_code = cli.main(["hi"])
+
+    assert exit_code == 1
+    err = capsys.readouterr().err
+    assert "CERTO_LLM_MODEL is required" in err
+    assert "three places" in err
+
+
+def test_model_flag_without_key_or_base_url_still_errors(monkeypatch, tmp_path, capsys):
+    """Issue #11: checks apply to final values; a cloud model needs a key."""
+    _clear_llm_settings(monkeypatch, tmp_path)
+
+    def _fail_if_called(*args, **kwargs):
+        raise AssertionError("run_task should not be called")
+
+    monkeypatch.setattr(cli, "run_task", _fail_if_called)
+
+    exit_code = cli.main(["hi", "--model", "openai/gpt-5.6-luna"])
+
+    assert exit_code == 1
+    assert "CERTO_LLM_API_KEY is required" in capsys.readouterr().err
+
+
 def test_prints_verification_state_and_exits_zero_when_verified(monkeypatch, capsys):
     def _fake_run_task(
         task,

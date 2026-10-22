@@ -23,6 +23,8 @@ from .catalog_check import load_checked_catalog
 from .config import (
     ConfigError,
     DEFAULT_PROJECTS_DIR,
+    defer_llm_check,
+    ensure_llm_configured,
     load_config,
     override_llm,
     resolve_project_dir,
@@ -463,20 +465,28 @@ def main(argv: list[str] | None = None) -> int:
             return 1
 
     try:
-        cfg = load_config()
-        if (
+        has_llm_override = (
             args.model is not None
             or args.api_key is not None
             or args.base_url is not None
             or args.reasoning_effort is not None
-        ):
-            cfg = override_llm(
-                cfg,
-                model=args.model,
-                api_key=args.api_key,
-                base_url=args.base_url,
-                reasoning_effort=args.reasoning_effort,
+        )
+        # Apply --model/--api-key/--base-url/--reasoning-effort before the
+        # required-field checks, so the flags alone can satisfy them (issue #11).
+        if has_llm_override:
+            with defer_llm_check():
+                cfg = load_config()
+            cfg = ensure_llm_configured(
+                override_llm(
+                    cfg,
+                    model=args.model,
+                    api_key=args.api_key,
+                    base_url=args.base_url,
+                    reasoning_effort=args.reasoning_effort,
+                )
             )
+        else:
+            cfg = load_config()
     except ConfigError as exc:
         print(f"Configuration error: {exc}", file=sys.stderr)
         return 1
