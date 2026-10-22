@@ -231,10 +231,6 @@ cut that first run's output from 2,949 lines to 1,021.)
   that path. Measured 2026-10-19 in an empty home folder: 88.5s from
   `uv tool install` to `verified` (`docs/benchmark/first-run-0.1.19.md`).
   Still to do: a truly clean machine (no Python, no uv).
-- **Fast start-up.** `certo --version` takes ~3s (18.6s on the very first
-  run, compiling bytecode): `certo.cli` imports the SDK at the top
-  (~2.6s). Import it only for the commands that run an agent, so
-  `--version`, `verify` and `check` start at once.
 - **GitHub Action**: an issue labelled `certo` becomes a pull request with
   the verdict and checks in its description.
 - **Docs articles still to write** (ideas from 2026-10-18): build an

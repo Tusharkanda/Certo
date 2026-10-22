@@ -12,9 +12,8 @@ import urllib.request
 from collections.abc import Sequence
 from dataclasses import replace
 from datetime import UTC, datetime
+from typing import TYPE_CHECKING, Any
 from urllib.parse import urlparse
-
-from openhands.sdk.event import ActionEvent
 
 from . import __version__
 from .acceptance import AcceptanceCheck, AcceptanceCheckError, parse_acceptance_checks
@@ -29,15 +28,44 @@ from .config import (
     override_llm,
     resolve_project_dir,
 )
-from .verification import detect_project, run_full_verification
+from .verification import _build_completion_contract, detect_project, run_full_verification
 from .escalation import format_rung_lines, load_ladder
-from .init_cmd import check_main, init_main, run_sample_task
 from .model_catalog import ModelCatalogEntry
 from .project_state import load_record, status_path
 from .run_history import RunEntry, append_run, note_models_in_readme
-from .runner import UNPROVEN_STATES, _build_completion_contract, run_task
-from .skills import write_project_context
 from .worktree import record_created_project, was_created_by_certo, worktree_warning
+
+if TYPE_CHECKING:
+    from openhands.sdk.event import ActionEvent
+
+
+# The SDK takes about 2 seconds to import, so the modules that load it
+# (runner, init_cmd, skills) are imported only by the commands that use
+# them: `certo --version`, `--help` and `certo verify` start at once. These
+# wrappers keep the names on this module, where tests replace them.
+def run_task(*args: Any, **kwargs: Any) -> Any:
+    from .runner import run_task as _run_task
+
+    return _run_task(*args, **kwargs)
+
+
+def init_main(*args: Any, **kwargs: Any) -> int:
+    from .init_cmd import init_main as _init_main
+
+    return _init_main(*args, **kwargs)
+
+
+def check_main(*args: Any, **kwargs: Any) -> int:
+    from .init_cmd import check_main as _check_main
+
+    return _check_main(*args, **kwargs)
+
+
+def run_sample_task(*args: Any, **kwargs: Any) -> Any:
+    from .init_cmd import run_sample_task as _run_sample_task
+
+    return _run_sample_task(*args, **kwargs)
+
 
 _URL_FETCH_TIMEOUT_SECONDS = 15
 
@@ -45,6 +73,12 @@ _URL_FETCH_TIMEOUT_SECONDS = 15
 def _looks_like_url(value: str) -> bool:
     parsed = urlparse(value)
     return parsed.scheme in ("http", "https") and bool(parsed.netloc)
+
+
+def _unproven_states() -> tuple[str, ...]:
+    from .runner import UNPROVEN_STATES
+
+    return UNPROVEN_STATES
 
 
 def _confirm_pending_actions(pending: Sequence[ActionEvent]) -> bool:
@@ -614,6 +648,8 @@ def main(argv: list[str] | None = None) -> int:
             print(warning, file=sys.stderr)
 
     if args.agents_md is not None:
+        from .skills import write_project_context
+
         write_project_context(cfg.workspace, args.agents_md)
 
     on_confirm = _confirm_pending_actions if cfg.confirm_mode == "always" else None
@@ -709,7 +745,7 @@ def main(argv: list[str] | None = None) -> int:
         for line in format_rung_lines(outcome.rungs, outcome.final_rung):
             print(f"  {line}")
     failing = outcome.verification_state in _FAILING_STATES or (
-        args.require_verification and outcome.verification_state in UNPROVEN_STATES
+        args.require_verification and outcome.verification_state in _unproven_states()
     )
     if failing and save_state:
         status = os.path.relpath(status_path(cfg.workspace))

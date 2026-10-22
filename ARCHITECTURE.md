@@ -376,6 +376,14 @@ Internal and architectural; the user-facing ones are in `docs/`.
 
 **SDK/tooling gotchas** (re-verify on any SDK upgrade — see CLAUDE.md golden
 rule 2):
+- **Importing the SDK takes about 2 seconds.** `cli.py`, `verification.py`
+  and everything they import at module level must not import `openhands`
+  (or `runner`, `init_cmd`, `skills`, which do), so `certo --version`,
+  `--help` and `certo verify` start in about 0.1s instead of 3s.
+  `cli.py` reaches those modules through small wrappers (`run_task`,
+  `init_main`, `check_main`, `run_sample_task`) that tests can still
+  replace. `tests/test_cli.py::test_help_and_version_do_not_load_the_sdk`
+  fails when a top-level import brings the SDK back.
 - **Skill content can execute code.** `invoke_skill` runs
   `render_content_with_commands()` on a skill body, which executes every
   unescaped ``!`cmd` `` in a shell (confirmed live against v1.47.0). A

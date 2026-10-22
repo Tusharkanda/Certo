@@ -31,6 +31,10 @@ can check, and the climb stops there instead of paying for every model.
 
 ## Also
 
+- **Faster start.** `certo --version` and `certo --help` take about 0.1s
+  instead of 3s, and `certo verify` on a small project 0.3s instead of
+  3.2s: they no longer load the OpenHands SDK, which only commands that
+  run an agent need.
 - **`--model` alone is enough.** `certo "task" --model X` works with no
   model configured, and `--model` with `--base-url` needs no key for a
   local model. Thanks to @dbdefault (#17).

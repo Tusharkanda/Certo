@@ -40,6 +40,8 @@ from .config import Config, load_config, override_llm
 from .console import quiet_sdk_logs, visualizer_for
 from .verification import (
     CheckOutcome,
+    CompletionContract,
+    _build_completion_contract,
     VerificationRun,
     detect_project,
     run_full_verification,
@@ -206,20 +208,6 @@ def _step_limit_notice(cfg: Config) -> str:
 _DURATION_NOISE_RE = re.compile(
     r"\b\d+(?:\.\d+)?\s*(?:s|ms|seconds?|milliseconds?)\b", re.IGNORECASE
 )
-
-
-@dataclass(frozen=True)
-class CompletionContract:
-    """A structured, harness-computed statement of what a task run was
-    actually judged against — deliberately not another LLM call or a bigger
-    prompt (see DECISIONS.md): the goal is a record attached to
-    the result, not more instructions fed back into the agent.
-    """
-
-    goal: str
-    acceptance_criteria: list[str]
-    verification_checks: list[str]
-    limitations: list[str]
 
 
 @dataclass(frozen=True)
@@ -444,40 +432,6 @@ def _verification_followup(run: VerificationRun) -> str:
         f"{sections}\n\n"
         "Fix every issue above before finishing again — a `finish` call is "
         "not appropriate while any of them are still failing or hanging."
-    )
-
-
-def _build_completion_contract(
-    task: str, run: VerificationRun | None, *, skipped: bool, aborted: bool
-) -> CompletionContract:
-    checks = run.commands if run is not None else []
-    limitations: list[str] = []
-    if aborted:
-        limitations.append(
-            "The agent's run did not reach a normal finish (stuck or errored "
-            "state) before verification could run; its own completion claim, "
-            "if any, was not verified."
-        )
-    if skipped:
-        limitations.append(
-            "Automated verification was skipped (CERTO_VERIFY_TESTS=never); "
-            "completion was not independently checked."
-        )
-    if run is not None:
-        limitations.extend(run.limitation_notes)
-    if not aborted and not skipped and not checks:
-        limitations.append(
-            "No automated check could be run for this project, so completion "
-            "is unverified (not failed) — see the verification note for what "
-            "was found."
-        )
-    acceptance_criteria = ["The task described in the original request is implemented."]
-    acceptance_criteria.extend(f"`{cmd}` completes successfully." for cmd in checks)
-    return CompletionContract(
-        goal=task,
-        acceptance_criteria=acceptance_criteria,
-        verification_checks=checks,
-        limitations=limitations,
     )
 
 

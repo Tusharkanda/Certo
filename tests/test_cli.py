@@ -1612,8 +1612,55 @@ def test_sdk_banner_is_suppressed_by_default():
     assert "OpenHands SDK v" not in out
 
 
+def _run_sdk_import(env_overrides: dict[str, str]) -> str:
+    """Import certo, then the SDK, as a command that runs an agent does."""
+    import os
+    import subprocess
+    import sys
+
+    env = {k: v for k, v in os.environ.items() if k != "OPENHANDS_SUPPRESS_BANNER"}
+    env["PYTHONPATH"] = str(_REPO_ROOT / "src")
+    env.update(env_overrides)
+    proc = subprocess.run(
+        [sys.executable, "-c", "import certo, openhands.sdk"],
+        capture_output=True,
+        text=True,
+        env=env,
+        check=True,
+    )
+    return proc.stdout + proc.stderr
+
+
+def test_sdk_banner_is_suppressed_when_the_sdk_loads():
+    assert "OpenHands SDK v" not in _run_sdk_import({})
+
+
 def test_sdk_banner_shows_when_explicitly_enabled():
-    assert "OpenHands SDK v" in _run_help({"OPENHANDS_SUPPRESS_BANNER": "0"})
+    # --help no longer loads the SDK at all, so load it directly.
+    assert "OpenHands SDK v" in _run_sdk_import({"OPENHANDS_SUPPRESS_BANNER": "0"})
+
+
+def test_help_and_version_do_not_load_the_sdk():
+    """The SDK takes about 2 seconds to import; commands that run no agent
+    must not pay for it."""
+    import os
+    import subprocess
+    import sys
+
+    env = dict(os.environ, PYTHONPATH=str(_REPO_ROOT / "src"))
+    code = (
+        "import sys, certo.cli\n"
+        "for argv in (['--version'], ['--help'], ['verify', '--help']):\n"
+        "    try:\n"
+        "        certo.cli.main(argv)\n"
+        "    except SystemExit:\n"
+        "        pass\n"
+        "print('SDK' if any(m.startswith('openhands') for m in sys.modules) else 'none')"
+    )
+    proc = subprocess.run(
+        [sys.executable, "-c", code], capture_output=True, text=True, env=env, check=True
+    )
+    assert proc.stdout.strip().splitlines()[-1] == "none"
 
 
 # --- certo verify -------------------------------------------------------------
