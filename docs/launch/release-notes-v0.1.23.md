@@ -13,13 +13,19 @@ language, and hidden tests that run nothing are an error, not a pass.
 This is the groundwork for app-scale tasks. How to write one:
 [Contribute a benchmark task](../guides/contribute-a-benchmark-task.md).
 
-## New: a larger benchmark task, `ledger-transfers` (task set version 2)
+## New: larger benchmark tasks (task set version 2)
 
-The first of the larger tasks: work inside an existing Python package of
-several modules, with its own tests. Two bugs show up far from their
-cause, and a new feature has exact rules (a 0-to-3-day window, one
-transfer per transaction, earliest first) that a model's own tests tend
-to skip. The nine small tasks don't change. To compare with a baseline
+- `ledger-transfers`: work inside an existing Python package of several
+  modules, with its own tests. Two bugs show up far from their cause,
+  and a new feature has exact rules (a 0-to-3-day window, one transfer
+  per transaction, earliest first) that a model's own tests tend to
+  skip.
+- `todo-deps`: a to-do command-line program in Rust, standard library
+  only, where tasks wait for other tasks: a list kept in a file between
+  runs, cycles refused, exact output and exit codes. Its hidden tests
+  run only the built program.
+
+The nine small tasks don't change. To compare with a baseline
 made on version 1, list those nine under `tasks:`; see
 [Benchmark models and strategies](../guides/benchmark.md#the-tasks).
 

@@ -113,7 +113,9 @@ check is `unavailable` and the verdict is `inconclusive`.
 including `node --test`, exit successfully when they find no test files,
 so a project with `"test": "node --test"` and no tests at all is
 `verified`. Ask the agent for tests, or check that `npm test` really runs
-some.
+some. Go and Rust have the same gap: `go test ./...` and `cargo test`
+succeed when there are no tests, so a Go or Rust project with none is
+`verified` too.
 
 ## Missing tools
 

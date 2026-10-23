@@ -33,7 +33,8 @@ first item is the suggested next one.
   REST API with a database, React frontend + API, Rust CLI with
   subcommands, a fix inside an existing mid-size repo. Grading supports
   Go, Rust and Node with packages since 0.1.23. Task set version 2 is
-  open: `ledger-transfers` (the existing-repo fix) is in, and fits the
+  open: `ledger-transfers` (the existing-repo fix) and `todo-deps` (the
+  Rust CLI, std only, no cloud run yet) are in; `ledger-transfers` fits the
   budget (Sonnet, 2026-10-23: verified, hidden tests passed, 2m 00s,
   $0.37); each new task needs such a cloud run. Today's 9 tasks don't
   separate a local 27B model from a cloud one. Contributed tasks in the
@@ -98,7 +99,13 @@ first item is the suggested next one.
 - **Node: "no tests" counts as verified.** `node --test` exits 0 with no
   test files, so `npm test` passes. Found by the first bench integration
   run (2026-10-16). Documented, not fixed. Open for contributors:
-  [#23](https://github.com/alessioricco/certo/issues/23).
+  [#23](https://github.com/alessioricco/certo/issues/23) (PR #28 fixes it).
+- **Go and Rust: "no tests" counts as verified too.** `go test ./...`
+  (`[no test files]`) and `cargo test` (`0 passed`) exit 0 with no tests,
+  so a project with none is `verified`. Seen live 2026-10-23 with
+  `certo verify` on the `todo-deps` starter and on a Go module with no
+  test files. Done when a run of zero tests is `skipped` (so the verdict
+  is `inconclusive`), as PR #28 does for Node, with a test per language.
 - **Node: detect jest/vitest/mocha.** Today `build`/`test` scripts run as
   opaque commands; the runner and its results aren't parsed.
 - **Node: infer ESLint/`tsc` from config**, as `_ruff_configured()` does

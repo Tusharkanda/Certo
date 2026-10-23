@@ -933,3 +933,11 @@ considered and live-verification detail: `docs/ROADMAP.txt`.
   1, or exit 2 with no usage line, still fails. Why: the check proves the
   program starts; failing a correct CLI made the fix attempt change
   correct behaviour, the opposite of golden rule 6's intent.
+- **The Rust v2 task uses the standard library only** (2026-10-23). The
+  plan's "Rust CLI with subcommands" is `todo-deps`, with no crates: the
+  agent's run and the grading stay offline and deterministic, and Rust
+  1.58 (the oldest toolchain it is checked on) builds it. Its hidden
+  tests run only the built binary (`CARGO_BIN_EXE_todo`) with their own
+  `TODO_FILE`, so they don't constrain the code's structure. Tasks that
+  need packages (React, Go with SQLite) come later, when grading's
+  network use is decided.
