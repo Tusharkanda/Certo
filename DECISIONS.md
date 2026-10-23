@@ -965,3 +965,11 @@ considered and live-verification detail: `docs/ROADMAP.txt`.
   for Go and passed + failed over every `test result:` line for Cargo,
   and 0 makes a successful run `skipped`. Kept apart from #28's
   `no_work_markers` (and away from its lines) so both merge.
+- **A baseline per release is optional** (the Author, 2026-10-23;
+  supersedes "a baseline for every release" in ROADMAP and the project
+  review). A full baseline takes hours on a local model, so the Author
+  decides per release whether to run it, and minor releases may skip it.
+  Unchanged: working agreement 2 in CLAUDE.md, so a change aimed at weaker
+  models is still benchmarked on a local and a cloud model before
+  release; a session never starts a long or costly benchmark run without
+  the Author's go-ahead.

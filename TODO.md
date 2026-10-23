@@ -24,9 +24,11 @@ first item is the suggested next one.
   checks now run once after the budget, with no time left for a fix
   attempt. Decide whether init writes a longer budget for Ollama (as it
   does the 1200s call timeout), from more than one run.
-- **A baseline per release.** `docs/benchmark/baseline-<version>.md` for
-  every release (local vs cloud, fooled rate, cost per solved task), and
-  a README badge. 0.1.13, 0.1.15, 0.1.18 (local only) and 0.1.22 exist; no badge
+- **Baselines, when the Author chooses.** `docs/benchmark/baseline-<version>.md`
+  (local vs cloud, fooled rate, cost per solved task), run when the
+  Author decides; minor releases may skip it (2026-10-23). Next one:
+  baseline v2 on the 13 tasks, without the `auto` arm. Also a README
+  badge. 0.1.13, 0.1.15, 0.1.18 (local only) and 0.1.22 exist; no badge
   yet. A `qwen2.5-coder:7b` arm would replace "unmeasured" for the
   small-machine suggestion ([#18](https://github.com/alessioricco/certo/issues/18) asks contributors for local runs).
 - **Bench task set v2: app-scale tasks.** Multi-file, multi-language: Go

@@ -81,13 +81,16 @@ In priority order. Each says what success looks like.
 
 ### 1. Prove it publicly
 
-Publish numbers for every release: local against cloud, the fooled rate,
-the cost per solved task. Grow the benchmark from small single-file tasks
+Publish numbers regularly: local against cloud, the fooled rate, the
+cost per solved task. A full baseline takes hours on a local model, so
+the Author decides per release whether to run one; minor releases may
+skip it. Grow the benchmark from small single-file tasks
 to app-scale, multi-language ones, so it can tell models and strategies
 apart and show whether escalation pays off. Re-check, with live runs, the
 fixes that so far are only unit-tested.
 
-*Success:* a published baseline for every release; a fooled rate close
+*Success:* a recent published baseline, and one before any release that
+changes how results are reached; a fooled rate close
 to zero on app-scale tasks; no feature described as working without a run
 that shows it.
 
