@@ -251,4 +251,4 @@ def test_a_node_package_that_wont_install_is_an_error(tmp_path):
     assert (
         result.summary == "could not install the project's packages for grading: npm ERR! missing"
     )
-    assert result.command == "npm install --no-audit --no-fund"
+    assert result.command == "npm install --ignore-scripts --no-audit --no-fund"

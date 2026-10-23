@@ -230,14 +230,15 @@ def _declares_packages(workspace: Path) -> bool:
 
 def _install_node_packages(workspace: Path, runner: CommandRunner) -> GradeResult | None:
     """Install the packages `package.json` declares; a GradeResult only when
-    that fails. `npm ci` with a lock file, so grading uses exactly it."""
+    that fails. `npm ci` with a lock file, so grading uses exactly it, and
+    never a package's install scripts: grading needs its files only."""
     if not _declares_packages(workspace):
         return None
     npm = runner.which("npm")
     if npm is None:
         return GradeResult("error", "npm is not installed")
     action = "ci" if (workspace / "package-lock.json").is_file() else "install"
-    command = [npm, action, "--no-audit", "--no-fund"]
+    command = [npm, action, "--ignore-scripts", "--no-audit", "--no-fund"]
     result = runner.run(command, cwd=str(workspace), timeout=GRADE_TIMEOUT_SECONDS)
     if result.returncode == 0 and not result.timed_out:
         return None

@@ -7,7 +7,8 @@ Not released yet.
 A benchmark task's hidden tests can now be Go (`_test.go`, run with
 `go test`) or Rust (`.rs` integration tests, run with `cargo test`), and
 a Node task may use packages: grading installs what `package.json`
-declares (`npm ci` with a lock file, else `npm install`) before the
+declares (`npm ci` with a lock file, else `npm install`, never running
+install scripts) before the
 hidden tests run. Only the hidden tests decide the score, in every
 language, and hidden tests that run nothing are an error, not a pass.
 This is the groundwork for app-scale tasks. How to write one:

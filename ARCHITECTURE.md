@@ -158,7 +158,7 @@ given design was chosen.
   optional `starter/`, `hidden_tests/`, `reference/`). `grade()` copies the
   hidden tests into `.certo_hidden_tests/` and runs them in the project's
   own environment (pytest with its own ini and `PYTHONPATH=workspace`;
-  `node --test`, after `npm ci`/`npm install` when `package.json` declares
+  `node --test`, after `npm ci`/`npm install --ignore-scripts` when `package.json` declares
   packages; `go test -v ./.certo_hidden_tests`, an explicit path because
   `./...` skips dot folders). Rust is the exception: Cargo finds test
   targets only in `tests/`, so they are copied there as

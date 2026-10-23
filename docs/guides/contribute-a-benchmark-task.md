@@ -46,7 +46,8 @@ it, which is how the benchmark finds runs where Certo was fooled.
   `testing` for Go, Rust's built-in test harness. A Node solution may use
   packages the starter's `package.json` declares: grading runs `npm ci`
   (with a `package-lock.json`) or `npm install` first, which needs the
-  network. Python packages aren't installed for grading.
+  network. Install scripts don't run (`--ignore-scripts`), so pick
+  packages that work without them. Python packages aren't installed for grading.
 
 **Languages:** Certo decides the language from the hidden test files:
 `.py` means Python (pytest), `.js` Node (`node --test`), `_test.go` Go
