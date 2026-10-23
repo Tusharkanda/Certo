@@ -12,7 +12,7 @@ import pytest
 
 from certo import bench
 from certo.bench_config import load_bench_config
-from certo.bench_tasks import load_tasks
+from certo.bench_tasks import load_tasks, task_set_version
 from certo.model_catalog import ModelCatalogEntry
 from certo.run_summary import ModelUsage, RunSummary
 
@@ -257,7 +257,8 @@ def test_the_plan_is_printed_first(tmp_path, project_venv, capsys):
     path = _bench_file(tmp_path, TWO_ARMS, tasks="[temperature-table, page-ranges]", repeats=3)
     bench.bench_main(["--config", path, "--out", str(tmp_path / "o")], interactive=False)
     out = capsys.readouterr().out
-    assert "Tasks: 2 (task set 1)   Arms: 2   Repeats: 3   Runs: 12" in out
+    version = task_set_version()
+    assert f"Tasks: 2 (task set {version})   Arms: 2   Repeats: 3   Runs: 12" in out
     assert "Estimated cost:" in out
 
 
@@ -312,7 +313,7 @@ def test_list_tasks_needs_no_models(tmp_path, capsys, monkeypatch):
     monkeypatch.chdir(tmp_path)
     assert bench.bench_main(["--list-tasks"]) == 0
     out = capsys.readouterr().out
-    assert "9 tasks" in out and "wordle-score" in out
+    assert f"{len(load_tasks())} tasks" in out and "wordle-score" in out
 
 
 def test_check_tasks_reports_a_broken_task(tmp_path, monkeypatch):

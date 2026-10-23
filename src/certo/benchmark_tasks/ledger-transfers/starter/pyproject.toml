@@ -1,0 +1,11 @@
+[project]
+name = "ledger"
+version = "0.4.2"
+description = "Import bank CSV exports, categorize transactions, report by month."
+requires-python = ">=3.10"
+
+[project.scripts]
+ledger = "ledger.cli:main"
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]

@@ -7,7 +7,7 @@ benchmark. How the benchmark works is in
 [Benchmark models and strategies](benchmark.md).
 
 The bundled tasks are small. Harder tasks, with several files and
-languages, are what the benchmark needs most: on today's nine tasks, a
+languages, are what the benchmark needs most: on the nine small tasks, a
 local model and a cloud model both solved every one (see the
 [0.1.13 baseline](../benchmark/baseline-0.1.13.md)).
 

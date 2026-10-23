@@ -917,3 +917,12 @@ considered and live-verification detail: `docs/ROADMAP.txt`.
   that fails, and hidden tests that run nothing, are `error` (could not
   grade), as a failed pytest install already was: a network outage must
   not read as the model's failure.
+- **Task set version 2 grows in place** (2026-10-23, Phase 1.2). The
+  larger tasks join the nine small ones in `benchmark_tasks/`, and
+  `VERSION` went to 2 with the first of them, `ledger-transfers`; the
+  set's hash pins its exact content until baseline v2. Version-1
+  baselines are reproduced by listing their nine tasks, not by keeping
+  a second folder. A larger task is original code written for the
+  benchmark (no copied repository, so no license question), and its
+  hidden tests are checked against wrong variants of the reference
+  before it ships.

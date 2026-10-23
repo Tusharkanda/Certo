@@ -1,0 +1,6 @@
+# pattern => category
+salary => income
+supermarket => groceries
+electricity => utilities
+bookshop => books
+interest => income

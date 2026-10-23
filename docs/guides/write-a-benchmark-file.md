@@ -115,8 +115,8 @@ arms:
 
 ## 4. Choose how many runs
 
-The number of runs is tasks × arms × repeats. With all 9 tasks and 3
-repeats, each arm has 27 runs.
+The number of runs is tasks × arms × repeats. With all 10 tasks and 3
+repeats, each arm has 30 runs.
 
 - **Repeats.** A model doesn't do the same thing twice, so one repeat
   shows roughly how a model does, and three make a comparison fairer.

@@ -101,7 +101,7 @@ often each model was right, how long it took, and how often Certo was
 fooled. See [Write a benchmark file](write-a-benchmark-file.md) ("Which
 of my local models is best?").
 
-Running all 9 tasks takes hours on a local model. To get a first answer
+Running all 10 tasks takes hours on a local model. To get a first answer
 sooner, list only a few tasks and use one repeat.
 
 ## When a local model isn't enough

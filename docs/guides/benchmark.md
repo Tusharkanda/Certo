@@ -26,9 +26,10 @@ questions:
 
 ## The tasks
 
-Nine small tasks ship with Certo (task set version 1). Each takes a few
-minutes for a capable model; the tricky ones are where smaller models
-often go wrong.
+Ten tasks ship with Certo (task set version 2). Nine are small: each
+takes a few minutes for a capable model, and the tricky ones are where
+smaller models often go wrong. `ledger-transfers` is the first of the
+larger tasks: work inside an existing package of several modules.
 
 | Task | Language | What it tests |
 |---|---|---|
@@ -41,6 +42,11 @@ often go wrong.
 | `slugify` | Node | URL slugs: removing accents, and shortening without cutting a word. |
 | `token-bucket` | Node | A rate limiter with a fake clock: fractional refill, the cap, a clock going backwards. |
 | `semver-order` | Node | Version ordering with prereleases: numbers compared as numbers, numeric before text, shorter first. |
+| `ledger-transfers` | Python | Two bugs whose cause is in another module than the symptom, and a feature with exact matching rules, in an existing package with its own tests. |
+
+Task set version 1 was the nine small tasks; the baselines up to 0.1.22
+used it. To compare with them, list those nine under `tasks:` in the
+benchmark file: `tasks: all` now includes `ledger-transfers` too.
 
 `certo bench --list-tasks` lists them. Node tasks need Node 18 or newer.
 Grading also supports Go (`go test`) and Rust (`cargo test`) tasks, and
@@ -218,8 +224,8 @@ When the benchmark is not finished, the line says how many runs it covers,
 as above.
 A results folder from before version 0.1.13 has no estimate to compare.
 
-**Keep the numbers in proportion.** With 9 tasks and 3 repeats, an arm has
-27 runs; a difference of two or three runs can be chance. Compare results
+**Keep the numbers in proportion.** With 10 tasks and 3 repeats, an arm
+has 30 runs; a difference of two or three runs can be chance. Compare results
 only when the task set version and hash in the header match.
 
 ## Add a task
