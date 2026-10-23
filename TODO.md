@@ -33,8 +33,9 @@ first item is the suggested next one.
   REST API with a database, React frontend + API, Rust CLI with
   subcommands, a fix inside an existing mid-size repo. Grading supports
   Go, Rust and Node with packages since 0.1.23. Task set version 2 is
-  open: `ledger-transfers` (the existing-repo fix) is in; each new task
-  still needs one cloud run to show it fits the default budget. Today's 9 tasks don't
+  open: `ledger-transfers` (the existing-repo fix) is in, and fits the
+  budget (Sonnet, 2026-10-23: verified, hidden tests passed, 2m 00s,
+  $0.37); each new task needs such a cloud run. Today's 9 tasks don't
   separate a local 27B model from a cloud one. Contributed tasks in the
   current format help meanwhile: [#3](https://github.com/alessioricco/certo/issues/3).
 - **Escalation after a `failed` rung is unmeasured.** The 0.1.17
@@ -297,6 +298,15 @@ database).
 
 ## Smaller bugs
 
+- **A Python CLI that needs arguments fails verification.** Each entry
+  point runs with no arguments, and any non-zero exit fails; argparse
+  rightly exits 2 with its usage line. Seen 2026-10-23 on
+  `ledger-transfers` (Sonnet): `python -m ledger.cli` failed, and the fix
+  attempt made the agent change correct behaviour (no subcommand now
+  shows help, exit 0). Costs a fix attempt on every such project, and
+  may end `retry_exhausted` on a local model. Done when exit 2 with a
+  `usage:` line counts as "started and asked for arguments", with a test,
+  and before baseline v2.
 - **`certo skills`: turn an official skill off**, globally or for one
   project (later, agreed 2026-10-22). Today a third-party skill can only
   replace one.
