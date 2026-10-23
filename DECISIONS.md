@@ -906,3 +906,14 @@ considered and live-verification detail: `docs/ROADMAP.txt`.
   there, and the rule from "Skills: official and third-party kept apart"
   stands, that only the official skills in `builtin_skills/` are ever in
   git.
+- **Benchmark grading for Go, Rust and Node with packages** (0.1.23,
+  Phase 1.1 of the plan). The language comes from the hidden test files'
+  names, as before. Go hidden tests are a package of their own in
+  `.certo_hidden_tests/`, importing the solution by module path: black-box,
+  and no clash with the agent's test names. Rust ones must sit in
+  `tests/` (Cargo finds test targets nowhere else), so they are copied
+  there with a `certo_hidden_` prefix. Only hidden tests run, so the
+  agent's own failing tests never change the score. A package install
+  that fails, and hidden tests that run nothing, are `error` (could not
+  grade), as a failed pytest install already was: a network outage must
+  not read as the model's failure.

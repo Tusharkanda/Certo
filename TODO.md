@@ -32,8 +32,7 @@ first item is the suggested next one.
 - **Bench task set v2: app-scale tasks.** Multi-file, multi-language: Go
   REST API with a database, React frontend + API, Rust CLI with
   subcommands, a fix inside an existing mid-size repo. Grading supports
-  only Python and Node, with no packages, so Go/Rust tasks need grading
-  support first. Bump the task-set `VERSION`. Today's 9 tasks don't
+  Go, Rust and Node with packages since 0.1.23. Bump the task-set `VERSION`. Today's 9 tasks don't
   separate a local 27B model from a cloud one. Contributed tasks in the
   current format help meanwhile: [#3](https://github.com/alessioricco/certo/issues/3).
 - **Escalation after a `failed` rung is unmeasured.** The 0.1.17

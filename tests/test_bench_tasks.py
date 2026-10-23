@@ -23,18 +23,19 @@ TASKS = load_tasks()
 def _workspace(tmp_path: Path, task, make_venv, *, solved: bool) -> Path:
     workspace = tmp_path / "ws"
     prepare_workspace(task, workspace, solved=solved)
-    if task.language == "python":
+    tool = {"python": None, "node": "node", "go": "go", "rust": "cargo"}[task.language]
+    if tool is None:
         # Offline: a venv that already sees the test environment's pytest.
         make_venv(workspace)
-    elif shutil.which("node") is None:
-        pytest.skip("node is not installed")
+    elif shutil.which(tool) is None:
+        pytest.skip(f"{tool} is not installed")
     return workspace
 
 
 def test_bundled_task_set_shape():
     assert TASKS
     for task in TASKS:
-        assert task.language in {"python", "node"}, task.name
+        assert task.language in bench_tasks.LANGUAGES, task.name
         assert task.prompt.strip(), task.name
         assert task.reference_dir.is_dir(), task.name
 
@@ -93,3 +94,161 @@ def test_task_set_version_and_hash():
 
 def test_a_custom_task_set_without_version_is_custom(tmp_path):
     assert bench_tasks.task_set_version(tmp_path) == "custom"
+
+
+# --- Go, Rust and Node with packages: small tasks built here, no network ---
+
+
+def _task(tmp_path: Path, hidden: dict[str, str]) -> bench_tasks.BenchTask:
+    root = tmp_path / "tasks" / "t"
+    (root / "hidden_tests").mkdir(parents=True)
+    (root / "task.md").write_text("Do it.\n")
+    for name, text in hidden.items():
+        (root / "hidden_tests" / name).write_text(text)
+    return bench_tasks.load_task(root)
+
+
+def _files(root: Path, files: dict[str, str]) -> Path:
+    for name, text in files.items():
+        (root / name).parent.mkdir(parents=True, exist_ok=True)
+        (root / name).write_text(text)
+    return root
+
+
+_GO_HIDDEN = """package hidden
+
+import (
+\t"testing"
+
+\t"example.com/calc"
+)
+
+func TestAdd(t *testing.T) {
+\tif calc.Add(2, 3) != 5 {
+\t\tt.Fatal("Add(2, 3) != 5")
+\t}
+}
+"""
+
+
+def _go_project(root: Path, body: str) -> Path:
+    return _files(
+        root,
+        {
+            "go.mod": "module example.com/calc\n\ngo 1.21\n",
+            "calc.go": f"package calc\n\nfunc Add(a, b int) int {{ {body} }}\n",
+            # The agent's own failing test never counts.
+            "calc_test.go": 'package calc\n\nimport "testing"\n\n'
+            'func TestMine(t *testing.T) { t.Fatal("mine") }\n',
+        },
+    )
+
+
+@pytest.mark.skipif(shutil.which("go") is None, reason="go is not installed")
+def test_go_hidden_tests_decide_the_grade(tmp_path):
+    task = _task(tmp_path, {"add_test.go": _GO_HIDDEN})
+    assert task.language == "go"
+
+    right = grade(task, _go_project(tmp_path / "right", "return a + b"))
+    wrong = grade(task, _go_project(tmp_path / "wrong", "return a - b"))
+
+    assert (right.status, right.summary) == ("passed", "pass 1, fail 0"), right.output
+    assert (wrong.status, wrong.summary) == ("failed", "pass 0, fail 1"), wrong.output
+
+
+@pytest.mark.skipif(shutil.which("go") is None, reason="go is not installed")
+def test_go_hidden_tests_that_run_nothing_are_an_error(tmp_path):
+    task = _task(tmp_path, {"add_test.go": "package hidden\n"})
+
+    assert grade(task, _go_project(tmp_path / "ws", "return a + b")).status == "error"
+
+
+_RUST_HIDDEN = """#[test]
+fn adds() {
+    assert_eq!(calc::add(2, 3), 5);
+}
+
+#[test]
+fn the_binary_prints_the_sum() {
+    let out = std::process::Command::new(env!("CARGO_BIN_EXE_calc")).output().unwrap();
+    assert_eq!(String::from_utf8_lossy(&out.stdout).trim(), "5");
+}
+"""
+
+
+def _rust_project(root: Path, body: str) -> Path:
+    return _files(
+        root,
+        {
+            "Cargo.toml": '[package]\nname = "calc"\nversion = "0.1.0"\nedition = "2021"\n',
+            "src/lib.rs": f"pub fn add(a: i32, b: i32) -> i32 {{ {body} }}\n\n"
+            '#[cfg(test)]\nmod tests {\n    #[test]\n    fn mine() { panic!("mine"); }\n}\n',
+            "src/main.rs": 'fn main() { println!("{}", calc::add(2, 3)); }\n',
+            "tests/mine.rs": '#[test]\nfn mine() { panic!("mine"); }\n',
+        },
+    )
+
+
+@pytest.mark.skipif(shutil.which("cargo") is None, reason="cargo is not installed")
+def test_rust_hidden_tests_decide_the_grade(tmp_path):
+    task = _task(tmp_path, {"calc.rs": _RUST_HIDDEN})
+    assert task.language == "rust"
+
+    right = grade(task, _rust_project(tmp_path / "right", "a + b"))
+    wrong = grade(task, _rust_project(tmp_path / "wrong", "a - b"))
+
+    assert (right.status, right.summary) == ("passed", "pass 2, fail 0"), right.output
+    assert (wrong.status, wrong.summary) == ("failed", "pass 0, fail 2"), wrong.output
+    assert (tmp_path / "right" / "tests" / "certo_hidden_calc.rs").is_file()
+
+
+@pytest.mark.skipif(shutil.which("npm") is None, reason="npm is not installed")
+def test_node_packages_are_installed_before_the_hidden_tests(tmp_path):
+    hidden = (
+        "const test = require('node:test');\n"
+        "const assert = require('node:assert');\n"
+        "const { add } = require('../calc.js');\n"
+        "test('adds', () => assert.strictEqual(add(2, 3), 5));\n"
+    )
+    task = _task(tmp_path, {"calc.test.js": hidden})
+    # A local package: npm installs it with no network.
+    workspace = _files(
+        tmp_path / "ws",
+        {
+            "package.json": '{"name": "ws", "version": "1.0.0", '
+            '"dependencies": {"adder": "file:./adder"}}\n',
+            "adder/package.json": '{"name": "adder", "version": "1.0.0", "main": "index.js"}\n',
+            "adder/index.js": "module.exports = (a, b) => a + b;\n",
+            "calc.js": "const adder = require('adder');\nexports.add = adder;\n",
+        },
+    )
+
+    result = grade(task, workspace)
+
+    assert result.status == "passed", result.output
+    assert (workspace / "node_modules" / "adder").exists()
+
+
+def test_a_node_package_that_wont_install_is_an_error(tmp_path):
+    task = _task(tmp_path, {"t.test.js": "require('node:test');\n"})
+    workspace = _files(
+        tmp_path / "ws",
+        {"package.json": '{"name": "ws", "dependencies": {"missing": "file:./missing"}}\n'},
+    )
+
+    class Runner(bench_tasks.LocalRunner):
+        def which(self, name):
+            return name
+
+        def run(self, command, *, cwd, env=None, timeout):
+            from certo.project_env import RunResult
+
+            return RunResult(returncode=1, output="npm ERR! missing\n")
+
+    result = grade(task, workspace, Runner())
+
+    assert result.status == "error"
+    assert (
+        result.summary == "could not install the project's packages for grading: npm ERR! missing"
+    )
+    assert result.command == "npm install --no-audit --no-fund"

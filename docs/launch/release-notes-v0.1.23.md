@@ -2,6 +2,18 @@
 
 Not released yet.
 
+## New: the benchmark grades Go, Rust and Node tasks with packages
+
+A benchmark task's hidden tests can now be Go (`_test.go`, run with
+`go test`) or Rust (`.rs` integration tests, run with `cargo test`), and
+a Node task may use packages: grading installs what `package.json`
+declares (`npm ci` with a lock file, else `npm install`) before the
+hidden tests run. Only the hidden tests decide the score, in every
+language, and hidden tests that run nothing are an error, not a pass.
+This is the groundwork for app-scale tasks; the bundled 9 tasks don't
+change. How to write one:
+[Contribute a benchmark task](../guides/contribute-a-benchmark-task.md).
+
 ## Removed: the old skill folders and `certo-admin skills`
 
 As announced in 0.1.22, Certo no longer reads `./skills`

@@ -1,6 +1,6 @@
 [project]
 name = "certo"
-version = "0.1.22"
+version = "0.1.23"
 description = "A coding agent that isn't tied to one model or provider: it picks a model per task, switches when one fails, and checks the work with your own tests."
 readme = "README.md"
 requires-python = ">=3.12"

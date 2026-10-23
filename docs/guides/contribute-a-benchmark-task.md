@@ -41,13 +41,17 @@ it, which is how the benchmark finds runs where Certo was fooled.
   30-minute time budget for a local one.
 - **It is deterministic and offline**: no network, no clock, no random
   numbers without a seed, no input from a terminal.
-- **It needs no packages.** Grading installs pytest for Python and nothing
-  for Node, so the hidden tests and the expected solution may use only the
-  standard library (Python) or Node's built-in modules.
+- **Its hidden tests need no packages.** They may use only the standard
+  library: pytest for Python, `node:test` and `node:assert` for Node,
+  `testing` for Go, Rust's built-in test harness. A Node solution may use
+  packages the starter's `package.json` declares: grading runs `npm ci`
+  (with a `package-lock.json`) or `npm install` first, which needs the
+  network. Python packages aren't installed for grading.
 
-**Languages:** grading supports Python (pytest) and Node (`node --test`)
-today. Certo decides the language from the hidden test files: `.py` means
-Python, `.js` means Node.
+**Languages:** Certo decides the language from the hidden test files:
+`.py` means Python (pytest), `.js` Node (`node --test`), `_test.go` Go
+(`go test`), `.rs` Rust (`cargo test`). Grading needs that language's
+tools on the machine running the benchmark.
 
 ## 1. Write `task.md`
 
@@ -91,9 +95,11 @@ here too.
 ## 2. Add a starter, if the task needs one
 
 A task that fixes or extends code needs a `starter/` with that code. A
-Node task needs at least a `package.json` with a `test` script, so the
-agent and Certo know how the project is tested. A task that builds from
-nothing in Python can leave `starter/` out.
+Node task needs at least a `package.json` with a `test` script, a Go task
+a `go.mod` (its module path is what the hidden tests import), and a Rust
+task a `Cargo.toml` with a library, so the agent and Certo know how the
+project is built and tested. A task that builds from nothing in Python
+can leave `starter/` out.
 
 The starter must **fail** the hidden tests: otherwise a run in which the
 agent does nothing scores as solved. `--check-tasks` (step 5) checks this.
@@ -107,6 +113,17 @@ agent does nothing scores as solved. `--check-tasks` (step 5) checks this.
 - **Node:** `*.test.js` files for `node --test`. They run from
   `.certo_hidden_tests/`, so they load the solution one folder up:
   `require('../slugify.js')`.
+- **Go:** `*_test.go` files in a package of their own (for example
+  `package hidden`). They run as `go test ./.certo_hidden_tests`, a
+  folder inside the module, so they import the solution by its module
+  path, as in `import "example.com/calc"`, and see only what it exports.
+- **Rust:** `.rs` integration tests. Grading copies each one into the
+  project's `tests/` folder as `certo_hidden_<name>.rs` and runs only
+  those, so they use the library's public API (`calc::add(2, 3)`), and a
+  binary through `env!("CARGO_BIN_EXE_<name>")`.
+- **Only the hidden tests run** when grading: the agent's own tests,
+  passing or failing, don't change the score. Hidden tests that run
+  nothing are an error, not a pass.
 - **Use names the agent won't use**, such as `test_hidden_inventory.py`,
   so they never clash with the agent's own test files.
 - **Test behaviour, not code.** Check results and errors through the

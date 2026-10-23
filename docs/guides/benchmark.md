@@ -43,6 +43,9 @@ often go wrong.
 | `semver-order` | Node | Version ordering with prereleases: numbers compared as numbers, numeric before text, shorter first. |
 
 `certo bench --list-tasks` lists them. Node tasks need Node 18 or newer.
+Grading also supports Go (`go test`) and Rust (`cargo test`) tasks, and
+Node tasks with packages; see
+[Contribute a benchmark task](contribute-a-benchmark-task.md).
 
 ## How the model files and `bench.yaml` relate
 

@@ -158,7 +158,12 @@ given design was chosen.
   optional `starter/`, `hidden_tests/`, `reference/`). `grade()` copies the
   hidden tests into `.certo_hidden_tests/` and runs them in the project's
   own environment (pytest with its own ini and `PYTHONPATH=workspace`;
-  `node --test`). `bench_config.py` validates `bench.yaml` against
+  `node --test`, after `npm ci`/`npm install` when `package.json` declares
+  packages; `go test -v ./.certo_hidden_tests`, an explicit path because
+  `./...` skips dot folders). Rust is the exception: Cargo finds test
+  targets only in `tests/`, so they are copied there as
+  `certo_hidden_<name>.rs` and run with `cargo test --test`. Only hidden
+  tests run, and a run of zero tests is an `error`. `bench_config.py` validates `bench.yaml` against
   `models.yaml` names; `bench_strategies.STRATEGIES` is the registry
   (`single`, `escalate`), each strategy building an explicit `Config` from the
   catalog entry (`run_config`, Certo defaults, isolated skill dirs, no
