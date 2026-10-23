@@ -34,9 +34,11 @@ first item is the suggested next one.
   subcommands, a fix inside an existing mid-size repo. Grading supports
   Go, Rust and Node with packages since 0.1.23. Task set version 2 is
   open: `ledger-transfers` (the existing-repo fix) and `todo-deps` (the
-  Rust CLI, std only, no cloud run yet) are in; `ledger-transfers` fits the
-  budget (Sonnet, 2026-10-23: verified, hidden tests passed, 2m 00s,
-  $0.37); each new task needs such a cloud run. Today's 9 tasks don't
+  Rust CLI, std only) are in, and both fit the budget (Sonnet,
+  2026-10-23, verified and hidden tests passed: 2m 00s and $0.37; 2m 22s
+  and $0.39, no fix attempt). Each new task needs such a cloud run. Left:
+  React + API and Go with SQLite, which need packages from the network
+  while the agent works and while grading; decide that first. Today's 9 tasks don't
   separate a local 27B model from a cloud one. Contributed tasks in the
   current format help meanwhile: [#3](https://github.com/alessioricco/certo/issues/3).
 - **Escalation after a `failed` rung is unmeasured.** The 0.1.17
