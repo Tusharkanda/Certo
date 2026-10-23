@@ -647,8 +647,8 @@ def main(argv: list[str] | None = None) -> int:
         print(line)
     if resume_from is not None:
         print(f"Resuming: {_first_line(resume_from.task)}")
-    # A third-party skill replacing an official one, and the old skill
-    # folders still in use, are said before the run (skill_library.py).
+    # A third-party skill replacing an official one is said before the run
+    # (skill_library.py).
     from .skill_library import collect
 
     for line in collect(cfg, cfg.workspace, own=False).notices:

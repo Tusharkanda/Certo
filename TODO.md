@@ -296,11 +296,6 @@ database).
 
 ## Smaller bugs
 
-- **Stop reading the old skill folders** (`CERTO_SKILLS_DIR`,
-  `CERTO_THIRD_PARTY_SKILLS_DIR` and its lock file) and remove
-  `certo-admin skills`, in the release after 0.1.22: they print a move
-  hint until then. Also remove the three settings, their `config.py`
-  overlap check and the `.gitignore` lines.
 - **`certo skills`: turn an official skill off**, globally or for one
   project (later, agreed 2026-10-22). Today a third-party skill can only
   replace one.

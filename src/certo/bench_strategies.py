@@ -91,9 +91,6 @@ def run_config(entry: ModelCatalogEntry, workspace: str, isolation_dir: str) -> 
         confirm_mode="never",
         execution="local",
         projects_dir=os.path.join(isolation_dir, "projects"),
-        skills_dir=os.path.join(isolation_dir, "skills"),
-        third_party_skills_dir=os.path.join(isolation_dir, "third_party_skills"),
-        third_party_skills_lock=os.path.join(isolation_dir, "third_party_skills.lock.json"),
         global_skills_dir=os.path.join(isolation_dir, "global_skills"),
         no_worktree_warning=True,
     )

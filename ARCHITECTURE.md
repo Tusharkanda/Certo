@@ -341,10 +341,10 @@ given design was chosen.
 - **`admin_cli.py`** (`certo-admin`) — maintenance CLI talking directly to
   the store, no running server needed: `show`, `delete-task`,
   `delete-project`, `purge [--ttl-seconds N]` (refuses at `<= 0`).
-- **`skills.py`** — two mechanisms: `load_first_party_skills()` loads the
-  shared, trigger-based catalog into every `AgentContext` — the built-in
-  `src/certo/builtin_skills/` (ships in the wheel) merged with the user's
-  `CERTO_SKILLS_DIR`, each read by `load_skill_catalog()`;
+- **`skills.py`** — two mechanisms: `load_skill_catalog()` reads a
+  shared, trigger-based catalog, such as the official
+  `src/certo/builtin_skills/` (ships in the wheel; layers are
+  `skill_library.py`);
   `write_project_context()` writes a caller-supplied, per-project
   `AGENTS.md` (requires `AgentContext.load_project_skills=True`, which is
   consumed lazily by `LocalConversation`, not validated by `AgentContext`
@@ -356,23 +356,18 @@ given design was chosen.
   `documentation-and-operational-readiness`,
   `completion-and-release-readiness` — which supersede an earlier
   downloaded five-skill `SKILL.md` set (see decisions log).
-- **`third_party_skills.py`** + `certo-admin skills
-  install|list|enable|disable|update|remove|sync` — local-only,
-  license-aware third-party `SKILL.md` skills. Files live in gitignored
-  `CERTO_THIRD_PARTY_SKILLS_DIR`, one level deep. Provenance lives in a
-  JSON lockfile (`CERTO_THIRD_PARTY_SKILLS_LOCK`: repo, path, commit SHA,
-  license id or `unknown`, URLs, `sha256-` integrity, enabled/acknowledged
-  flags, never content). `build_agent()` appends
-  `load_enabled_skills()` after the first-party catalog. That call
-  re-checks enabled, license acknowledgement, hash and name collision,
-  since `AgentContext` raises on duplicate names. `config.py` rejects a
-  third-party dir that overlaps `CERTO_SKILLS_DIR` or the built-in dir, because the
-  first-party `rglob("*.md")` would load downloaded files regardless of
-  enablement. Since 0.1.22 this is the old layout, read for one release;
-  `certo-admin skills` prints a note pointing to `certo skills`.
+- **`third_party_skills.py`** — local-only, license-aware downloaded
+  `SKILL.md` skills, for one third-party folder (global or project, see
+  `skill_library.py`), one level deep. Provenance lives in the folder's
+  JSON lockfile (`skills.lock.json`: repo, path, commit SHA, license id or
+  `unknown`, URLs, `sha256-` integrity, enabled/acknowledged flags, never
+  content). `load_enabled_skills()` re-checks enabled, license
+  acknowledgement and hash. The old folders (`CERTO_SKILLS_DIR`,
+  `CERTO_THIRD_PARTY_SKILLS_DIR`) and `certo-admin skills` were removed
+  after 0.1.22; `config.py` warns while one of their settings is set.
 - **`skill_library.py`** + **`skills_cmd.py`** (`certo skills
   list|add|remove|enable|disable|update|sync`) — where a run's skills come
-  from: official (`builtin_skills/`), the old folders, third-party global
+  from: official (`builtin_skills/`), third-party global
   (`~/.config/certo/skills/`), third-party project
   (`<project>/.certo/skills/`), and the project's own `.agents/skills/` +
   `AGENTS.md` (loaded by the SDK, listed only). `collect()` returns one
@@ -419,7 +414,8 @@ rule 2):
   filters exactly that record (EBADF only) on the SDK terminal's logger.
 - `find_skill_md_directories()` only checks direct children of a skills dir
   (`SKILL.md` one level deep), while `find_regular_md_files()` `rglob`s.
-  So any `.md` under `CERTO_SKILLS_DIR` loads as a legacy skill.
+  So any `.md` under a folder given to `load_skill_catalog()` loads as a
+  legacy skill; third-party folders are therefore read item by item.
 - `CERTO_MAX_ITERATIONS` was parsed but never wired to `Conversation` until
   caught while adding the verification retry loop — **closed**, with a
   regression test asserting `Conversation(max_iteration_per_run=...)` is

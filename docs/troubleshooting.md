@@ -48,7 +48,7 @@ setting comes from and makes one small call to the model.
   [already has a skill named](#already-has-a-skill-named),
   [a downloaded skill is off](#a-downloaded-skill-is-off),
   [replaces the official one](#your-skill-replaces-the-official-one),
-  [old folders still used](#skills-in-skills-are-still-used)
+  [an old skill setting is no longer read](#certo_skills_dir-is-no-longer-read)
 - Benchmark: [no bench.yaml or model files](#certo-bench-no-benchyaml-or-model-files),
   [unknown model](#certo-bench-unknown-model),
   [`--parallel` refused](#certo-bench---parallel-is-refused),
@@ -717,16 +717,18 @@ The later one wins, so yours is used.
 **Fix:** nothing, if you meant it. Otherwise rename your skill, or remove
 it with `certo skills remove NAME --global` (or `--project NAME`).
 
-### Skills in ./skills are still used
+### `CERTO_SKILLS_DIR is no longer read`
 
-**You see:** `Certo: skills in ./skills (CERTO_SKILLS_DIR) are still used,
-until the next release.` before a run.
+**You see:** `CERTO_SKILLS_DIR is no longer read: Certo no longer uses the
+old skill folders.` (or the same for `CERTO_THIRD_PARTY_SKILLS_DIR` or
+`CERTO_THIRD_PARTY_SKILLS_LOCK`).
 
-**Cause:** Certo found skills in the old folder, relative to where you run
-`certo`. It stops reading that folder in the next release.
+**Cause:** your settings still name an old skill folder. Since 0.1.23,
+Certo doesn't read `./skills` or `./third_party_skills/`, so a run no
+longer gets the skills in them.
 
-**Fix:** move each one with `certo skills add PATH --global` (or
-`--project NAME`), then delete the old folder. See
+**Fix:** add each skill again with `certo skills add PATH --global` (or
+`--project NAME`), then delete the line from your settings. See
 [Moving from the old folders](guides/manage-skills.md#moving-from-the-old-folders).
 
 ## Benchmark (`certo bench`)

@@ -1,13 +1,13 @@
 """Local-only, license-aware management of third-party AgentSkills.
 
-Kept deliberately separate from the tracked first-party catalog
-(`skills.py` / `CERTO_SKILLS_DIR`):
+Kept deliberately separate from the official catalog (`skills.py`):
 
-- Downloaded files live in `CERTO_THIRD_PARTY_SKILLS_DIR` (gitignored),
-  one `SKILL.md` directory per skill, exactly one level deep — the only
-  depth the SDK's `find_skill_md_directories()` detects.
-- Provenance and enablement live in a JSON lockfile
-  (`CERTO_THIRD_PARTY_SKILLS_LOCK`): upstream repo, skill path, immutable
+- Downloaded files live in a third-party skills folder, global or one
+  project's (`skill_library.py`), never in git, one `SKILL.md` directory
+  per skill, exactly one level deep — the only depth the SDK's
+  `find_skill_md_directories()` detects.
+- Provenance and enablement live in the folder's JSON lockfile
+  (`skills.lock.json`): upstream repo, skill path, immutable
   commit, detected license, source/license URLs, and a content hash. Never
   skill content itself.
 - Installed is not enabled. Only entries explicitly enabled — and, when the

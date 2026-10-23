@@ -539,8 +539,9 @@ Guide: [Run as a server](../guides/run-as-a-server.md).
 
 ## `certo-admin`
 
-Maintenance: server task records, third-party skills, and a plain model
-check. It reads the same settings as `certo`.
+Maintenance: server task records and a plain model check. It reads the
+same settings as `certo`. Skills are managed with
+[`certo skills`](#certo-skills).
 
 | Flag | Effect |
 |---|---|
@@ -602,84 +603,3 @@ it prints the kind of error (`authentication`, `rate_limit`, `timeout`,
 `unavailable`, `model_not_found`, `bad_request`, `setup`, `no_reply` or
 `error`) and a hint. The key always comes from `CERTO_LLM_API_KEY` and is
 removed from any error text. Exit 0 on success, 1 otherwise.
-
-### `certo-admin skills`
-
-**Moving to [`certo skills`](#certo-skills); goes away in the next
-release.** These commands manage only the old folder,
-`CERTO_THIRD_PARTY_SKILLS_DIR` (`./third_party_skills/`), and print a note
-saying so. Download each skill again with `certo skills add ... --global`
-(or `--project NAME`).
-
-#### `certo-admin skills install`
-
-```text
-certo-admin skills install SOURCE PATH [--ref REF]
-```
-
-| Argument or flag | Effect |
-|---|---|
-| `SOURCE` | `github:owner/repo`, or an `https://` git URL with no credentials in it. |
-| `PATH` | The skill's folder inside the repository, e.g. `skills/pdf`. It must contain a `SKILL.md`. |
-| `--ref REF` | Branch, tag or commit. Default: the repository's default branch. |
-
-The skill is installed **disabled**. Certo prints its source, commit,
-license and any warnings. A name that a first-party skill already uses is
-refused.
-
-#### `certo-admin skills list`
-
-```text
-certo-admin skills list
-```
-
-List installed skills with their state, license and commit.
-
-#### `certo-admin skills enable`
-
-```text
-certo-admin skills enable NAME [--accept-unknown-license]
-```
-
-| Flag | Effect |
-|---|---|
-| `--accept-unknown-license` | Needed to enable a skill whose license is `unknown`. Read the license first. |
-
-#### `certo-admin skills disable`
-
-```text
-certo-admin skills disable NAME
-```
-
-Stop giving the skill to the agent. The files stay.
-
-#### `certo-admin skills update`
-
-```text
-certo-admin skills update NAME [--ref REF]
-```
-
-| Flag | Effect |
-|---|---|
-| `--ref REF` | Default: the ref originally requested. |
-
-Download again. If the content or the license changed, the skill is
-disabled again and an unknown-license acceptance is cleared.
-
-#### `certo-admin skills remove`
-
-```text
-certo-admin skills remove NAME
-```
-
-Delete the skill's files and its lockfile entry.
-
-#### `certo-admin skills sync`
-
-```text
-certo-admin skills sync
-```
-
-Restore every skill in the lockfile at its recorded commit, and check
-every file against its recorded hash. A skill whose files don't match is
-not installed (exit 1). Never changes which skills are enabled.

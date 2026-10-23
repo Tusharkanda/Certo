@@ -2,11 +2,11 @@
 
 Two distinct mechanisms, both documented in MANUAL.md under "Skills":
 
-- `load_first_party_skills()`: a shared library of reusable, trigger-based
-  skills — the built-in catalog shipped inside this package
+- `load_skill_catalog()`: a shared library of reusable, trigger-based
+  skills, such as the official catalog shipped inside this package
   (`certo/builtin_skills/`, organized into subfolders purely for human
-  classification — see below for why that needs no special code), plus the
-  user's optional `CERTO_SKILLS_DIR`. Loaded into every agent's
+  classification — see below for why that needs no special code). Which
+  layers a run gets is `skill_library.py`. Loaded into every agent's
   `AgentContext`; the SDK matches each skill's own trigger against the
   task/conversation automatically, so no custom "which skill applies" logic
   lives here.
@@ -21,8 +21,6 @@ import os
 from pathlib import Path
 
 from openhands.sdk.skills import Skill, load_skills_from_dir
-
-from .config import BUILTIN_SKILLS_DIR
 
 
 def load_skill_catalog(root: str | Path) -> list[Skill]:
@@ -41,18 +39,6 @@ def load_skill_catalog(root: str | Path) -> list[Skill]:
         return []
     repo_skills, knowledge_skills, agent_skills = load_skills_from_dir(root)
     return list({**repo_skills, **knowledge_skills, **agent_skills}.values())
-
-
-def load_first_party_skills(skills_dir: str | Path) -> list[Skill]:
-    """The built-in catalog plus the user's `skills_dir` (CERTO_SKILLS_DIR).
-
-    A user skill replaces a built-in skill with the same name, since
-    AgentContext rejects duplicate names. Pointing `skills_dir` at the
-    built-in directory itself is harmless: every name maps to itself.
-    """
-    merged = {s.name: s for s in load_skill_catalog(BUILTIN_SKILLS_DIR)}
-    merged.update({s.name: s for s in load_skill_catalog(skills_dir)})
-    return list(merged.values())
 
 
 def write_project_context(project_dir: str, content: str) -> None:

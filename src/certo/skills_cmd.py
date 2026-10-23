@@ -178,7 +178,6 @@ def _folder(cfg, args: argparse.Namespace) -> tuple[Path, str]:
 
 _HEADINGS = {
     lib.OFFICIAL: "Official skills (come with Certo; a release changes them)",
-    lib.OLD: "Old folders (read until the next release; move them with certo skills add)",
     lib.GLOBAL: "Your global skills",
     lib.PROJECT: "This project's skills",
     lib.OWN: "The project's own skills (.agents/skills/, AGENTS.md; Certo never changes them)",
@@ -192,11 +191,11 @@ def _list(cfg, args: argparse.Namespace, prompter: Prompter) -> int:
         lib.GLOBAL: lib.describe_dir(lib.global_dir()),
         lib.PROJECT: lib.describe_dir(lib.project_dir(workspace)) if workspace else "",
     }
-    for layer in (lib.OFFICIAL, lib.OLD, lib.GLOBAL, lib.PROJECT, lib.OWN):
+    for layer in (lib.OFFICIAL, lib.GLOBAL, lib.PROJECT, lib.OWN):
         rows = [r for r in found.rows if r.layer == layer]
         if layer in (lib.PROJECT, lib.OWN) and workspace is None:
             continue
-        if not rows and layer in (lib.OLD, lib.OWN):
+        if not rows and layer == lib.OWN:
             continue
         heading = _HEADINGS[layer] + (f", in {where[layer]}" if where.get(layer) else "")
         prompter.say(f"{heading}:")
@@ -228,7 +227,6 @@ def _row_line(row: lib.SkillRow) -> str:
 
 _LAYER_NAMES = {
     lib.OFFICIAL: "official",
-    lib.OLD: "old folder's",
     lib.GLOBAL: "global",
     lib.PROJECT: "project",
     lib.OWN: "project's own",

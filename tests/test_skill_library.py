@@ -23,7 +23,7 @@ triggers:
 
 @pytest.fixture
 def home(tmp_path, monkeypatch):
-    """A clean user folder and current folder (no old ./skills)."""
+    """A clean user folder and current folder."""
     monkeypatch.setenv("XDG_CONFIG_HOME", str(tmp_path / "xdg"))
     monkeypatch.chdir(tmp_path)
     return tmp_path
@@ -143,18 +143,6 @@ def test_a_downloaded_skill_is_off_until_enabled(home, monkeypatch):
 
     tps.set_enabled("dl", True, install_dir=root, lock_path=lib.lock_path(root))
     assert _rows(lib.collect(_cfg(home), None), lib.GLOBAL)["dl"].active
-
-
-def test_the_old_skills_folder_is_still_read_with_a_hint(home):
-    _write(home / "skills", "old-one")
-
-    found = lib.collect(_cfg(home), None)
-
-    assert "old-one" in _rows(found, lib.OLD)
-    assert "old-one" in {s.name for s in found.skills}
-    assert found.notices[0].startswith(
-        "Certo: skills in ./skills (CERTO_SKILLS_DIR) are still used, until the next release."
-    )
 
 
 def test_how_a_skill_fires_and_for_which_task(home):

@@ -13,10 +13,7 @@ from pathlib import Path
 import pytest
 from openhands.sdk.skills.fetch import SkillFetchError
 
-from certo import admin_cli
 from certo import third_party_skills as tps
-from certo.agent import build_agent
-from certo.config import Config, ConfigError, load_config
 
 SHA = "a" * 40
 SHA2 = "b" * 40
@@ -432,83 +429,3 @@ def test_sync_refuses_content_that_does_not_match_the_lock(env):
 
     assert tps.sync(**paths) == [("demo-skill", "integrity-mismatch")]
     assert not (paths["install_dir"] / "demo-skill").exists()
-
-
-# --- Config + agent + CLI integration -------------------------------------------
-
-
-def _cfg(tmp_path, **overrides) -> Config:
-    base = {
-        "model": "openai/gpt-4o",
-        "api_key": "key",
-        "base_url": None,
-        "workspace": ".",
-        "max_iterations": 10,
-        "confirm_mode": "never",
-        "execution": "local",
-        "third_party_skills_dir": str(tmp_path / "third_party_skills"),
-        "third_party_skills_lock": str(tmp_path / "third_party_skills.lock.json"),
-    }
-    base.update(overrides)
-    return Config(**base)
-
-
-def test_config_defaults_and_overlap_rejection(tmp_path):
-    cfg = load_config({"CERTO_LLM_MODEL": "openai/gpt-4o", "CERTO_LLM_API_KEY": "k"})
-    assert cfg.third_party_skills_dir == "./third_party_skills"
-    assert cfg.third_party_skills_lock == "./third_party_skills.lock.json"
-    with pytest.raises(ConfigError, match="must not overlap"):
-        load_config(
-            {
-                "CERTO_LLM_MODEL": "openai/gpt-4o",
-                "CERTO_LLM_API_KEY": "k",
-                "CERTO_SKILLS_DIR": str(tmp_path / "skills"),
-                "CERTO_THIRD_PARTY_SKILLS_DIR": str(tmp_path / "skills" / "third_party"),
-            }
-        )
-
-
-def test_build_agent_passes_only_enabled_third_party_skills(env, tmp_path):
-    _, paths = env
-    cfg = _cfg(
-        tmp_path,
-        third_party_skills_dir=str(paths["install_dir"]),
-        third_party_skills_lock=str(paths["lock_path"]),
-    )
-    _install(paths)
-
-    names = {s.name for s in build_agent(cfg).agent_context.skills}
-    assert "demo-skill" not in names
-    assert "repository-discovery" in names  # first-party catalog unaffected
-
-    tps.set_enabled("demo-skill", True, **paths)
-    names = {s.name for s in build_agent(cfg).agent_context.skills}
-    assert "demo-skill" in names
-
-
-def test_admin_cli_skills_flow(env, tmp_path, monkeypatch, capsys):
-    _, paths = env
-    cfg = _cfg(
-        tmp_path,
-        third_party_skills_dir=str(paths["install_dir"]),
-        third_party_skills_lock=str(paths["lock_path"]),
-    )
-    monkeypatch.setattr(admin_cli, "load_config", lambda: cfg)
-
-    def run(*argv) -> int:
-        with pytest.raises(SystemExit) as exc:
-            admin_cli.main(["skills", *argv])
-        return exc.value.code
-
-    assert run("install", "github:demo/skills", "skills/demo-skill", "--ref", "main") == 0
-    out = capsys.readouterr().out
-    assert SHA in out and "NOT enabled" in out and "not legal advice" in out
-
-    assert run("list") == 0
-    assert "demo-skill" in capsys.readouterr().out
-
-    assert run("enable", "demo-skill") == 0
-    assert run("disable", "demo-skill") == 0
-    assert run("remove", "demo-skill") == 0
-    assert run("enable", "demo-skill") == 1
-    assert "No third-party skill" in capsys.readouterr().out

@@ -262,7 +262,7 @@ def test_run_config_takes_everything_from_the_catalog_entry(tmp_path, monkeypatc
     )
     assert cloud.workspace == "/ws"
     assert (local.llm_timeout_seconds, cloud.llm_timeout_seconds) == (1200, 300)
-    assert cloud.skills_dir.startswith("/iso") and cloud.third_party_skills_lock.startswith("/iso")
+    assert cloud.global_skills_dir.startswith("/iso")
     assert (cloud.model_selection, cloud.confirm_mode, cloud.interactive) == (
         "manual",
         "never",

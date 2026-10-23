@@ -10,15 +10,11 @@ from __future__ import annotations
 
 from pathlib import Path
 
-import pytest
 
 import certo
 from certo.config import BUILTIN_SKILLS_DIR, load_config
-from certo.skills import load_first_party_skills, load_skill_catalog, write_project_context
-
-# Hand-placed, gitignored third-party copies live in the repo's ./skills
-# (the default CERTO_SKILLS_DIR); absent in a fresh clone or on CI.
-_REPO_SKILLS_DIR = Path(__file__).resolve().parent.parent / "skills"
+from certo.skill_library import collect
+from certo.skills import load_skill_catalog, write_project_context
 
 _KEYWORD_SKILL = """---
 name: sample-keyword-skill
@@ -126,22 +122,6 @@ def test_nested_skill_directories_remain_supported():
     assert "pytest-conventions" in catalog  # skills/testing/
     for name in _LIFECYCLE_SKILL_NAMES:  # skills/lifecycle/
         assert name in catalog
-
-
-_HAND_PLACED = ("frontend-design", "webapp-testing", "web-artifacts-builder")
-
-
-@pytest.mark.skipif(
-    not all((_REPO_SKILLS_DIR / name).is_dir() for name in _HAND_PLACED),
-    reason="hand-placed third-party skills are gitignored and not present",
-)
-def test_preexisting_agentskills_directories_are_unchanged():
-    # frontend-design/webapp-testing/web-artifacts-builder (sourced from
-    # anthropics/skills) must survive this change untouched.
-    catalog = {s.name: s for s in load_first_party_skills(_REPO_SKILLS_DIR)}
-
-    for name in _HAND_PLACED:
-        assert catalog[name].get_skill_type() == "agentskills"
 
 
 def test_preexisting_legacy_skill_triggers_are_unchanged():
@@ -254,28 +234,8 @@ def test_default_config_loads_lifecycle_skills_from_an_unrelated_cwd(tmp_path, m
     monkeypatch.chdir(tmp_path)
     cfg = load_config({"CERTO_LLM_MODEL": "openai/gpt-4o", "CERTO_LLM_API_KEY": "k"})
 
-    names = {s.name for s in load_first_party_skills(cfg.skills_dir)}
+    names = {s.name for s in collect(cfg, None).skills}
 
     for name in _LIFECYCLE_SKILL_NAMES:
         assert name in names
     assert {"commit-conventions", "pytest-conventions"} <= names
-
-
-def test_user_skill_overrides_builtin_with_same_name(tmp_path):
-    (tmp_path / "mine.md").write_text(
-        "---\nname: pytest-conventions\ntriggers:\n  - pytest\n---\n\nMy own rules.\n"
-    )
-    (tmp_path / "extra.md").write_text(_KEYWORD_SKILL)
-
-    skills = load_first_party_skills(tmp_path)
-    by_name = {s.name: s for s in skills}
-
-    assert len(skills) == len(by_name)  # no duplicate names reach AgentContext
-    assert "My own rules." in by_name["pytest-conventions"].content
-    assert "sample-keyword-skill" in by_name
-    assert "repository-discovery" in by_name
-
-
-def test_pointing_skills_dir_at_the_builtin_catalog_is_harmless():
-    skills = load_first_party_skills(BUILTIN_SKILLS_DIR)
-    assert len(skills) == len({s.name for s in skills}) == len(_real_catalog())

@@ -895,3 +895,14 @@ considered and live-verification detail: `docs/ROADMAP.txt`.
   after the checks pass** (issue #26). Model files may live in an existing
   project folder. Deferring creation avoids rollback and leaves existing
   folders and the Certo-created registry untouched on configuration errors.
+- **The old skill folders are gone, their settings warn** (after 0.1.22,
+  as announced in its release notes; supersedes "the old folders are
+  read" above). `./skills`, `./third_party_skills/` and `certo-admin
+  skills` are removed. A `CERTO_`/`HARNESS_` setting for them that is
+  still set logs one warning naming it, so a user's skills don't drop out
+  of a run unnoticed; the folders themselves aren't looked for, since a
+  project's own `./skills` may be unrelated. `.gitignore` still ignores
+  both folders (the Author, 2026-10-23): users may still drop skills
+  there, and the rule from "Skills: official and third-party kept apart"
+  stands, that only the official skills in `builtin_skills/` are ever in
+  git.

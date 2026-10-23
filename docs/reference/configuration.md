@@ -100,15 +100,10 @@ enough for a local model that needs no key.
 
 Skills are managed with [`certo skills`](commands.md#certo-skills), in
 `~/.config/certo/skills/` and `<project>/.certo/skills/`; no setting is
-needed. The three settings below are for the old folders, still read
-until the next release, then removed: see
+needed. The old folders' settings (`CERTO_SKILLS_DIR`,
+`CERTO_THIRD_PARTY_SKILLS_DIR`, `CERTO_THIRD_PARTY_SKILLS_LOCK`) were
+removed in 0.1.23; Certo warns while one is still set. See
 [Moving from the old folders](../guides/manage-skills.md#moving-from-the-old-folders).
-
-| Variable | Default | Meaning |
-|---|---|---|
-| `CERTO_SKILLS_DIR` | `./skills` | Deprecated. An old folder of your own skills, loaded on top of the official ones; a run prints a line asking you to move them. A missing folder is fine. |
-| `CERTO_THIRD_PARTY_SKILLS_DIR` | `./third_party_skills` | Deprecated. The old folder of downloaded skills, managed by `certo-admin skills`. Must not be inside, or contain, `CERTO_SKILLS_DIR` or the official skills folder. |
-| `CERTO_THIRD_PARTY_SKILLS_LOCK` | `./third_party_skills.lock.json` | Deprecated. The old folder's lock file: source, commit, license, hashes and enabled state. |
 
 ## Run records
 

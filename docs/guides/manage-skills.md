@@ -274,17 +274,18 @@ no trigger word appears, and to skip them for trivial changes.
 
 Until version 0.1.22, your skills lived in `./skills` (`CERTO_SKILLS_DIR`)
 and downloaded ones in `./third_party_skills/`, both relative to the
-folder `certo` runs from, where they could end up in a repository. Certo
-still reads them until the next release, and a run prints a line asking
-you to move them:
+folder `certo` runs from, where they could end up in a repository. Since
+0.1.23 Certo doesn't read them, and `certo-admin skills` is gone. If you
+still have skills there, add each one again:
 
 ```bash
 certo skills add skills/my-style.md --global
 certo skills add github:OWNER/REPO skills/NAME --global
 ```
 
-`certo-admin skills` manages only the old folder, and goes away in the
-next release too.
+Then delete the old folders, and any `CERTO_SKILLS_DIR`,
+`CERTO_THIRD_PARTY_SKILLS_DIR` or `CERTO_THIRD_PARTY_SKILLS_LOCK` line
+from your settings: Certo warns while one is set.
 
 ## Good to know
 

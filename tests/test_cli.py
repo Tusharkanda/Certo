@@ -2238,9 +2238,7 @@ def test_a_run_says_when_a_third_party_skill_replaces_an_official_one(
     (skills / "pytest-conventions.md").write_text(
         "---\nname: pytest-conventions\ntriggers:\n  - pytest\n---\nMine.\n"
     )
-    monkeypatch.setattr(
-        cli, "load_config", lambda: _cfg(workspace=str(tmp_path), skills_dir=str(tmp_path / "none"))
-    )
+    monkeypatch.setattr(cli, "load_config", lambda: _cfg(workspace=str(tmp_path)))
     monkeypatch.setattr(
         cli, "run_task", lambda *a, **k: _fake_result(verification_state="verified")
     )

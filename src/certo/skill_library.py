@@ -4,13 +4,10 @@ Layers, lowest to highest; a skill replaces one of the same name below it:
 
 1. official: Certo's own, in the package (`certo/builtin_skills/`),
    changed only by a release;
-2. the old folders, read until the next release with a line asking to move
-   them: `CERTO_SKILLS_DIR` (`./skills`) and `CERTO_THIRD_PARTY_SKILLS_DIR`
-   with its lock file;
-3. third-party, global: `~/.config/certo/skills/`, for every project;
-4. third-party, project: `<project>/.certo/skills/`, never in git
+2. third-party, global: `~/.config/certo/skills/`, for every project;
+3. third-party, project: `<project>/.certo/skills/`, never in git
    (`.certo/` ignores itself);
-5. the project's own `.agents/skills/` and `AGENTS.md`: loaded by the SDK
+4. the project's own `.agents/skills/` and `AGENTS.md`: loaded by the SDK
    itself (`load_project_skills`, which overrides a same-named skill), only
    read here, never written.
 
@@ -45,13 +42,12 @@ from .skills import load_skill_catalog
 LOCK_FILE = "skills.lock.json"
 
 OFFICIAL = "official"
-OLD = "old folder"
 GLOBAL = "global"
 PROJECT = "project"
 OWN = "project's own"
-THIRD_PARTY = (OLD, GLOBAL, PROJECT)
+THIRD_PARTY = (GLOBAL, PROJECT)
 # How a notice names a third-party layer's skill.
-_YOUR = {OLD: "skill in an old folder", GLOBAL: "global skill", PROJECT: "project skill"}
+_YOUR = {GLOBAL: "global skill", PROJECT: "project skill"}
 
 
 def global_dir() -> Path:
@@ -88,8 +84,7 @@ class SkillRow:
 @dataclass(frozen=True)
 class SkillSet:
     rows: tuple[SkillRow, ...]
-    # Lines a run prints: a third-party skill that replaces an official one,
-    # and the old folders still in use.
+    # Lines a run prints: a third-party skill that replaces an official one.
     notices: tuple[str, ...]
 
     @property
@@ -162,40 +157,6 @@ def _downloaded_rows(
     return rows
 
 
-def _old_rows(cfg: Config, official: set[str]) -> tuple[list[SkillRow], list[str]]:
-    """The folders Certo read before `certo skills`, with the line asking
-    to move them. Read relative to the folder `certo` runs from, as before."""
-    rows: list[SkillRow] = []
-    notices: list[str] = []
-    skills_dir = Path(cfg.skills_dir).resolve()
-    if skills_dir != Path(BUILTIN_SKILLS_DIR):
-        for skill in load_skill_catalog(skills_dir):
-            rows.append(SkillRow(skill.name, OLD, str(skills_dir), skill))
-    if rows:
-        notices.append(
-            f"Certo: skills in {cfg.skills_dir} (CERTO_SKILLS_DIR) are still used, until the "
-            "next release. Move each one with: certo skills add PATH --global "
-            "(or --project NAME)."
-        )
-    lock = Path(cfg.third_party_skills_lock)
-    try:
-        # As before: a downloaded skill never replaced an official one here.
-        old_downloaded = tps.load_enabled_skills(
-            cfg.third_party_skills_dir, lock, reserved_names=official
-        )
-    except tps.ThirdPartySkillError:
-        old_downloaded = []
-    for skill in old_downloaded:
-        rows.append(SkillRow(skill.name, OLD, cfg.third_party_skills_dir, skill, downloaded=True))
-    if lock.is_file() and old_downloaded:
-        notices.append(
-            f"Certo: downloaded skills in {cfg.third_party_skills_dir} are still used, until "
-            "the next release. Download each one again with: certo skills add "
-            "github:OWNER/REPO PATH --global (or --project NAME)."
-        )
-    return rows, notices
-
-
 def _own_rows(workspace: Path) -> list[SkillRow]:
     from openhands.sdk.skills import load_project_skills
 
@@ -216,9 +177,9 @@ def collect(
     `own` False leaves out the project's own skills, which a run doesn't
     need: the SDK loads them itself."""
     official = [SkillRow(s.name, OFFICIAL, BUILTIN_SKILLS_DIR, s) for s in official_skills()]
-    old, notices = _old_rows(cfg, {r.name for r in official})
+    notices: list[str] = []
     global_root = Path(cfg.global_skills_dir) if cfg.global_skills_dir else global_dir()
-    rows = official + old + load_folder(global_root, GLOBAL, "--global")
+    rows = official + load_folder(global_root, GLOBAL, "--global")
     if workspace is not None:
         scope = f"--project {project_name}" if project_name else "--project NAME"
         rows += load_folder(project_dir(workspace), PROJECT, scope)

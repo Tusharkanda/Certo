@@ -242,14 +242,10 @@ escalation.yaml
 # certo bench results (default output folder)
 bench-results/
 
-# CERTO_SKILLS_DIR's default: a developer's own local skills, loaded on top
-# of the built-in ones (those ship in src/certo/builtin_skills/). Never
-# committed; it may hold copies of third-party skills.
+# The old skill folders, no longer read since 0.1.23 (skills now live in
+# ~/.config/certo/skills/ and <project>/.certo/skills/). Still ignored, so
+# leftover copies of third-party skills are never committed.
 /skills/
-
-# Third-party skills installed via `certo-admin skills install` — local
-# only, never committed (the lockfile third_party_skills.lock.json is not
-# ignored: it records provenance, not content).
 /third_party_skills/
 
 # Claude Code personal overrides

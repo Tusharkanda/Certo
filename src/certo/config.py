@@ -36,17 +36,9 @@ DEFAULT_MAX_ITERATIONS = 50
 DEFAULT_CONFIRM_MODE = "never"
 DEFAULT_EXECUTION = "local"
 DEFAULT_PROJECTS_DIR = "./projects"
-# Optional user catalog, loaded on top of the built-in one below (a user
-# skill replaces a built-in skill with the same name).
-DEFAULT_SKILLS_DIR = "./skills"
 # First-party catalog shipped inside the package, so it loads from any cwd
 # and from an installed wheel, not only from a repo checkout.
 BUILTIN_SKILLS_DIR = str(Path(__file__).resolve().parent / "builtin_skills")
-# Local-only, license-aware third-party skills (see third_party_skills.py):
-# downloaded files live in a gitignored directory, the lockfile (provenance +
-# enablement, never skill content) sits beside it and may be committed.
-DEFAULT_THIRD_PARTY_SKILLS_DIR = "./third_party_skills"
-DEFAULT_THIRD_PARTY_SKILLS_LOCK = "./third_party_skills.lock.json"
 DEFAULT_VERIFY_TESTS = "always"
 DEFAULT_MAX_VERIFY_RETRIES = 2
 DEFAULT_MAX_TASK_SECONDS = 1800
@@ -109,16 +101,6 @@ class Config:
     # missing, so each project's generated software lands in its own subfolder.
     projects_dir: str = DEFAULT_PROJECTS_DIR
 
-    # User skill catalog loaded into every agent's AgentContext on top of
-    # BUILTIN_SKILLS_DIR (see skills.py). Trigger-based (keyword/task/path),
-    # not project-specific — see MANUAL.md.
-    skills_dir: str = DEFAULT_SKILLS_DIR
-
-    # Third-party skills installed via `certo-admin skills ...` (see
-    # third_party_skills.py). Only lockfile entries explicitly enabled (and,
-    # for an unknown license, explicitly acknowledged) reach the agent.
-    third_party_skills_dir: str = DEFAULT_THIRD_PARTY_SKILLS_DIR
-    third_party_skills_lock: str = DEFAULT_THIRD_PARTY_SKILLS_LOCK
     # The global skills folder (skill_library.py). Blank: the user folder's
     # `skills/`. No setting reads it; `certo bench` points it at an empty
     # folder so a user's own skills never change benchmark results.
@@ -315,6 +297,26 @@ def _read(env: Mapping[str, str], suffix: str) -> tuple[str | None, str]:
             logger.warning("%s is deprecated; rename it to %s.", legacy_name, name)
         return legacy_value, legacy_name
     return value, name
+
+
+# The old skill folders' settings, no longer read since 0.1.23 (skill
+# library: `certo skills`). One still set is named once per process, so its
+# skills don't drop out of a run unnoticed.
+_REMOVED_SKILL_SETTINGS = ("SKILLS_DIR", "THIRD_PARTY_SKILLS_DIR", "THIRD_PARTY_SKILLS_LOCK")
+_warned_removed_vars: set[str] = set()
+
+
+def _warn_removed_skill_settings(env: Mapping[str, str]) -> None:
+    for suffix in _REMOVED_SKILL_SETTINGS:
+        for name in (ENV_PREFIX + suffix, LEGACY_ENV_PREFIX + suffix):
+            if _clean(env.get(name)) is None or name in _warned_removed_vars:
+                continue
+            _warned_removed_vars.add(name)
+            logger.warning(
+                "%s is no longer read: Certo no longer uses the old skill folders. Add each "
+                "skill again with: certo skills add PATH --global (or --project NAME).",
+                name,
+            )
 
 
 def _get(env: Mapping[str, str], suffix: str) -> str | None:
@@ -553,24 +555,7 @@ def load_config(
         choices=EXECUTION_MODES,
     )
     projects_dir = _get(env, "PROJECTS_DIR") or DEFAULT_PROJECTS_DIR
-    skills_dir = _get(env, "SKILLS_DIR") or DEFAULT_SKILLS_DIR
-    third_party_skills_dir = _get(env, "THIRD_PARTY_SKILLS_DIR") or DEFAULT_THIRD_PARTY_SKILLS_DIR
-    third_party_skills_lock = (
-        _get(env, "THIRD_PARTY_SKILLS_LOCK") or DEFAULT_THIRD_PARTY_SKILLS_LOCK
-    )
-    # The first-party loader rglob()s every .md under skills_dir, so a
-    # third-party directory nested inside it would load downloaded content
-    # regardless of enablement (and vice versa).
-    _tp = Path(third_party_skills_dir).resolve()
-    for _fp, _label in (
-        (Path(skills_dir).resolve(), f"CERTO_SKILLS_DIR ({skills_dir!r})"),
-        (Path(BUILTIN_SKILLS_DIR), f"the built-in skills directory ({BUILTIN_SKILLS_DIR!r})"),
-    ):
-        if _tp == _fp or _tp.is_relative_to(_fp) or _fp.is_relative_to(_tp):
-            raise ConfigError(
-                f"CERTO_THIRD_PARTY_SKILLS_DIR ({third_party_skills_dir!r}) must not "
-                f"overlap {_label}."
-            )
+    _warn_removed_skill_settings(env)
     docker_image = _get(env, "DOCKER_IMAGE") or DEFAULT_DOCKER_IMAGE
     docker_platform = _parse_choice(
         env,
@@ -681,9 +666,6 @@ def load_config(
         confirm_mode=confirm_mode,
         execution=execution,
         projects_dir=projects_dir,
-        skills_dir=skills_dir,
-        third_party_skills_dir=third_party_skills_dir,
-        third_party_skills_lock=third_party_skills_lock,
         docker_image=docker_image,
         docker_platform=docker_platform,
         verify_tests=verify_tests,

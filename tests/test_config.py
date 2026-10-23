@@ -17,7 +17,6 @@ from certo.config import (
     DEFAULT_MAX_TASK_SECONDS,
     DEFAULT_MAX_VERIFY_RETRIES,
     DEFAULT_PROJECTS_DIR,
-    DEFAULT_SKILLS_DIR,
     DEFAULT_TASK_STORE,
     DEFAULT_TASK_STORE_MYSQL_PORT,
     DEFAULT_TASK_STORE_POSTGRES_PORT,
@@ -59,7 +58,6 @@ def test_minimal_valid_env_applies_defaults():
     assert cfg.confirm_mode == DEFAULT_CONFIRM_MODE
     assert cfg.execution == DEFAULT_EXECUTION
     assert cfg.projects_dir == DEFAULT_PROJECTS_DIR
-    assert cfg.skills_dir == DEFAULT_SKILLS_DIR
     assert cfg.docker_image == DEFAULT_DOCKER_IMAGE
     assert cfg.docker_platform == DEFAULT_DOCKER_PLATFORM
     assert cfg.verify_tests == DEFAULT_VERIFY_TESTS
@@ -77,7 +75,6 @@ def test_all_values_parsed():
             CERTO_CONFIRM_MODE="always",
             CERTO_EXECUTION="docker",
             CERTO_PROJECTS_DIR="/tmp/projects",
-            CERTO_SKILLS_DIR="/tmp/skills",
             CERTO_DOCKER_IMAGE="myorg/agent-server:custom",
             CERTO_DOCKER_PLATFORM="linux/amd64",
             CERTO_VERIFY_TESTS="never",
@@ -90,7 +87,6 @@ def test_all_values_parsed():
     assert cfg.confirm_mode == "always"
     assert cfg.execution == "docker"
     assert cfg.projects_dir == "/tmp/projects"
-    assert cfg.skills_dir == "/tmp/skills"
     assert cfg.docker_image == "myorg/agent-server:custom"
     assert cfg.docker_platform == "linux/amd64"
     assert cfg.verify_tests == "never"
@@ -669,12 +665,28 @@ def test_new_env_name_only(fresh_legacy_warnings, caplog):
 
 
 def test_legacy_env_name_only_is_used_and_warns_naming_the_new_var(fresh_legacy_warnings, caplog):
-    cfg = load_config(_base_env(HARNESS_MAX_ITERATIONS="7", HARNESS_SKILLS_DIR="./old-skills"))
+    cfg = load_config(_base_env(HARNESS_MAX_ITERATIONS="7", HARNESS_PROJECTS_DIR="./old-projects"))
     assert cfg.max_iterations == 7
-    assert cfg.skills_dir == "./old-skills"
+    assert cfg.projects_dir == "./old-projects"
     assert sorted(_legacy_warnings(caplog)) == [
         "HARNESS_MAX_ITERATIONS is deprecated; rename it to CERTO_MAX_ITERATIONS.",
-        "HARNESS_SKILLS_DIR is deprecated; rename it to CERTO_SKILLS_DIR.",
+        "HARNESS_PROJECTS_DIR is deprecated; rename it to CERTO_PROJECTS_DIR.",
+    ]
+
+
+def test_an_old_skill_folder_setting_still_set_is_named_once(monkeypatch, caplog):
+    import certo.config as config_mod
+
+    monkeypatch.setattr(config_mod, "_warned_removed_vars", set())
+    env = _base_env(CERTO_SKILLS_DIR="./skills", CERTO_THIRD_PARTY_SKILLS_LOCK="")
+
+    load_config(env)
+    load_config(env)
+
+    warnings = [r.getMessage() for r in caplog.records if "no longer read" in r.getMessage()]
+    assert warnings == [
+        "CERTO_SKILLS_DIR is no longer read: Certo no longer uses the old skill folders. Add "
+        "each skill again with: certo skills add PATH --global (or --project NAME)."
     ]
 
 
