@@ -941,3 +941,10 @@ considered and live-verification detail: `docs/ROADMAP.txt`.
   `TODO_FILE`, so they don't constrain the code's structure. Tasks that
   need packages (React, Go with SQLite) come later, when grading's
   network use is decided.
+- **Task set v2: one networked task, the rest offline** (the Author,
+  2026-10-23). Of the last two v2 tasks, React + API uses packages, with
+  a lock file in the starter so grading installs exact versions
+  (`npm ci`); the Go REST API uses the standard library only. Why: one
+  realistic task with packages, while most of the set stays offline and
+  deterministic. A failed download is a grading `error`, never the
+  model's failure.

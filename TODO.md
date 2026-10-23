@@ -33,12 +33,13 @@ first item is the suggested next one.
   REST API with a database, React frontend + API, Rust CLI with
   subcommands, a fix inside an existing mid-size repo. Grading supports
   Go, Rust and Node with packages since 0.1.23. Task set version 2 is
-  open: `ledger-transfers` (the existing-repo fix) and `todo-deps` (the
-  Rust CLI, std only) are in, and both fit the budget (Sonnet,
+  open: `ledger-transfers` (the existing-repo fix), `todo-deps` (the
+  Rust CLI, std only) and `library-loans` (Go REST API, std only, no
+  cloud run yet) are in; the first two fit the budget (Sonnet,
   2026-10-23, verified and hidden tests passed: 2m 00s and $0.37; 2m 22s
   and $0.39, no fix attempt). Each new task needs such a cloud run. Left:
-  React + API and Go with SQLite, which need packages from the network
-  while the agent works and while grading; decide that first. Today's 9 tasks don't
+  React + API, with a lock file so grading installs exact versions
+  (DECISIONS: one networked task). Today's 9 tasks don't
   separate a local 27B model from a cloud one. Contributed tasks in the
   current format help meanwhile: [#3](https://github.com/alessioricco/certo/issues/3).
 - **Escalation after a `failed` rung is unmeasured.** The 0.1.17

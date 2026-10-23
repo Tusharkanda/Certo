@@ -20,6 +20,10 @@ This is the groundwork for app-scale tasks. How to write one:
   and a new feature has exact rules (a 0-to-3-day window, one transfer
   per transaction, earliest first) that a model's own tests tend to
   skip.
+- `library-loans`: the HTTP API of a lending library in Go, standard
+  library only, with "today" passed in: ISBN-13 check digits, due dates
+  and capped fines, loan limits, exact status codes and JSON errors, and
+  no book lent twice under concurrent requests.
 - `todo-deps`: a to-do command-line program in Rust, standard library
   only, where tasks wait for other tasks: a list kept in a file between
   runs, cycles refused, exact output and exit codes. Its hidden tests

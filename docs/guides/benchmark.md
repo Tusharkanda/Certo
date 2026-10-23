@@ -26,11 +26,11 @@ questions:
 
 ## The tasks
 
-Eleven tasks ship with Certo (task set version 2). Nine are small: each
+Twelve tasks ship with Certo (task set version 2). Nine are small: each
 takes a few minutes for a capable model, and the tricky ones are where
-smaller models often go wrong. Two are larger: `ledger-transfers`, work
-inside an existing package of several modules, and `todo-deps`, a
-command-line program in Rust.
+smaller models often go wrong. Three are larger: `ledger-transfers`,
+work inside an existing package of several modules; `todo-deps`, a
+command-line program in Rust; and `library-loans`, an HTTP API in Go.
 
 | Task | Language | What it tests |
 |---|---|---|
@@ -44,12 +44,14 @@ command-line program in Rust.
 | `token-bucket` | Node | A rate limiter with a fake clock: fractional refill, the cap, a clock going backwards. |
 | `semver-order` | Node | Version ordering with prereleases: numbers compared as numbers, numeric before text, shorter first. |
 | `ledger-transfers` | Python | Two bugs whose cause is in another module than the symptom, and a feature with exact matching rules, in an existing package with its own tests. |
+| `library-loans` | Go | An HTTP API with a clock passed in: ISBN-13 check digits, due dates and capped fines, loan limits, exact status codes and JSON errors, safe for concurrent requests. Standard library only. |
 | `todo-deps` | Rust | A to-do CLI with subcommands, where tasks wait for other tasks: a list kept in a file, cycles refused, exact output and exit codes. Standard library only. |
 
 Task set version 1 was the nine small tasks; the baselines up to 0.1.22
 used it. To compare with them, list those nine under `tasks:` in the
-benchmark file: `tasks: all` now includes the larger tasks too. The Rust
-task needs `cargo` on the machine running the benchmark.
+benchmark file: `tasks: all` now includes the larger tasks too. The Go
+task needs `go` (1.22 or newer) and the Rust task `cargo` on the machine
+running the benchmark.
 
 `certo bench --list-tasks` lists them. Node tasks need Node 18 or newer.
 Grading also supports Go (`go test`) and Rust (`cargo test`) tasks, and
