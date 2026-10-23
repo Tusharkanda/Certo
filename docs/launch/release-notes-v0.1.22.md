@@ -1,6 +1,18 @@
 # Certo v0.1.22
 
-Not released yet.
+This release is about skills, and about trusting a result:
+
+- **Skills:** `certo skills` lists, adds and removes skills, for every
+  project or for one, keeps Certo's official skills apart from yours, and
+  says which skills a task would get, and why. Your skills move out of
+  the folder `certo` runs from, so they never end up in a repository.
+- **Results:** a run that goes past its time budget is still checked,
+  escalation moves on when nothing could be checked, and every model is
+  shown with the reasoning effort it ran at.
+- **Also:** real token usage on `/v1/chat/completions`, a longer call
+  timeout for Ollama from `certo init`, a faster start, and four fixes
+  from contributors, thanks to @dbdefault and @EliasCodeFI. Measured on
+  the bundled benchmark: no result got worse.
 
 ## New: `certo skills`, for official and third-party skills
 
