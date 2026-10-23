@@ -95,7 +95,9 @@ failure. Other tools (flake8, pylint, pyright) are not run.
   `game/cli.py` as `python -m game.cli`. It proves the
   program starts without crashing. It can't test menus or prompts, because
   nobody types anything. A program that crashes when input ends (an
-  uncaught `EOFError`) fails this check.
+  uncaught `EOFError`) fails this check. A command-line program that
+  needs arguments passes when it stops with its usage line and exit code
+  2, as `argparse` and `click` do: it started, and asked for arguments.
 
 ## Node in detail
 

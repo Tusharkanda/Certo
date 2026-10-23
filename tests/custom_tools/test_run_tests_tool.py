@@ -789,6 +789,73 @@ def test_execute_check_reports_passed(tmp_path):
     assert outcome.command == f"{sys.executable} -c pass"
 
 
+# A CLI that needs a subcommand stops with its usage line (argparse: exit 2).
+# Running it with no arguments still proves it starts, so it passes; seen on
+# the ledger-transfers benchmark task, where it cost a fix attempt.
+_ARGPARSE_CLI = """import argparse
+
+
+def main():
+    parser = argparse.ArgumentParser(prog="ledger")
+    sub = parser.add_subparsers(dest="command", required=True)
+    sub.add_parser("report")
+    parser.parse_args()
+
+
+if __name__ == "__main__":
+    main()
+"""
+
+
+def test_a_cli_that_needs_a_subcommand_passes_the_program_run(tmp_path):
+    package = tmp_path / "ledger"
+    package.mkdir()
+    (package / "__init__.py").write_text("")
+    (package / "cli.py").write_text(_ARGPARSE_CLI)
+    plan = _python_plan_for(tmp_path, _state(tmp_path))
+    (spec,) = [s for s in plan if s.name == "python -m ledger.cli"]
+
+    outcome = execute_check(spec)
+
+    assert (outcome.status, outcome.exit_code) == ("passed", 2), outcome.output
+    assert outcome.summary == (
+        "python -m ledger.cli started and printed its usage: it needs arguments"
+    )
+    assert all(s.usage_exit_codes == () for s in plan if s is not spec)
+
+
+@pytest.mark.parametrize(
+    "code",
+    [
+        # A crash that happens to print "usage:" first is still a crash.
+        "print('usage: x'); raise SystemExit(1)",
+        # Exit 2 with no usage line isn't argparse asking for arguments.
+        "import sys; print('boom', file=sys.stderr); sys.exit(2)",
+    ],
+)
+def test_only_a_usage_line_with_exit_2_passes(tmp_path, code):
+    spec = CheckSpec(
+        name="python app.py",
+        primary=False,
+        command=[sys.executable, "-c", code],
+        cwd=str(tmp_path),
+        usage_exit_codes=(2,),
+    )
+
+    assert execute_check(spec).status == "failed"
+
+
+def test_a_usage_exit_fails_a_check_that_doesnt_allow_it(tmp_path):
+    spec = CheckSpec(
+        name="npm test",
+        primary=True,
+        command=[sys.executable, "-c", "print('Usage: x'); import sys; sys.exit(2)"],
+        cwd=str(tmp_path),
+    )
+
+    assert execute_check(spec).status == "failed"
+
+
 def test_execute_check_reports_failed_with_exit_code_and_output(tmp_path):
     spec = CheckSpec(
         name="broken",

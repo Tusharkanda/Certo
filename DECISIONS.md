@@ -926,3 +926,10 @@ considered and live-verification detail: `docs/ROADMAP.txt`.
   benchmark (no copied repository, so no license question), and its
   hidden tests are checked against wrong variants of the reference
   before it ships.
+- **A program that stops with its usage line has started** (2026-10-23,
+  found by the `ledger-transfers` cloud run). The no-argument run of each
+  Python entry point passes on exit 2 with a line starting `usage:`
+  (argparse, click). Only that check allows it, and only that pair: exit
+  1, or exit 2 with no usage line, still fails. Why: the check proves the
+  program starts; failing a correct CLI made the fix attempt change
+  correct behaviour, the opposite of golden rule 6's intent.

@@ -23,6 +23,17 @@ to skip. The nine small tasks don't change. To compare with a baseline
 made on version 1, list those nine under `tasks:`; see
 [Benchmark models and strategies](../guides/benchmark.md#the-tasks).
 
+## Fixed: a command-line program that needs arguments passes verification
+
+Certo runs each Python program with no arguments to check that it
+starts. A command-line program that needs a subcommand rightly stops
+with its usage line and exit code 2, and Certo counted that as a
+failure. It cost a fix attempt, and the agent was pushed to change
+correct behaviour: on the new `ledger-transfers` task, Sonnet made the
+program print its help and exit 0 with no subcommand, which nobody asked
+for. Now exit 2 with a `usage:` line passes, as "started and asked for
+arguments". A crash still fails.
+
 ## Removed: the old skill folders and `certo-admin skills`
 
 As announced in 0.1.22, Certo no longer reads `./skills`

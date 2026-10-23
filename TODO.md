@@ -298,15 +298,6 @@ database).
 
 ## Smaller bugs
 
-- **A Python CLI that needs arguments fails verification.** Each entry
-  point runs with no arguments, and any non-zero exit fails; argparse
-  rightly exits 2 with its usage line. Seen 2026-10-23 on
-  `ledger-transfers` (Sonnet): `python -m ledger.cli` failed, and the fix
-  attempt made the agent change correct behaviour (no subcommand now
-  shows help, exit 0). Costs a fix attempt on every such project, and
-  may end `retry_exhausted` on a local model. Done when exit 2 with a
-  `usage:` line counts as "started and asked for arguments", with a test,
-  and before baseline v2.
 - **`certo skills`: turn an official skill off**, globally or for one
   project (later, agreed 2026-10-22). Today a third-party skill can only
   replace one.

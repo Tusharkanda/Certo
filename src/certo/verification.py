@@ -32,6 +32,7 @@ from __future__ import annotations
 import ast
 import json
 import os
+import re
 import tomllib
 from dataclasses import dataclass, field
 
@@ -298,9 +299,14 @@ class CheckSpec:
     # at all. `execute_check` returns this directly when set; `command`
     # must be None alongside it.
     precomputed: CheckOutcome | None = None
+    # Exit codes that, with a line starting `usage:` in the output, mean the
+    # program started and asked for arguments, so it passes: argparse and
+    # click exit 2 that way. Only for running a program with no arguments.
+    usage_exit_codes: tuple[int, ...] = ()
 
 
 _CHECK_TIMEOUT_SECONDS = 300
+_USAGE_LINE = re.compile(r"^usage:", re.IGNORECASE | re.MULTILINE)
 
 
 def execute_check(
@@ -371,6 +377,17 @@ def execute_check(
             project_root=spec.cwd,
             summary=spec.skip_reason or f"{spec.name}: nothing to verify",
             output="",
+        )
+    if result.returncode in spec.usage_exit_codes and _USAGE_LINE.search(output):
+        return CheckOutcome(
+            name=spec.name,
+            command=command_str,
+            primary=spec.primary,
+            status="passed",
+            exit_code=result.returncode,
+            project_root=spec.cwd,
+            summary=f"{spec.name} started and printed its usage: it needs arguments",
+            output=output[-4000:],
         )
     passed = result.returncode == 0
     if not passed and any(m in output for m in spec.missing_tool_markers):
@@ -783,6 +800,9 @@ def _python_plan(root: str, state: PythonEnvState | None = None) -> list[CheckSp
                     command=[*python, *args],
                     cwd=root,
                     env=env_vars,
+                    # A CLI that needs a subcommand rightly stops with its
+                    # usage line; that still proves it starts.
+                    usage_exit_codes=(2,),
                 )
             )
     return specs
