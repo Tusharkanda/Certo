@@ -34,12 +34,12 @@ first item is the suggested next one.
   subcommands, a fix inside an existing mid-size repo. Grading supports
   Go, Rust and Node with packages since 0.1.23. Task set version 2 is
   open: `ledger-transfers` (the existing-repo fix), `todo-deps` (the
-  Rust CLI, std only) and `library-loans` (Go REST API, std only) are
-  in, and all three fit the budget (Sonnet, 2026-10-23, verified and
+  Rust CLI, std only) and `library-loans` (Go REST API, std only) and
+  `room-bookings` (Node API + React page, packages from a lock file, no
+  cloud run yet) are in; the first three fit the budget (Sonnet, 2026-10-23, verified and
   hidden tests passed: 2m 00s and $0.37; 2m 22s and $0.39; 2m 37s and
-  $0.38, the last two with no fix attempt). Each new task needs such a cloud run. Left:
-  React + API, with a lock file so grading installs exact versions
-  (DECISIONS: one networked task). Today's 9 tasks don't
+  $0.38, the last two with no fix attempt). Each new task needs such a cloud run. Then
+  baseline v2 (Phase 1.4). Today's 9 tasks don't
   separate a local 27B model from a cloud one. Contributed tasks in the
   current format help meanwhile: [#3](https://github.com/alessioricco/certo/issues/3).
 - **Escalation after a `failed` rung is unmeasured.** The 0.1.17

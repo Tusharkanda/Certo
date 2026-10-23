@@ -948,3 +948,11 @@ considered and live-verification detail: `docs/ROADMAP.txt`.
   realistic task with packages, while most of the set stays offline and
   deterministic. A failed download is a grading `error`, never the
   model's failure.
+- **`room-bookings`: React without JSX, two pinned packages** (2026-10-23).
+  `react` and `react-dom` 19.0.0 only (three packages with `scheduler`,
+  none with install scripts), in a lock file with integrity hashes;
+  components use `React.createElement`, so there is no build step and no
+  Babel, Vite or jsdom tree of hundreds of packages. Hidden tests render
+  with `react-dom/server` and call the API on `127.0.0.1`. The lock file
+  was made in a throwaway `node:22.11.0-alpine` container with
+  `--ignore-scripts`, mounting only a scratch folder.

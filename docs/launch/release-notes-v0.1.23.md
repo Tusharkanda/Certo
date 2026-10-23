@@ -25,6 +25,10 @@ This is the groundwork for app-scale tasks. How to write one:
   library only, with "today" passed in: ISBN-13 check digits, due dates
   and capped fines, loan limits, exact status codes and JSON errors, and
   no book lent twice under concurrent requests.
+- `room-bookings`: an HTTP API and its page rendered with React, in
+  Node: booking rules on quarter hours, overlaps, free time between
+  bookings, and titles shown as text. The only task that installs
+  packages (`react` and `react-dom` 19.0.0, from a lock file).
 - `todo-deps`: a to-do command-line program in Rust, standard library
   only, where tasks wait for other tasks: a list kept in a file between
   runs, cycles refused, exact output and exit codes. Its hidden tests
