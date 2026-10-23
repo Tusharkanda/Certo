@@ -956,3 +956,12 @@ considered and live-verification detail: `docs/ROADMAP.txt`.
   with `react-dom/server` and call the API on `127.0.0.1`. The lock file
   was made in a throwaway `node:22.11.0-alpine` container with
   `--ignore-scripts`, mounting only a scratch folder.
+- **Go and Rust: zero tests is `skipped`, by counting** (2026-10-23, found
+  building `todo-deps`). Unlike `node --test` (PR #28: one zero-test
+  summary line), "no tests" is a fact about the whole output: `go test`
+  prints a line per package, and `[no test files]` next to an `ok` line
+  is normal (`cmd/server`); `cargo test` prints a result line per target.
+  So `CheckSpec.count_tests` counts what ran, packages with an `ok` line
+  for Go and passed + failed over every `test result:` line for Cargo,
+  and 0 makes a successful run `skipped`. Kept apart from #28's
+  `no_work_markers` (and away from its lines) so both merge.

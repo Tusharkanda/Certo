@@ -23,12 +23,16 @@ from certo.verification import (
     ProjectDetection,
     PythonEnvState,
     VerificationRun,
+    _cargo_tests_run,
     _entrypoint_ordering_spec,
     _find_python_entrypoints,
+    _go_packages_tested,
+    _go_plan,
     _mypy_configured,
     _npm_test_script,
     _python_plan,
     _ruff_configured,
+    _rust_plan,
     detect_project,
     discover_verification_plan,
     execute_check,
@@ -854,6 +858,86 @@ def test_a_usage_exit_fails_a_check_that_doesnt_allow_it(tmp_path):
     )
 
     assert execute_check(spec).status == "failed"
+
+
+# `go test` and `cargo test` succeed with no tests at all; counting what
+# ran turns that into "skipped", so the verdict is inconclusive, not
+# verified. Real output of both, from the todo-deps and library-loans tasks.
+_GO_NO_TESTS = "?   \texample.com/x\t[no test files]\n"
+_GO_SOME_TESTS = (
+    "ok  \texample.com/library/api\t0.465s\n?   \texample.com/library/cmd/server\t[no test files]\n"
+)
+_CARGO_NO_TESTS = (
+    "running 0 tests\n\ntest result: ok. 0 passed; 0 failed; 0 ignored; 0 measured\n"
+    "   Doc-tests todo\n\nrunning 0 tests\n\ntest result: ok. 0 passed; 0 failed\n"
+)
+_CARGO_SOME_TESTS = (
+    "running 0 tests\n\ntest result: ok. 0 passed; 0 failed; 0 ignored\n"
+    "running 5 tests\n.....\ntest result: ok. 5 passed; 0 failed; 0 ignored\n"
+)
+
+
+@pytest.mark.parametrize(
+    ("count", "output", "ran"),
+    [
+        (_go_packages_tested, _GO_NO_TESTS, 0),
+        (_go_packages_tested, _GO_SOME_TESTS, 1),
+        (_go_packages_tested, "ok  \texample.com/x\t(cached)\n", 1),
+        (_go_packages_tested, "ok  \texample.com/x\t0.1s [no tests to run]\n", 0),
+        (_cargo_tests_run, _CARGO_NO_TESTS, 0),
+        (_cargo_tests_run, _CARGO_SOME_TESTS, 5),
+    ],
+)
+def test_counting_the_tests_go_and_cargo_ran(count, output, ran):
+    assert count(output) == ran
+
+
+def _printing(text: str, code: int = 0) -> list[str]:
+    return [sys.executable, "-c", f"import sys; print({text!r}); sys.exit({code})"]
+
+
+def test_a_successful_run_of_no_tests_is_skipped(tmp_path):
+    spec = CheckSpec(
+        name="cargo test",
+        primary=True,
+        command=_printing(_CARGO_NO_TESTS),
+        cwd=str(tmp_path),
+        count_tests=_cargo_tests_run,
+    )
+
+    outcome = execute_check(spec)
+
+    assert (outcome.status, outcome.summary) == (
+        "skipped",
+        "cargo test ran no tests: the project has none",
+    )
+
+
+def test_a_run_with_tests_passes_and_a_failure_still_fails(tmp_path):
+    def spec(command):
+        return CheckSpec(
+            name="go test",
+            primary=True,
+            command=command,
+            cwd=str(tmp_path),
+            count_tests=_go_packages_tested,
+        )
+
+    assert execute_check(spec(_printing(_GO_SOME_TESTS))).status == "passed"
+    assert execute_check(spec(_printing(_GO_NO_TESTS, 1))).status == "failed"
+
+
+def test_go_and_rust_plans_count_their_tests(tmp_path):
+    class Runner(LocalRunner):
+        def which(self, name):
+            return f"/bin/{name}"
+
+    (tmp_path / "go.mod").write_text("module x\n")
+    (go_test,) = [s for s in _go_plan(str(tmp_path), Runner()) if s.name == "go test"]
+    (cargo_test,) = [s for s in _rust_plan(str(tmp_path), Runner()) if s.name == "cargo test"]
+
+    assert go_test.count_tests is _go_packages_tested
+    assert cargo_test.count_tests is _cargo_tests_run
 
 
 def test_execute_check_reports_failed_with_exit_code_and_output(tmp_path):

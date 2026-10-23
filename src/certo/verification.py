@@ -34,6 +34,7 @@ import json
 import os
 import re
 import tomllib
+from collections.abc import Callable
 from dataclasses import dataclass, field
 
 from certo.project_env import (
@@ -303,6 +304,10 @@ class CheckSpec:
     # program started and asked for arguments, so it passes: argparse and
     # click exit 2 that way. Only for running a program with no arguments.
     usage_exit_codes: tuple[int, ...] = ()
+    # Counts the tests a successful run ran, from its output; 0 makes the
+    # check "skipped", not "passed". For runners that succeed with no tests
+    # at all (`go test`, `cargo test`), where no single line says so.
+    count_tests: Callable[[str], int] | None = None
 
 
 _CHECK_TIMEOUT_SECONDS = 300
@@ -377,6 +382,17 @@ def execute_check(
             project_root=spec.cwd,
             summary=spec.skip_reason or f"{spec.name}: nothing to verify",
             output="",
+        )
+    if result.returncode == 0 and spec.count_tests is not None and spec.count_tests(output) == 0:
+        return CheckOutcome(
+            name=spec.name,
+            command=command_str,
+            primary=spec.primary,
+            status="skipped",
+            exit_code=0,
+            project_root=spec.cwd,
+            summary=f"{spec.name} ran no tests: the project has none",
+            output=output[-4000:],
         )
     if result.returncode in spec.usage_exit_codes and _USAGE_LINE.search(output):
         return CheckOutcome(
@@ -866,6 +882,25 @@ def _node_plan(root: str, runner: CommandRunner) -> list[CheckSpec]:
     return specs
 
 
+def _go_packages_tested(output: str) -> int:
+    """Packages whose tests ran, from `go test ./...`: an `ok` line each.
+    A package with no test files prints `?  pkg  [no test files]`."""
+    return sum(
+        1
+        for line in output.splitlines()
+        if line.startswith("ok") and "[no tests to run]" not in line
+    )
+
+
+_CARGO_RESULT = re.compile(r"test result: \w+\. (\d+) passed; (\d+) failed")
+
+
+def _cargo_tests_run(output: str) -> int:
+    """Tests that ran, from every `test result:` line of `cargo test`
+    (unit, integration and doc tests)."""
+    return sum(int(p) + int(f) for p, f in _CARGO_RESULT.findall(output))
+
+
 def _go_plan(root: str, runner: CommandRunner) -> list[CheckSpec]:
     go = runner.which("go")
     if go is None:
@@ -879,7 +914,13 @@ def _go_plan(root: str, runner: CommandRunner) -> list[CheckSpec]:
             )
         ]
     return [
-        CheckSpec(name="go test", primary=True, command=[go, "test", "./..."], cwd=root),
+        CheckSpec(
+            name="go test",
+            primary=True,
+            command=[go, "test", "./..."],
+            cwd=root,
+            count_tests=_go_packages_tested,
+        ),
         CheckSpec(name="go vet", primary=False, command=[go, "vet", "./..."], cwd=root),
     ]
 
@@ -897,7 +938,13 @@ def _rust_plan(root: str, runner: CommandRunner) -> list[CheckSpec]:
             )
         ]
     return [
-        CheckSpec(name="cargo test", primary=True, command=[cargo, "test"], cwd=root),
+        CheckSpec(
+            name="cargo test",
+            primary=True,
+            command=[cargo, "test"],
+            cwd=root,
+            count_tests=_cargo_tests_run,
+        ),
         CheckSpec(name="cargo check", primary=False, command=[cargo, "check"], cwd=root),
         CheckSpec(
             name="cargo clippy",

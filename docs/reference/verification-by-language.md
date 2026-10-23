@@ -113,15 +113,22 @@ check is `unavailable` and the verdict is `inconclusive`.
 including `node --test`, exit successfully when they find no test files,
 so a project with `"test": "node --test"` and no tests at all is
 `verified`. Ask the agent for tests, or check that `npm test` really runs
-some. Go and Rust have the same gap: `go test ./...` and `cargo test`
-succeed when there are no tests, so a Go or Rust project with none is
-`verified` too.
+some.
 
 ## Missing tools
 
 When the tool for a project type isn't installed (`npm`, `go`, `cargo`,
 `mvn` or `gradle`), its checks are `unavailable` and the verdict is
 `inconclusive`. Install the tool, or run in an environment that has it.
+
+## Go and Rust: no tests
+
+`go test ./...` and `cargo test` succeed when the project has no tests.
+Certo counts the tests they ran: no package with tests (`go test` prints
+`[no test files]` for each one), or 0 tests across every `test result:`
+line of `cargo test`, makes the check `skipped`, and the verdict
+`inconclusive`, not `verified`. A Go package without tests next to one
+with tests, such as a `cmd/server` folder, is fine.
 
 ## Not covered
 

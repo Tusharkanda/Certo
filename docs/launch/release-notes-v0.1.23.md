@@ -49,6 +49,14 @@ program print its help and exit 0 with no subcommand, which nobody asked
 for. Now exit 2 with a `usage:` line passes, as "started and asked for
 arguments". A crash still fails.
 
+## Fixed: a Go or Rust project with no tests is no longer `verified`
+
+`go test ./...` and `cargo test` succeed when a project has no tests, so
+Certo reported such a project `verified` with nothing tested. Now Certo
+counts the tests they ran: none makes the check `skipped` and the verdict
+`inconclusive`. A Go package without tests next to one with tests, such
+as `cmd/server`, is fine.
+
 ## Removed: the old skill folders and `certo-admin skills`
 
 As announced in 0.1.22, Certo no longer reads `./skills`

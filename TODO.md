@@ -102,13 +102,7 @@ first item is the suggested next one.
 - **Node: "no tests" counts as verified.** `node --test` exits 0 with no
   test files, so `npm test` passes. Found by the first bench integration
   run (2026-10-16). Documented, not fixed. Open for contributors:
-  [#23](https://github.com/alessioricco/certo/issues/23) (PR #28 fixes it).
-- **Go and Rust: "no tests" counts as verified too.** `go test ./...`
-  (`[no test files]`) and `cargo test` (`0 passed`) exit 0 with no tests,
-  so a project with none is `verified`. Seen live 2026-10-23 with
-  `certo verify` on the `todo-deps` starter and on a Go module with no
-  test files. Done when a run of zero tests is `skipped` (so the verdict
-  is `inconclusive`), as PR #28 does for Node, with a test per language.
+  [#23](https://github.com/alessioricco/certo/issues/23).
 - **Node: detect jest/vitest/mocha.** Today `build`/`test` scripts run as
   opaque commands; the runner and its results aren't parsed.
 - **Node: infer ESLint/`tsc` from config**, as `_ruff_configured()` does
