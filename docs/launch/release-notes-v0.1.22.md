@@ -85,6 +85,10 @@ can check, and the climb stops there instead of paying for every model.
 - **`--auto-model` with missing model files stops cleanly**: only the
   error, with no banner, no resume hint and no run recorded. Thanks to
   @dbdefault (#15).
+- **A configuration error leaves no empty project behind.** With
+  `--project`, a run that stops on a model-file or acceptance-check error
+  no longer creates the project folder or records it as made by Certo;
+  an existing project folder is kept. Thanks to @EliasCodeFI (#27).
 - **The resume hint keeps your projects folder**: when
   `CERTO_PROJECTS_DIR` isn't the default, the printed `certo --resume`
   command includes it. Thanks to @dbdefault (#14).
