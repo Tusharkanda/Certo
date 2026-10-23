@@ -149,8 +149,9 @@ model.
 - One local model and one Ollama setup.
 - Single-model arms only: escalation wasn't measured here. It is in
   [Escalation in 0.1.17](escalation-0.1.17.md).
-- No skills of the user's own were installed. A benchmark run doesn't
-  yet keep out skills in `~/.config/certo/skills/`.
+- No global skills of the user's were installed when it ran. Since then,
+  `certo bench` leaves skills in `~/.config/certo/skills/` out of every
+  run, as it already did the older skill folders.
 
 ## Related
 

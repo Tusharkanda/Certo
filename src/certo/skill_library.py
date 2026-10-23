@@ -217,7 +217,8 @@ def collect(
     need: the SDK loads them itself."""
     official = [SkillRow(s.name, OFFICIAL, BUILTIN_SKILLS_DIR, s) for s in official_skills()]
     old, notices = _old_rows(cfg, {r.name for r in official})
-    rows = official + old + load_folder(global_dir(), GLOBAL, "--global")
+    global_root = Path(cfg.global_skills_dir) if cfg.global_skills_dir else global_dir()
+    rows = official + old + load_folder(global_root, GLOBAL, "--global")
     if workspace is not None:
         scope = f"--project {project_name}" if project_name else "--project NAME"
         rows += load_folder(project_dir(workspace), PROJECT, scope)

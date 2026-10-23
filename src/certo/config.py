@@ -119,6 +119,10 @@ class Config:
     # for an unknown license, explicitly acknowledged) reach the agent.
     third_party_skills_dir: str = DEFAULT_THIRD_PARTY_SKILLS_DIR
     third_party_skills_lock: str = DEFAULT_THIRD_PARTY_SKILLS_LOCK
+    # The global skills folder (skill_library.py). Blank: the user folder's
+    # `skills/`. No setting reads it; `certo bench` points it at an empty
+    # folder so a user's own skills never change benchmark results.
+    global_skills_dir: str = ""
 
     # Only consulted when execution == "docker" (see workspace.py).
     docker_image: str = DEFAULT_DOCKER_IMAGE

@@ -416,3 +416,17 @@ def test_an_arm_on_a_model_whose_key_variable_is_unset_says_which(tmp_path, monk
 
     with pytest.raises(BenchConfigError, match=r"uses \$\{OPENAI_API_KEY\} in models.yaml"):
         load_bench_config(str(path))
+
+
+def test_a_bench_run_never_gets_the_users_global_skills(tmp_path, monkeypatch):
+    from certo import skill_library as lib
+
+    monkeypatch.setenv("XDG_CONFIG_HOME", str(tmp_path / "xdg"))
+    lib.global_dir().mkdir(parents=True)
+    (lib.global_dir() / "my-style.md").write_text("---\nname: my-style\n---\nMine.\n")
+    cfg = load_bench_config(_write(tmp_path, VALID))
+
+    run = run_config(cfg.catalog["cloud"], str(tmp_path / "ws"), str(tmp_path / "iso"))
+
+    assert run.global_skills_dir == str(tmp_path / "iso" / "global_skills")
+    assert "my-style" not in {s.name for s in lib.collect(run, run.workspace).skills}

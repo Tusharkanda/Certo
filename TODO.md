@@ -24,11 +24,6 @@ first item is the suggested next one.
   checks now run once after the budget, with no time left for a fix
   attempt. Decide whether init writes a longer budget for Ollama (as it
   does the 1200s call timeout), from more than one run.
-- **`certo bench` doesn't isolate the new global skills folder.** Each
-  run's config points the old skill folders at an empty temporary
-  folder, but `~/.config/certo/skills/` (from `XDG_CONFIG_HOME`) is still
-  read, so a user's own global skills would change benchmark results.
-  Done when a bench run ignores it, with a test.
 - **A baseline per release.** `docs/benchmark/baseline-<version>.md` for
   every release (local vs cloud, fooled rate, cost per solved task), and
   a README badge. 0.1.13, 0.1.15, 0.1.18 (local only) and 0.1.22 exist; no badge
