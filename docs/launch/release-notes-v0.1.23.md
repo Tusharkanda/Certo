@@ -117,3 +117,8 @@ naming it.
   and Luna passed 13 of 13 each, and `qwen3.8:27b` 32 of 39; Certo was
   not fooled once in 78 runs. See
   [Baseline 0.1.23](../benchmark/baseline-0.1.23.md).
+- **A recorded handoff of half-done work.** In one real `--escalate` run,
+  `qwen3-coder:30b` left a task at 45 of 46 tests and stopped with
+  `no_progress`; `claude-haiku-5-5` kept its fixes, finished the work and
+  ended `verified` (hidden tests 27 of 27, $0.03). See
+  [Escalation past failing tests](../benchmark/escalation-handoff-0.1.23.md).
