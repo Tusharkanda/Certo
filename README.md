@@ -332,4 +332,4 @@ uv run pytest -q     # no API key needed
 
 ## License
 
-[MIT](https://github.com/alessioricco/certo/blob/main/LICENSE). Built by [Alessio Ricco](https://github.com/alessioricco).
+[MIT](https://github.com/alessioricco/certo/blob/main/LICENSE). Built and maintained by [Alessio Ricco](https://github.com/alessioricco) ([LinkedIn](https://www.linkedin.com/in/alessioricco/), [Medium](https://medium.com/@alessioricco)).
