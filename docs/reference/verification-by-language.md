@@ -44,8 +44,8 @@ into a failure, never a failure into a pass.
 | Node | `npm run build` if a `build` script exists, else `npm test` if a real `test` script exists | `npm test`, `npm run lint`, `npm run typecheck` (or `type-check`): each one only if the script exists and is not the main check |
 | Go | `go test ./...` | `go vet ./...` |
 | Rust | `cargo test` | `cargo check`, `cargo clippy` |
-| Java (Maven) | `./mvnw test` if the wrapper exists, else `mvn test` | none |
-| Java (Gradle) | `./gradlew test` if the wrapper exists, else `gradle test` | none |
+| Java (Maven) | `./mvnw test` (`mvnw.cmd test` on Windows) if the wrapper exists, else `mvn test` | none |
+| Java (Gradle) | `./gradlew test` (`gradlew.bat test` on Windows) if the wrapper exists, else `gradle test` | none |
 
 A missing optional tool makes its check `unavailable`, never `failed`:
 for example `cargo clippy` without the clippy component. The note under the

@@ -59,23 +59,23 @@ def test_resolve_run_artifacts_dir_rejects_dot_and_dotdot_literal(tmp_path):
         resolve_run_artifacts_dir(str(tmp_path), "..", "run-1")
 
 
-def test_resolve_run_artifacts_dir_rejects_a_symlink_escape(tmp_path):
+def test_resolve_run_artifacts_dir_rejects_a_symlink_escape(tmp_path, directory_link):
     outside = tmp_path / "outside"
     outside.mkdir()
     root = tmp_path / "artifacts"
     root.mkdir()
-    (root / "escaped").symlink_to(outside)
+    directory_link(root / "escaped", outside)
 
     with pytest.raises(ConfigError, match="escapes CERTO_ARTIFACTS_DIR"):
         resolve_run_artifacts_dir(str(root), "escaped", "run-1")
 
 
-def test_resolve_run_artifacts_dir_allows_a_symlink_that_stays_inside(tmp_path):
+def test_resolve_run_artifacts_dir_allows_a_symlink_that_stays_inside(tmp_path, directory_link):
     root = tmp_path / "artifacts"
     root.mkdir()
     real = root / "real-project"
     real.mkdir()
-    (root / "aliased").symlink_to(real)
+    directory_link(root / "aliased", real)
 
     result = resolve_run_artifacts_dir(str(root), "aliased", "run-1")
 

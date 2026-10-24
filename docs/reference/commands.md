@@ -137,7 +137,9 @@ certo init [FOLDER] [--provider {openai,anthropic,gemini,deepseek,moonshot,ollam
 **Where settings go.** "All projects on this computer" (the default) writes
 the user settings file, `~/.config/certo/.env` (or
 `$XDG_CONFIG_HOME/certo/.env`). "This folder only" writes `FOLDER/.env`.
-Both are written with permissions `600`. The file holds your chosen lines,
+Both are written with permissions `600` on macOS and Linux. On Windows,
+access follows the folder's inherited permissions; Certo does not set a
+Windows ACL. The file holds your chosen lines,
 then every other provider's lines commented out.
 
 **The sample folder** gets `.gitignore` (`.env`, `projects/`,
@@ -213,7 +215,8 @@ never invents them. Each chosen model is then tested with the same request
 as `certo check --models`, and only the ones that pass are written, to the
 user settings folder (`~/.config/certo/`):
 
-- `models.yaml`, with the models that passed (permissions `600`). An
+- `models.yaml`, with the models that passed (permissions `600` on macOS
+  and Linux; inherited folder permissions on Windows). An
   existing one is replaced only if you say so, and kept as
   `models.yaml.bak`;
 - `models_list.yaml` and `task_profiles.yaml`, copied from the examples

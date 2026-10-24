@@ -629,7 +629,8 @@ def test_node_plan_marks_every_check_unavailable_when_npm_missing(tmp_path, monk
     assert all("npm not found" in s.unavailable_reason for s in plan)
 
 
-def test_go_plan_has_test_and_vet(tmp_path):
+def test_go_plan_has_test_and_vet(tmp_path, monkeypatch):
+    monkeypatch.setattr(LocalRunner, "which", lambda self, name: "go")
     plan = discover_verification_plan(ProjectDetection(language="go", root=str(tmp_path)))
 
     names = {s.name: s.primary for s in plan}
@@ -646,7 +647,8 @@ def test_go_plan_unavailable_without_go_installed(tmp_path, monkeypatch):
     assert "not installed" in plan[0].unavailable_reason
 
 
-def test_rust_plan_has_test_check_and_clippy(tmp_path):
+def test_rust_plan_has_test_check_and_clippy(tmp_path, monkeypatch):
+    monkeypatch.setattr(LocalRunner, "which", lambda self, name: "cargo")
     plan = discover_verification_plan(ProjectDetection(language="rust", root=str(tmp_path)))
 
     names = {s.name: s.primary for s in plan}
@@ -664,9 +666,7 @@ def test_rust_plan_unavailable_without_cargo_installed(tmp_path, monkeypatch):
 
 
 def test_java_maven_plan_prefers_wrapper_over_global_mvn(tmp_path, monkeypatch):
-    wrapper = tmp_path / "mvnw"
-    wrapper.write_text("#!/bin/sh\nexit 0\n")
-    wrapper.chmod(0o755)
+    wrapper = _java_wrapper(tmp_path, "mvnw")
     monkeypatch.setattr("shutil.which", lambda name: f"/usr/bin/{name}" if name == "mvn" else None)
 
     plan = discover_verification_plan(ProjectDetection(language="java-maven", root=str(tmp_path)))
@@ -695,9 +695,7 @@ def test_java_maven_plan_unavailable_with_neither_wrapper_nor_mvn(tmp_path, monk
 
 
 def test_java_gradle_plan_prefers_wrapper_over_global_gradle(tmp_path, monkeypatch):
-    wrapper = tmp_path / "gradlew"
-    wrapper.write_text("#!/bin/sh\nexit 0\n")
-    wrapper.chmod(0o755)
+    wrapper = _java_wrapper(tmp_path, "gradlew")
     monkeypatch.setattr("shutil.which", lambda _name: None)
 
     plan = discover_verification_plan(ProjectDetection(language="java-gradle", root=str(tmp_path)))
@@ -931,6 +929,7 @@ def test_execute_check_reports_unavailable_when_the_binary_does_not_exist(tmp_pa
     ],
 )
 def test_a_missing_clippy_is_unavailable_not_failed(tmp_path, monkeypatch, message):
+    monkeypatch.setattr(LocalRunner, "which", lambda self, name: "cargo")
     # cargo exits 101 when the clippy component is missing; that's a gap in
     # the toolchain, not a lint failure in the project.
     clippy = next(
@@ -951,7 +950,8 @@ def test_a_missing_clippy_is_unavailable_not_failed(tmp_path, monkeypatch, messa
     assert run.limitation_notes == [f"cargo clippy: {outcome.summary}"]
 
 
-def test_a_real_clippy_finding_still_fails(tmp_path):
+def test_a_real_clippy_finding_still_fails(tmp_path, monkeypatch):
+    monkeypatch.setattr(LocalRunner, "which", lambda self, name: "cargo")
     clippy = next(
         s
         for s in discover_verification_plan(ProjectDetection(language="rust", root=str(tmp_path)))
@@ -1573,12 +1573,22 @@ def test_full_verification_java_maven_project_reports_unavailable(tmp_path):
     assert run.checks[0].status == "unavailable"
 
 
+def _java_wrapper(root, name):
+    if os.name == "nt":
+        suffix = ".cmd" if name == "mvnw" else ".bat"
+        wrapper = root / (name + suffix)
+        wrapper.write_text("@echo off\nexit /b 0\n")
+    else:
+        wrapper = root / name
+        wrapper.write_text("#!/bin/sh\nexit 0\n")
+        wrapper.chmod(0o755)
+    return wrapper
+
+
 def test_full_verification_java_maven_with_fake_wrapper_can_pass(tmp_path):
     # Exercises the "verified" path for Java without needing a real Maven
     # installation: a wrapper script that always exits 0 stands in for it.
-    wrapper = tmp_path / "mvnw"
-    wrapper.write_text("#!/bin/sh\nexit 0\n")
-    wrapper.chmod(0o755)
+    _java_wrapper(tmp_path, "mvnw")
     (tmp_path / "pom.xml").write_text("<project></project>\n")
 
     run = run_full_verification(str(tmp_path))

@@ -191,13 +191,13 @@ def test_rejects_dotdot_traversal(tmp_path):
     outside.unlink()
 
 
-def test_rejects_a_symlink_escape(tmp_path):
+def test_rejects_a_symlink_escape(tmp_path, directory_link):
     workspace = tmp_path / "workspace"
     workspace.mkdir()
     outside = tmp_path / "outside"
     outside.mkdir()
     (outside / "secret.txt").write_text("top secret")
-    (workspace / "link").symlink_to(outside, target_is_directory=True)
+    directory_link(workspace / "link", outside)
     check = AcceptanceCheck(kind="file_contains", path="link/secret.txt", contains="secret")
 
     result = evaluate_acceptance_check(str(workspace), check)
@@ -206,13 +206,13 @@ def test_rejects_a_symlink_escape(tmp_path):
     assert "escapes the task workspace" in result.detail
 
 
-def test_allows_a_symlink_that_stays_inside(tmp_path):
+def test_allows_a_symlink_that_stays_inside(tmp_path, directory_link):
     workspace = tmp_path / "workspace"
     workspace.mkdir()
     real_dir = workspace / "real"
     real_dir.mkdir()
     (real_dir / "out.txt").write_text("done")
-    (workspace / "link").symlink_to(real_dir, target_is_directory=True)
+    directory_link(workspace / "link", real_dir)
     check = AcceptanceCheck(kind="file_exists", path="link/out.txt")
 
     result = evaluate_acceptance_check(str(workspace), check)

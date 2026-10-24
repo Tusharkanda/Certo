@@ -27,12 +27,12 @@ def _ladder(*names):
     return SimpleNamespace(rungs=[SimpleNamespace(name=n) for n in names])
 
 
-def test_the_banner_names_the_version_model_folder_and_limits():
-    text = "\n".join(format_banner(_cfg(), project="todo"))
+def test_the_banner_names_the_version_model_folder_and_limits(tmp_path):
+    text = "\n".join(format_banner(_cfg(workspace=str(tmp_path)), project="todo"))
 
     assert f"Certo {__version__}" in text
     assert "Model    openai/gpt-4o" in text
-    assert "Folder   /tmp/work (project todo)" in text
+    assert f"Folder   {tmp_path} (project todo)" in text
     assert "Runs on  this computer" in text
     assert "Checks   on, up to 2 fix attempts" in text
     assert "Limits   30 min · 100 steps" in text

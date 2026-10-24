@@ -168,7 +168,8 @@ def test_install_preserves_attribution_and_skips_git_and_exec_bits(env):
     assert (installed / ".upstream" / "NOTICE").exists()
     assert not (installed / ".upstream" / "README.md").exists()
     assert not (installed / ".git").exists()
-    assert not os.access(installed / "scripts" / "run.sh", os.X_OK)
+    if os.name != "nt":  # Windows has no Unix executable permission bits.
+        assert not os.access(installed / "scripts" / "run.sh", os.X_OK)
 
 
 def test_install_warns_about_commands_mcp_and_scripts(env):
@@ -216,9 +217,11 @@ def test_unestablished_license_is_unknown(tmp_path, monkeypatch, kwargs):
     assert entry.license_notes
 
 
-def test_install_refuses_symlinks_and_leaves_no_trace(env):
+def test_install_refuses_symlinks_and_leaves_no_trace(env, make_symlink, tmp_path):
     fetch, paths = env
-    (fetch.upstream / "skills" / "demo-skill" / "leak").symlink_to("/etc/hosts")
+    outside = tmp_path / "outside.txt"
+    outside.write_text("must not be copied")
+    make_symlink(fetch.upstream / "skills" / "demo-skill" / "leak", outside)
     with pytest.raises(tps.ThirdPartySkillError, match="symlink"):
         _install(paths)
     assert not (paths["install_dir"] / "demo-skill").exists()

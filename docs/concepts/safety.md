@@ -68,10 +68,12 @@ Certo removes its own folder from the terminal's `PATH`.
 
 ## Secrets
 
-- `certo init` takes the API key at a hidden prompt, writes it in a file
-  only you can read (permissions `600`), and has no `--api-key` flag, so
+- `certo init` takes the API key at a hidden prompt, writes it with
+  permissions `600` on macOS and Linux, and has no `--api-key` flag, so
   the key stays out of your shell history. It can also refer to a variable
-  you already export, instead of copying the key.
+  you already export, instead of copying the key. On Windows, the settings
+  file inherits its folder's access permissions; Certo does not set a Windows
+  ACL. Keep that folder accessible only to your own account.
 - `certo check` shows the key only as `set` or `not set`. `certo-admin
   check-llm` removes the key from any error text it prints.
 - Keeping the key in the user settings file, not in each project's `.env`,

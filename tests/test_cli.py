@@ -1939,15 +1939,26 @@ def test_resume_of_a_missing_project_is_an_error(monkeypatch, tmp_path, capsys):
     assert not (tmp_path / "nope").exists()
 
 
-def test_a_failing_verdict_points_at_status_md_and_resume(monkeypatch, tmp_path, capsys):
+@pytest.mark.parametrize("different_drive", [False, True])
+def test_a_failing_verdict_points_at_status_md_and_resume(
+    monkeypatch, tmp_path, capsys, different_drive
+):
     calls: list = []
     monkeypatch.setattr(cli, "load_config", lambda: _cfg(projects_dir=str(tmp_path)))
     monkeypatch.setattr(cli, "run_task", _recording_run_task(calls, "retry_exhausted"))
+    if different_drive:
+
+        def cross_drive(_path):
+            raise ValueError("path is on a different drive")
+
+        monkeypatch.setattr(cli.os.path, "relpath", cross_drive)
 
     assert cli.main(["do it", "--project", "game"]) == 1
     out = capsys.readouterr().out
     assert "STATUS.md" in out
     assert "certo --resume --project game" in out
+    if different_drive:
+        assert str(tmp_path / "game" / ".certo" / "STATUS.md") in out
 
 
 def test_resume_hint_includes_projects_dir_only_when_not_default(monkeypatch, tmp_path, capsys):

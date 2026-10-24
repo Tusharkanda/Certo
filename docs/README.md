@@ -151,10 +151,9 @@ limitation below.
 - **Covered languages:** Python, Node, Go, Rust and Java. Other projects,
   and standalone HTML pages, end `inconclusive`. Java needs Maven or Gradle
   installed. See [Verification by language](reference/verification-by-language.md).
-- **Windows support is partial.** Python environment discovery and
-  verification use the Windows virtual environment layout. Other Windows
-  path, file-permission and shell assumptions remain in the test suite.
-  Tracked in [#7](https://github.com/alessioricco/certo/issues/7).
+- **Windows file permissions:** settings files inherit the folder's access
+  permissions. Certo does not set Windows ACLs; Unix permission `600` applies
+  only on macOS and Linux. See [Safety](concepts/safety.md#secrets).
 - **Docker mode is experimental** (see above): it needs an image built
   from a source checkout, and automatic model selection can't switch
   models in the middle of a Docker run. See [Run in Docker](guides/run-in-docker.md).
