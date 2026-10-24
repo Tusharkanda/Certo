@@ -1068,3 +1068,16 @@ considered and live-verification detail: `docs/ROADMAP.txt`.
   are kept in the run's records folder, never in the project, where a
   later task's agent could read them. Both came from the first live runs:
   two false alarms nobody could have checked otherwise.
+- **Plugins: chosen by Certo, copied into the project** (the Author,
+  2026-10-24; plan, not built yet; extends "Certo doesn't start while
+  OpenHands plugins would load"). Plugins come in through Certo's own
+  library, like third-party skills, never from ambient folders: pinned
+  by source and hash, copied into the project's `.agents/plugins/`,
+  where the SDK already loads them as the project's own, so there's no
+  SDK patch and the existing check still refuses the rest. Guidance
+  parts (skills, commands, agents) install directly; parts that run code
+  (hooks: shell commands on agent events; `.mcp.json`: started server
+  processes) need explicit consent at install. No blanket "trust my
+  user plugins" setting: the SDK reads those folders for every run and
+  they can't be scoped or pinned. Each run names the plugins and hashes
+  that shaped it.

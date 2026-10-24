@@ -315,6 +315,25 @@ Certo's own. To run Certo, move or rename the plugin folders while you
 use it. See
 [Troubleshooting](../troubleshooting.md#openhands-plugins-would-be-loaded-into-this-run).
 
+### Where to find plugins
+
+OpenHands' public plugins are in the `plugins/` folder of
+[OpenHands/extensions](https://github.com/OpenHands/extensions/tree/main/plugins),
+the same repository as its skills. Most of them are a few skills plus
+scripts and workflows for GitHub Actions; `city-weather` has a slash
+command. None has hooks or MCP servers today.
+
+Their skills download like any other, with the path inside the plugin:
+
+```bash
+certo skills add github:OpenHands/extensions plugins/onboarding/skills/setup-agents-md --global
+```
+
+Some plugin skills are only links to the repository's `skills/` folder
+(`plugins/pr-review/skills/code-review`, for example). Download those
+from `skills/NAME` instead, as in
+[Where to find skills](#where-to-find-skills).
+
 ## Official skills
 
 Eight lifecycle skills, for every language, each firing on words in the

@@ -339,15 +339,25 @@ database).
   (`/qa-changes`) and are large (about 4,200 tokens). Done when a
   catalog skill installs and runs from one command and the benchmark
   says whether it helps.
-- **Explicit support for non-skill OpenHands plugins** (future; skills
-  only for now). Plugins may add MCP servers/tools or executable hooks,
-  so ambient loading stays blocked. First verify a supported SDK API for
-  loading only user-selected plugins; if available, design opt-in
-  selection, source/version and content pinning, review on changes, and
-  isolation/capability controls. Do not monkey-patch the SDK or claim
-  untrusted plugins are safe. Done when selected non-skill capabilities
-  can run without ambient plugins, with documented limits and tests for
-  selection, rejection and isolation.
+- **Plugins with safeguards** (agreed 2026-10-24, after the independent
+  tests bench arm; DECISIONS.md "Plugins: chosen by Certo, copied into the
+  project"). Steps: (1) verify-first: that hooks can't fire during
+  Certo's checks (they run outside the conversation), and how plugins
+  load under `--execution docker`. (2) `certo plugins add|list|remove`,
+  a library apart from `~/.agents/plugins`, pinned by source and hash,
+  with `copy_regular_files`; on `add`, show the parts; skills, commands
+  and agents install directly, hooks and MCP servers need `--allow-code`
+  after their commands are printed. (3) Chosen per project and copied
+  into its `.agents/plugins/`, so the SDK loads them as the project's
+  own and the current check keeps refusing everything else; hashes
+  checked before each run; names, hashes and parts in the run summary
+  and metadata. (4) The independent-tests writer reads a copy without
+  `.agents/plugins`, so no hook fires there. (5) A bench arm with and
+  without, local and cloud, before claiming plugins improve results.
+  Reference catalog: `plugins/` in OpenHands/extensions (skills,
+  commands, Actions scripts; no hooks or MCP today). Done when a chosen
+  plugin runs in a project with the safeguards tested, and the user
+  folders are still refused.
 - **`certo skills suggest`** (later, agreed 2026-10-22): match a
   project's files against an index of vetted third-party skills shipped
   with Certo, and print `add` commands; never install by itself.
