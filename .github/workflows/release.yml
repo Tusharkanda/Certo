@@ -80,3 +80,35 @@ jobs:
           name: dist
           path: dist/
       - uses: pypa/gh-action-pypi-publish@release/v1
+
+  # The GitHub Release page, after PyPI succeeds: its text is
+  # docs/launch/release-notes-v<version>.md without the title, with
+  # `../` links pointing at the files at this tag. A missing notes file
+  # fails the job; a Release made by hand for this tag is left alone.
+  github-release:
+    needs: publish
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - name: Create the GitHub Release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          version="${GITHUB_REF_NAME#v}"
+          notes="docs/launch/release-notes-v${version}.md"
+          if [ ! -f "${notes}" ]; then
+            echo "::error::${notes} is missing: no GitHub Release text"
+            exit 1
+          fi
+          if gh release view "${GITHUB_REF_NAME}" >/dev/null 2>&1; then
+            echo "A Release for ${GITHUB_REF_NAME} already exists; leaving it."
+            exit 0
+          fi
+          base="https://github.com/${GITHUB_REPOSITORY}/blob/${GITHUB_REF_NAME}/docs"
+          tail -n +3 "${notes}" | sed -E "s#\]\(\.\./([^)]*)\)#](${base}/\1)#g" > body.md
+          gh release create "${GITHUB_REF_NAME}" --title "Certo ${version}" \
+            --notes-file body.md --verify-tag --latest

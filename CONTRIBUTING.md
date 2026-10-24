@@ -140,6 +140,11 @@ trusted publishing. There is no API token to manage.
    runs `twine check` and `scripts/release_check.sh` on that wheel, and
    publishes. A mismatch or a failing test stops it
    before anything is built.
+5. After PyPI, the same workflow creates the GitHub Release, with
+   `docs/launch/release-notes-vX.Y.Z.md` as its text (title removed,
+   `../` links pointing at the tag). So the notes file must be final
+   before the tag: replace its "Not released yet." line with the opening
+   summary.
 
 **A version number can never be reused.** PyPI rejects a re-upload of any
 version that was ever published, even if it was deleted. If a release
