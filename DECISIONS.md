@@ -1020,3 +1020,20 @@ considered and live-verification detail: `docs/ROADMAP.txt`.
   so it is skipped and named; one that resolves outside could pull in
   files the user never saw, so it still stops the install. Installed
   skills still contain no links, so the integrity check is unchanged.
+- **Independent tests (Phase 1.5), first version** (the Author,
+  2026-10-24). Opt-in (`--independent-tests`, `CERTO_INDEPENDENT_TESTS`).
+  Written **before the build**, from the task text only, by a separate
+  short conversation in an empty scratch folder (file editor only): it
+  can't copy the builder's mistakes. **The same model** as the builder
+  writes them by default (rung 1 with `--escalate`; one set judges every
+  rung); an option names another. The writer tests only what the task
+  states and writes nothing when the task names no interface or no
+  language, so vague tasks report "none" instead of false alarms. The
+  tests stay outside the project during the build (the run folder, not
+  `.certo/`, which the agent can read); after the verdict they are copied
+  in, run with the bench graders (Python, Node, Go, Rust; other languages
+  "not available"), and removed. **Report only:** a line under the
+  verdict and the run record; verdict and exit code unchanged (the
+  2026-10-22 rule). Measured by a bench arm option against hidden tests:
+  catch rate on runs that fooled Certo, false alarms on correct ones,
+  cloud no worse (Phase 1's exit).
