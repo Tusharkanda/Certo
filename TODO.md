@@ -92,6 +92,10 @@ first item is the suggested next one.
 
 ## 3. Languages and verification
 
+- **A Windows CI job.** #8 and #29 made the suite pass on Windows, but
+  CI runs only on `ubuntu-latest`, so that rests on the contributor's
+  run. Add a `windows-latest` job running `uv run pytest -q`. Done when
+  it is green on `main`.
 - **Run-the-app verification.** Start a server and probe an HTTP
   endpoint; build a frontend and load it in a headless browser (the SDK
   ships a browser tool) for a blank page or console errors.
