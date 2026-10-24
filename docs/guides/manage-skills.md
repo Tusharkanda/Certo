@@ -290,6 +290,31 @@ skill of the same name, the folder the agent works in wins.
 Because these files are in the folder the agent works in, the agent can
 read and change them. Commit them, so you see any change in `git diff`.
 
+## OpenHands plugins
+
+OpenHands, the agent toolkit Certo is built on, also has *plugins*:
+folders that can add skills, tools (MCP servers) and hooks, which are
+commands run on agent events. Certo doesn't use them. OpenHands would
+load them into every run on its own, so Certo checks before a run and
+**doesn't start** if it finds one it would load:
+
+- any plugin in your user folders: `~/.agents/plugins/`,
+  `~/.openhands/plugins/` and the plugins installed there;
+- for a project Certo generates (`--project`), a plugin in
+  `.agents/plugins/` or `.openhands/plugins/` of a git repository around
+  it.
+
+A project's own `.agents/plugins/` is fine, and so is the repository's
+when you run Certo on an existing folder: they belong to the code the
+agent works on. Docker runs aren't checked, because the container has no
+user plugins.
+
+To use what a plugin offers, add its skills to Certo instead
+(`certo skills add`), so they are listed, versioned and kept apart from
+Certo's own. To run Certo, move or rename the plugin folders while you
+use it. See
+[Troubleshooting](../troubleshooting.md#openhands-plugins-would-be-loaded-into-this-run).
+
 ## Official skills
 
 Eight lifecycle skills, for every language, each firing on words in the

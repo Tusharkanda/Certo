@@ -17,6 +17,20 @@ import pytest
 os.environ["XDG_CONFIG_HOME"] = tempfile.mkdtemp(prefix="certo-tests-xdg-")
 
 
+@pytest.fixture(autouse=True)
+def user_plugins_dir(tmp_path_factory, monkeypatch):
+    """The SDK's user plugin folders (`~/.agents/plugins`, `~/.openhands/plugins`,
+    the installed store), fixed when it is imported, pointed at an empty
+    temporary folder: no test sees the developer's own OpenHands plugins, and
+    a test can add one under the returned folder (plugins.py)."""
+    from openhands.sdk.plugin import discovery, installed
+
+    root = tmp_path_factory.mktemp("user-plugins")
+    monkeypatch.setattr(discovery, "USER_PLUGINS_DIRS", [root / "agents", root / "openhands"])
+    monkeypatch.setattr(installed, "DEFAULT_INSTALLED_PLUGINS_DIR", root / "installed")
+    return root / "agents"
+
+
 def make_project_venv(project_dir) -> str:
     """Give `project_dir` a `.venv` that can already import pytest and ruff,
     without the network: a pip-less venv from the test interpreter, with a

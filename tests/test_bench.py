@@ -253,6 +253,19 @@ def test_without_a_terminal_it_needs_yes(tmp_path, project_venv, capsys):
     assert not (tmp_path / "out").exists()
 
 
+def test_a_user_openhands_plugin_stops_the_bench(tmp_path, project_venv, capsys, user_plugins_dir):
+    (user_plugins_dir / "mine").mkdir(parents=True)
+    (user_plugins_dir / "mine" / "README.md").write_text("A plugin.\n")
+    model = FakeModel(project_venv)
+
+    assert _run(_bench_file(tmp_path, ONE_ARM), tmp_path / "out", model) == 1
+
+    assert model.calls == []
+    captured = capsys.readouterr()
+    assert "OpenHands plugins would be loaded" in captured.err and "mine" in captured.err
+    assert "Estimated cost:" not in captured.out
+
+
 def test_the_plan_is_printed_first(tmp_path, project_venv, capsys):
     path = _bench_file(tmp_path, TWO_ARMS, tasks="[temperature-table, page-ranges]", repeats=3)
     bench.bench_main(["--config", path, "--out", str(tmp_path / "o")], interactive=False)

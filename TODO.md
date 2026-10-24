@@ -308,19 +308,6 @@ database).
 
 ## Smaller bugs
 
-- **Ambient OpenHands plugins reach every run** (found 2026-10-24,
-  the Author: implement soon). The SDK loads plugins from the user's
-  `~/.agents/plugins/` and `~/.openhands/plugins/`, and from
-  `.agents/plugins/`/`.openhands/plugins/` in the project and at the git
-  repo root around it, with no flag to turn it off (ARCHITECTURE.md).
-  Plugins can add skills, MCP servers and hooks, outside Certo's official
-  / third-party separation. Same rule as the skills fix (`c2531e4`): a
-  generated project gets no plugins from outside its folder, and the
-  independent-tests writer gets none at all. Find out first whether
-  `disabled_skills` covers plugin skills and how hooks and MCP from a
-  plugin can be kept out (public API only; `OH_PERSISTENCE_DIR` is one
-  lever for user plugins). Done when a test with a real `Conversation`
-  shows no foreign plugin loaded, and the docs say what Certo loads.
 - **One tool call can wait for hours.** The terminal tool's `timeout` is
   in seconds and unlimited, and the task budget is checked only between
   runs: a `luna` run in the 0.1.23 baseline waited 10,000 seconds

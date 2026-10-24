@@ -125,6 +125,12 @@ written by someone else is untrusted input. A skill downloaded with
   its scripts, using the agent's normal tools. Read a skill before
   enabling it, and consider confirm mode while you try it.
 
+**OpenHands plugins are refused.** A plugin can add skills, tools and
+hooks (commands run on agent events), and the agent framework would load
+the ones in your user folders, or in a repository around a generated
+project, into every run. Certo checks before a run and doesn't start if
+it finds one. See [OpenHands plugins](../guides/manage-skills.md#openhands-plugins).
+
 A skill you add from a file or folder is on at once: you chose it. Its
 `.mcp.json` is still ignored and its inline snippets still turned into
 text, as for a downloaded one. Third-party skills live in

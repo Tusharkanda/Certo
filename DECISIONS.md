@@ -1037,3 +1037,14 @@ considered and live-verification detail: `docs/ROADMAP.txt`.
   2026-10-22 rule). Measured by a bench arm option against hidden tests:
   catch rate on runs that fooled Certo, false alarms on correct ones,
   cloud no worse (Phase 1's exit).
+- **OpenHands plugins: check and stop, not filter** (the Author,
+  2026-10-24). The SDK loads ambient plugins (skills, MCP, hooks) into
+  every local conversation with no switch. Filtering would mean patching
+  an SDK function; warning would leave hooks running. So Certo calls the
+  SDK's own discovery before a local run (CLI, server, bench) and doesn't
+  start on a user plugin (`~/.agents/plugins`, `~/.openhands/plugins`,
+  installed) or a project plugin from outside a generated project's
+  folder. An existing folder keeps its repository's plugins, as it keeps
+  its `AGENTS.md`. Docker runs aren't checked (no user plugins in the
+  container). Cost: a user of OpenHands' own plugins moves them aside
+  while using Certo.

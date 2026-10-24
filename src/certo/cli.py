@@ -635,6 +635,16 @@ def main(argv: list[str] | None = None) -> int:
             print(f"Configuration error: {exc}", file=sys.stderr)
             return 1
 
+    # OpenHands plugins from outside the project would load with no way to
+    # turn them off (plugins.py): refuse before anything is created.
+    if cfg.execution == "local":
+        from .plugins import foreign_plugins, refusal
+
+        found = foreign_plugins(cfg.workspace, cfg.projects_dir)
+        if found:
+            print(f"Error: {refusal(found)}", file=sys.stderr)
+            return 1
+
     if args.project is not None:
         created = not os.path.exists(cfg.workspace)
         os.makedirs(cfg.workspace, exist_ok=True)

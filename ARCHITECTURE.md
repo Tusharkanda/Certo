@@ -385,6 +385,13 @@ given design was chosen.
   (`.cache/`, whole repositories). Downloaded skills reuse
   `third_party_skills.py` with the folder's own `skills.lock.json`.
   `certo skills` loads config under `defer_llm_check()`: it needs no model.
+- **`plugins.py`** — `foreign_plugins(workspace, projects_dir)`: the
+  OpenHands plugins the SDK would load into a local run that don't belong
+  to it (every user plugin; a project plugin from outside a generated
+  project's folder), via the SDK's public discovery functions.
+  `refusal()` is the error text. Called before a local run by `cli.py`,
+  `server._resolve_cfg` and `bench_main` (user plugins only), which refuse
+  to start; see the SDK gotcha below.
 
 ## Known limitations and traps
 
@@ -400,8 +407,16 @@ rule 2):
   and the installed store; project plugins from `.agents/plugins/` and
   `.openhands/plugins/` in the workspace **and at the git repo root**
   (`plugin/discovery.py:128-148`). A plugin can add skills, MCP servers and
-  hooks. Not handled yet (TODO.md, Smaller bugs). Found 2026-10-24 while
-  verifying the test-writer conversation for independent tests.
+  hooks. Found 2026-10-24 while verifying the test-writer conversation
+  for independent tests. **Handled (check and stop):** `plugins.py` calls
+  the SDK's public `load_user_plugins()` / `load_project_plugins()` before
+  a local run (`cli.py`, `server._resolve_cfg`, `bench_main`) and refuses
+  to start on a user plugin, or a project plugin from outside a generated
+  project's folder. Nothing is patched. The discovery folders are module
+  constants fixed at import (`discovery.USER_PLUGINS_DIRS`,
+  `installed.DEFAULT_INSTALLED_PLUGINS_DIR`), so tests redirect them
+  (`conftest.py`); a real-`Conversation` test checks that what the check
+  finds is what the SDK loads.
 - **`load_project_skills=True` also reads the git repo root's
   `AGENTS.md`/`CLAUDE.md`/`GEMINI.md`/`.cursorrules`**, not only the
   workspace's (SDK 1.47.0, `skills/skill.py` `load_project_skills`, via

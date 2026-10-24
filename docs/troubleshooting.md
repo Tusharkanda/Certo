@@ -48,6 +48,7 @@ setting comes from and makes one small call to the model.
   [already has a skill named](#already-has-a-skill-named),
   [a downloaded skill is off](#a-downloaded-skill-is-off),
   [a skill with a symlink](#upstream-skill-contains-a-symlink-that-leads-outside-it),
+  [OpenHands plugins](#openhands-plugins-would-be-loaded-into-this-run),
   [replaces the official one](#your-skill-replaces-the-official-one),
   [an old skill setting is no longer read](#certo_skills_dir-is-no-longer-read)
 - Benchmark: [no bench.yaml or model files](#certo-bench-no-benchyaml-or-model-files),
@@ -745,6 +746,24 @@ longer gets the skills in them.
 **Fix:** add each skill again with `certo skills add PATH --global` (or
 `--project NAME`), then delete the line from your settings. See
 [Moving from the old folders](guides/manage-skills.md#moving-from-the-old-folders).
+
+### "OpenHands plugins would be loaded into this run"
+
+**You see:** `Error: OpenHands plugins would be loaded into this run, and
+Certo doesn't use them`, then a list of plugins with their folders. The
+run, or `certo bench`, doesn't start.
+
+**Cause:** OpenHands, the agent toolkit under Certo, loads plugins from
+your user folders (`~/.agents/plugins/`, `~/.openhands/plugins/`) and,
+for a project Certo generates, from a git repository around it. A plugin
+can add skills, tools and hooks that Certo hasn't checked, so Certo
+refuses to start instead.
+
+**Fix:** move or rename each folder in the list while you use Certo (for
+example `mv ~/.agents/plugins ~/.agents/plugins.off`). To keep a skill a
+plugin offers, add it to Certo with `certo skills add`. For a generated
+project, you can also set `CERTO_PROJECTS_DIR` to a folder outside the
+repository. See [OpenHands plugins](guides/manage-skills.md#openhands-plugins).
 
 ## Benchmark (`certo bench`)
 

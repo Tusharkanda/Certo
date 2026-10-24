@@ -696,6 +696,13 @@ def bench_main(
         print(f"Configuration error: {exc}", file=sys.stderr)
         return 1
 
+    from .plugins import foreign_plugins, refusal
+
+    found = foreign_plugins(None)
+    if found:
+        print(f"Error: {refusal(found)}", file=sys.stderr)
+        return 1
+
     estimate = _print_plan(cfg, todo, len(planned), out_dir)
     if not todo:
         print("Every run is already recorded.")

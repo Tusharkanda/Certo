@@ -116,9 +116,15 @@ def _resolve_cfg(
     if execution is not None:
         cfg = replace(cfg, execution=execution)
     if project is not None:
-        project_dir = resolve_project_dir(cfg.projects_dir, project)
-        os.makedirs(project_dir, exist_ok=True)
-        cfg = replace(cfg, workspace=project_dir)
+        cfg = replace(cfg, workspace=resolve_project_dir(cfg.projects_dir, project))
+    if cfg.execution == "local":
+        from .plugins import foreign_plugins, refusal
+
+        found = foreign_plugins(cfg.workspace, cfg.projects_dir)
+        if found:
+            raise ConfigError(refusal(found))
+    if project is not None:
+        os.makedirs(cfg.workspace, exist_ok=True)
     if agents_md is not None:
         write_project_context(cfg.workspace, agents_md)
     return cfg

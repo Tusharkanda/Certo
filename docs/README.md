@@ -164,6 +164,10 @@ limitation below.
   calls as plain text, and the run ends at once. `certo check` tests for
   it. Which models worked in Certo's benchmark:
   [Choose a local model](guides/choose-a-local-model.md).
+- **Certo doesn't run while OpenHands plugins would load.** If you use
+  OpenHands itself and keep plugins in `~/.agents/plugins/` or
+  `~/.openhands/plugins/`, move them aside while you use Certo. See
+  [OpenHands plugins](guides/manage-skills.md#openhands-plugins).
 - **Costs show as unknown** for models newer than your installed LiteLLM.
 - **New, empty folders:** the agent starts with a Python environment only
   if the task mentions Python (or a Python tool such as pytest). Otherwise
