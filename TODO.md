@@ -69,20 +69,20 @@ first item is the suggested next one.
 - **Milestone mode.** Split a big task into milestones, each with its own
   acceptance checks, run and verified one at a time, building on
   `--resume`/`STATUS.md`. The main step from "small task" to "app".
-- **Independent tests: measure them, then the rest** (first version in
-  0.1.24: `--independent-tests`, written before the build from the task
-  and the project as it was, report only). Left: (1) a bench arm option
-  `independent_tests: true` recording, per run, the verdict, the hidden
-  tests and the independent tests, and a report of the catch rate (Certo
-  said `verified`, hidden tests failed, independent tests failed too) and
-  false alarms (hidden passed, independent failed); run it on a
-  `qwen3-coder:30b` arm (it fooled Certo on `ledger-transfers`,
-  2026-10-24: hidden 18 of 27) and a cloud model, per Phase 1's exit. Two
-  live runs with `claude-haiku-5-5` on `ledger-transfers` (2026-10-24)
-  were both false alarms: correct work (hidden 27/27), one independent
-  test reading the transfer rule wrong. (2) An option to have another
-  model write them. (3) Server mode (the stored result needs a place for
-  it). The verdict rule is decided from (1).
+- **Independent tests: voting, then the rest** (first version in 0.1.24:
+  `--independent-tests`, report only). Measured 2026-10-24 by replaying
+  saved bench projects (`scripts/replay_independent_tests.py`,
+  `docs/benchmark/independent-tests-replay-0.1.24.md`; Haiku writer,
+  $0.32): one set caught 7 of 8 fooled runs but 5 of 39 sets had a wrong
+  test; with three sets and "2 of 3 must fail", 7 of 8 fooled caught, 0
+  of 13 references flagged, and the 24 right projects flagged were real
+  bugs the hidden tests miss. Left: (1) three writers per run with the
+  2-of-3 rule (writer runs in parallel; cost ~3x), still report only;
+  (2) the same replay with a local writer (`qwen3.8`), per agreement 2;
+  (3) then decide whether a 2-of-3 failure changes the verdict; (4) an
+  option for another writer model; (5) server mode. The live
+  `--independent-tests` runs with the same model building were two false
+  alarms on `ledger-transfers`, consistent with one-set results.
 - **Protect verification files from silent agent changes.** The agent can
   weaken or delete tests, build scripts or lint config before Certo
   verifies; only prompts discourage it (golden rule 6 gap). Record those

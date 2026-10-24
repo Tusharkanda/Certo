@@ -67,6 +67,22 @@ Other results:
 - `Independent tests: couldn't run (…)`: the tests couldn't run, for
   example a missing toolchain.
 
+## How often they're right
+
+Measured on 379 projects from earlier benchmark runs, with
+`claude-haiku-5-5` writing three sets of tests per task (see
+[Independent tests on saved projects](../benchmark/independent-tests-replay-0.1.24.md)):
+
+- They caught 7 of the 8 runs where Certo had said `verified` but the
+  work was wrong.
+- 5 of the 39 sets of tests had a test that read the task the
+  wrong way, which then failed on right work too.
+- Some failures on work the benchmark counted as right were real bugs,
+  such as accepting `NaN` where the task asked for a number greater
+  than 0.
+
+So read a failing independent test before you trust it either way.
+
 ## Keep the tests
 
 With [`CERTO_ARTIFACTS_DIR`](../reference/configuration.md) set, the

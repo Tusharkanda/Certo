@@ -26,7 +26,7 @@ from collections.abc import Callable
 from dataclasses import dataclass, field
 from pathlib import Path
 
-from .bench_tasks import run_test_folder, test_language
+from .bench_tasks import HIDDEN_DIR_NAME, run_test_folder, test_language
 from .config import Config
 from .project_env import CommandRunner
 
@@ -252,12 +252,16 @@ def run_independent_tests(
 def failing_tests(result: IndependentTestsResult, limit: int = 5) -> list[str]:
     """The failing tests' names, as each test tool prints them: pytest's
     `FAILED file::test`, `node --test`'s `not ok N - name`, `go test`'s
-    `--- FAIL: Name`, `cargo test`'s `test name ... FAILED`."""
+    `--- FAIL: Name`, `cargo test`'s `test name ... FAILED`. A pytest path
+    starts at the tests' folder: through a symlinked project path (macOS's
+    `/var`), pytest prints it relative to the real one, `../../var/...`."""
     found = []
     for raw in result.output.splitlines():
         line = raw.strip()
         if line.startswith("FAILED "):
-            found.append(line.removeprefix("FAILED ").split(" - ")[0])
+            name = line.removeprefix("FAILED ").split(" - ")[0]
+            marker = f"{HIDDEN_DIR_NAME}/"
+            found.append(marker + name.split(marker, 1)[1] if marker in name else name)
         elif line.startswith("not ok ") and " - " in line:
             found.append(line.split(" - ", 1)[1])
         elif line.startswith("--- FAIL: "):

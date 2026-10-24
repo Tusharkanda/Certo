@@ -1081,3 +1081,12 @@ considered and live-verification detail: `docs/ROADMAP.txt`.
   user plugins" setting: the SDK reads those folders for every run and
   they can't be scoped or pinned. Each run names the plugins and hashes
   that shaped it.
+- **Independent tests are measured by replaying saved bench projects**
+  (2026-10-24; replaces the planned bench arm as the first measurement).
+  Fooled runs are rare (0 in 78 in the 0.1.23 baseline), so new builds
+  would mostly measure false alarms. The writer writes from task and
+  starter as in a real run; its tests run on every saved project whose
+  hidden-test result is known (379), plus reference and starter. Only
+  writing costs (Haiku, 39 sets: $0.32). Result: wrong tests appear in
+  one set of three, real bugs in all three, so the next step is voting
+  over three sets, not one set's verdict.

@@ -175,3 +175,14 @@ def test_failing_tests_are_named_for_each_test_tool():
         "due_dates",
     ]
     assert it.failing_tests(result, limit=2) == it.failing_tests(result)[:2]
+
+
+def test_failing_pytest_names_start_at_the_tests_folder():
+    # Seen in a replay: a project under /var (a symlink to /private/var).
+    line = (
+        "FAILED ../../../../var/folders/T/certo-x/project/.certo_hidden_tests/"
+        "test_durations.py::test_parse_parts - assert False"
+    )
+    result = it.IndependentTestsResult("failed", "1 failed", "m", line)
+
+    assert it.failing_tests(result) == [".certo_hidden_tests/test_durations.py::test_parse_parts"]
