@@ -308,17 +308,6 @@ database).
 
 ## Smaller bugs
 
-- **A project inside another git repo gets that repo's `CLAUDE.md`**
-  (Claude models only; `AGENTS.md` for every model, `GEMINI.md` for
-  Gemini). The SDK reads them from the git repo root too (ARCHITECTURE.md,
-  SDK gotchas). Hits generated projects under a `CERTO_PROJECTS_DIR` that
-  sits inside a repo, like this repo's `projects/`, and makes Claude and
-  non-Claude rungs see different instructions. Decide: stop at the
-  workspace for generated projects, keep it for `certo` on an existing
-  repo, or document it. Check which recorded runs in `docs/benchmark/`
-  ran a Claude model under `projects/`. Done when the rule is chosen,
-  applied and documented.
-
 - **One tool call can wait for hours.** The terminal tool's `timeout` is
   in seconds and unlimited, and the task budget is checked only between
   runs: a `luna` run in the 0.1.23 baseline waited 10,000 seconds

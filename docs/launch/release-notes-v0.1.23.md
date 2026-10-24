@@ -57,6 +57,17 @@ counts the tests they ran: none makes the check `skipped` and the verdict
 `inconclusive`. A Go package without tests next to one with tests, such
 as `cmd/server`, is fine.
 
+## Fixed: a generated project no longer gets another repository's instructions
+
+The agent read `AGENTS.md`, `CLAUDE.md`, `GEMINI.md`, `.cursorrules` and
+`.agents/skills/` from the project folder and also from the root of any
+git repository around it. A project generated inside another repository
+(a `CERTO_PROJECTS_DIR` inside it) got that repository's instructions,
+and with `--escalate` a Claude model could see a `CLAUDE.md` that the
+other models didn't. Now a generated project gets only the files inside
+its own folder. Running Certo on an existing folder is unchanged. See
+[Manage skills](../guides/manage-skills.md#the-projects-own-skills).
+
 ## Fixed: Windows
 
 These Windows gaps are fixed, and Certo's test suite now passes on

@@ -1001,3 +1001,13 @@ considered and live-verification detail: `docs/ROADMAP.txt`.
   slices, one night each: the same benchmark file and `--out`, stopped
   in the morning and continued with `--resume`, so one report covers
   every night.
+- **A generated project's agent files are only the ones inside its
+  folder** (the Author, 2026-10-24). Certo's own `CLAUDE.md` and skills
+  are for developing Certo; a generated project gets the skills Certo
+  chooses and copies into it. So for a workspace inside
+  `CERTO_PROJECTS_DIR`, the `AGENTS.md`, `CLAUDE.md`, `GEMINI.md`,
+  `.cursorrules` and skill folders the SDK finds at the root of a git
+  repository around it are turned off (`disabled_skills`); its own files
+  still count. An existing folder outside `CERTO_PROJECTS_DIR` keeps the
+  SDK's behaviour: there the repository's files describe the code being
+  worked on (as other coding agents read them).

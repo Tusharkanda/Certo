@@ -3,6 +3,7 @@ replaces what, and how a skill fires. Real SDK loading, no network."""
 
 from __future__ import annotations
 
+from dataclasses import replace
 from pathlib import Path
 
 import pytest
@@ -95,6 +96,80 @@ def test_the_projects_own_skills_are_listed_and_left_to_the_sdk(home):
     assert lib.collect(_cfg(home), project, own=False).rows == tuple(
         r for r in found.rows if r.layer != lib.OWN
     )
+
+
+def _project_inside_a_repo(home: Path) -> Path:
+    """A generated project under a repository that has its own agent files,
+    like a project under Certo's `projects/`."""
+    repo = home / "repo"
+    (repo / ".git").mkdir(parents=True)
+    for name in ("CLAUDE.md", "AGENTS.md", "GEMINI.md", ".cursorrules"):
+        (repo / name).write_text("REPO-RULES\n")
+    _write(repo / ".agents" / "skills", "repo-skill")
+    project = repo / "projects" / "demo"
+    project.mkdir(parents=True)
+    return project
+
+
+def _cfg_for(home: Path, project: Path, **changes):
+    changes = {"workspace": str(project), "projects_dir": str(project.parent), **changes}
+    return replace(_cfg(home), **changes)
+
+
+REPO_SKILLS = ["agents", "claude", "cursorrules", "gemini", "repo-skill"]
+
+
+def test_a_generated_project_gets_no_agent_files_from_a_repo_above_it(home):
+    project = _project_inside_a_repo(home)
+    cfg = _cfg_for(home, project)
+
+    assert lib.disabled_project_skills(project, cfg.projects_dir) == REPO_SKILLS
+    assert _rows(lib.collect(cfg, project), lib.OWN) == {}
+    assert build_agent(cfg).agent_context.disabled_skills == REPO_SKILLS
+
+
+def test_a_generated_projects_own_agent_files_count(home):
+    project = _project_inside_a_repo(home)
+    (project / "CLAUDE.md").write_text("PROJECT-RULES\n")
+    _write(project / ".agents" / "skills", "repo-skill", "Project copy.")
+    cfg = _cfg_for(home, project)
+
+    assert lib.disabled_project_skills(project, cfg.projects_dir) == [
+        "agents",
+        "cursorrules",
+        "gemini",
+    ]
+    own = _rows(lib.collect(cfg, project), lib.OWN)
+    assert set(own) == {"claude", "repo-skill"}
+    assert own["claude"].skill.content.strip() == "PROJECT-RULES"
+
+
+def test_an_existing_folder_keeps_the_agent_files_of_its_repo(home):
+    project = _project_inside_a_repo(home)
+    cfg = _cfg_for(home, project, projects_dir=str(home / "elsewhere"))
+
+    assert lib.disabled_project_skills(project, cfg.projects_dir) == []
+    assert set(_rows(lib.collect(cfg, project), lib.OWN)) == set(REPO_SKILLS)
+    assert build_agent(cfg).agent_context.disabled_skills == []
+
+
+@pytest.mark.parametrize("local", [False, True])
+def test_a_run_on_a_generated_project_gets_only_its_own_agent_files(home, local):
+    # The real SDK path: the Conversation loads project skills lazily, from
+    # the workspace and the git repo root, then applies disabled_skills.
+    from openhands.sdk import Conversation
+
+    project = _project_inside_a_repo(home)
+    if local:
+        (project / "CLAUDE.md").write_text("PROJECT-RULES\n")
+    cfg = _cfg_for(home, project, model="anthropic/claude-haiku-4-5")
+    conversation = Conversation(agent=build_agent(cfg), workspace=str(project), visualizer=None)
+
+    conversation.send_message("hello")  # loads the project skills; no model call
+
+    loaded = {s.name: s.content.strip() for s in conversation.agent.agent_context.skills}
+    assert not set(loaded) & (set(REPO_SKILLS) - {"claude"})
+    assert loaded.get("claude") == ("PROJECT-RULES" if local else None)
 
 
 def test_only_the_top_level_is_read_never_a_git_cache(home):

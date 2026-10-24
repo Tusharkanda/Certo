@@ -223,6 +223,18 @@ A skill from git is treated as untrusted:
 `AGENTS.md` and `.agents/skills/` at the top of a project are part of the
 project: commit them, and other AI tools read them too. Certo gives them
 to the agent on every task in that folder, and never changes them.
+`CLAUDE.md`, `GEMINI.md` and `.cursorrules` there count the same way
+(`CLAUDE.md` only for Claude models, `GEMINI.md` only for Gemini).
+
+A project Certo generates (with `--project`, inside `CERTO_PROJECTS_DIR`)
+gets only the files inside its own folder. If `CERTO_PROJECTS_DIR` sits
+inside a git repository, that repository's `AGENTS.md`, `CLAUDE.md`,
+`.agents/skills/` and the rest are left out: they are instructions for
+that repository, not for the project.
+
+When you run Certo on an existing folder instead, such as one package
+of a larger repository, the agent also reads these files from the top of
+that repository, because they describe the code it works on.
 
 `AGENTS.md` holds facts every task should know, in plain words:
 

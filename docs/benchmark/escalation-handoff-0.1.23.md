@@ -184,4 +184,6 @@ A third try, with this setup but with the project inside Certo's own
 repository, also climbed (`retry_exhausted` → `verified`). It is not the
 run shown here: the agent SDK also reads `CLAUDE.md` from the enclosing
 git repository, for Claude models only, so the second model there saw
-Certo's own development notes and the first didn't.
+Certo's own development notes and the first didn't. Since this run,
+Certo leaves out the agent files of a repository around a generated
+project.

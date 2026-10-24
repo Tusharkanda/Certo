@@ -164,13 +164,6 @@ limitation below.
   calls as plain text, and the run ends at once. `certo check` tests for
   it. Which models worked in Certo's benchmark:
   [Choose a local model](guides/choose-a-local-model.md).
-- **A project inside a git repository also gets that repository's
-  instructions.** The agent reads `AGENTS.md` from the project folder and
-  from the root of the git repository around it, and `CLAUDE.md` too for
-  Claude models (`GEMINI.md` for Gemini). If you keep projects inside
-  another repository, its instructions reach the agent, and with
-  `--escalate` a Claude model can see instructions another model didn't.
-  Keep `CERTO_PROJECTS_DIR` outside other repositories to avoid it.
 - **Costs show as unknown** for models newer than your installed LiteLLM.
 - **New, empty folders:** the agent starts with a Python environment only
   if the task mentions Python (or a Python tool such as pytest). Otherwise

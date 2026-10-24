@@ -9,7 +9,9 @@ Layers, lowest to highest; a skill replaces one of the same name below it:
    (`.certo/` ignores itself);
 4. the project's own `.agents/skills/` and `AGENTS.md`: loaded by the SDK
    itself (`load_project_skills`, which overrides a same-named skill), only
-   read here, never written.
+   read here, never written. A project Certo generates gets only what is
+   inside its folder, never the agent files of a git repository above it
+   (`disabled_project_skills`).
 
 A third-party folder holds, at its top level only, `<name>.md` files and
 `<name>/SKILL.md` folders. A skill added from a file or folder is on as
@@ -58,6 +60,33 @@ def global_dir() -> Path:
 def project_dir(workspace: str | Path) -> Path:
     """Third-party skills for one project, inside its `.certo/`."""
     return Path(state_dir(str(workspace))) / "skills"
+
+
+def disabled_project_skills(workspace: str | Path, projects_dir: str | Path) -> list[str]:
+    """Project skills a run in `workspace` must not get. The SDK also reads
+    `AGENTS.md`, `CLAUDE.md`, `GEMINI.md`, `.cursorrules` and
+    `.agents/skills/` from the root of the git repository around the
+    workspace. For a project Certo generates (inside `projects_dir`) those
+    are another repository's own, Certo's for a project under its
+    `projects/`: it gets only what is in its folder, such as the skills
+    Certo copied there. An existing folder outside `projects_dir` keeps
+    them: there the repository around it is its context. The SDK keeps the
+    workspace's skill over a same-named one from the repository, so a skill
+    from outside has no local twin and can be turned off by name."""
+    root = Path(workspace).resolve()
+    if not root.is_dir() or not root.is_relative_to(Path(projects_dir).resolve()):
+        return []
+    return sorted({s.name for s in _project_skills(root) if not _inside(s, root)})
+
+
+def _project_skills(workspace: Path) -> list[Skill]:
+    from openhands.sdk.skills import load_project_skills
+
+    return load_project_skills(workspace)
+
+
+def _inside(skill: Skill, root: Path) -> bool:
+    return bool(skill.source) and Path(skill.source).resolve().is_relative_to(root)
 
 
 def lock_path(root: Path) -> Path:
@@ -157,11 +186,12 @@ def _downloaded_rows(
     return rows
 
 
-def _own_rows(workspace: Path) -> list[SkillRow]:
-    from openhands.sdk.skills import load_project_skills
-
+def _own_rows(workspace: Path, projects_dir: str) -> list[SkillRow]:
+    disabled = set(disabled_project_skills(workspace, projects_dir))
     return [
-        SkillRow(s.name, OWN, s.source or str(workspace), s) for s in load_project_skills(workspace)
+        SkillRow(s.name, OWN, s.source or str(workspace), s)
+        for s in _project_skills(workspace)
+        if s.name not in disabled
     ]
 
 
@@ -184,7 +214,7 @@ def collect(
         scope = f"--project {project_name}" if project_name else "--project NAME"
         rows += load_folder(project_dir(workspace), PROJECT, scope)
         if own:
-            rows += _own_rows(Path(workspace))
+            rows += _own_rows(Path(workspace), cfg.projects_dir)
     rows = _mark_replaced(rows)
     for row in rows:
         if row.layer == OFFICIAL and row.replaced_by in THIRD_PARTY:

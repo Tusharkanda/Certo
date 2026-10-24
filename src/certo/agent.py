@@ -9,7 +9,7 @@ from openhands.sdk import Agent, AgentContext
 from .config import Config
 from .llm import build_llm
 from .project_env import ProjectEnv
-from .skill_library import collect
+from .skill_library import collect, disabled_project_skills
 from .tools import build_tools
 
 # The SDK ends a conversation turn (execution_status -> FINISHED) whenever the
@@ -224,6 +224,10 @@ def build_agent(
         # a project's AGENTS.md / .agents/skills/ (see skills.write_project_context)
         # apply automatically, on top of (and replacing) the skills above.
         load_project_skills=True,
+        # The SDK applies this deny-list to the lazily loaded project skills
+        # too: a generated project gets no agent files from a git repository
+        # above it.
+        disabled_skills=disabled_project_skills(cfg.workspace, cfg.projects_dir),
         system_message_suffix="\n\n".join(suffixes),
     )
     agent = Agent(

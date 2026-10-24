@@ -401,7 +401,18 @@ rule 2):
   2026-10-24: a `--escalate` run in this repo's `projects/` gave
   `claude-haiku-5-5` Certo's own `CLAUDE.md` (278 extra system-prompt
   lines); `qwen3-coder` on rung 1 got nothing. `certo bench` is not
-  affected (workspaces in `tempfile.mkdtemp`). TODO.md, Smaller bugs.
+  affected (workspaces in `tempfile.mkdtemp`). It also reads the repo
+  root's `.agents/skills/`, `.openhands/skills/` and
+  `.openhands/microagents/`. **Handled:** for a workspace inside `CERTO_PROJECTS_DIR`
+  (a generated project; an existing folder keeps the SDK's behaviour),
+  `skill_library.disabled_project_skills` lists every project skill whose
+  `source` is outside the workspace, and
+  `build_agent` passes it as `AgentContext.disabled_skills`, which the
+  SDK applies after the lazy project load too (pinned by a real
+  `Conversation` test). Name-based: the SDK prefers the workspace's
+  same-named skill, so a foreign skill never has a local twin, but a
+  repo-root skill named like one of Certo's own would turn Certo's off as
+  well (no public way around it).
 - **The terminal tool's `timeout` is in seconds, with no upper limit**
   (SDK 1.47.0, `openhands/tools/terminal/definition.py`). A model that
   means milliseconds waits hours: in the 0.1.23 baseline, `gpt-6-luna`
