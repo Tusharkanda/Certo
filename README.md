@@ -9,6 +9,8 @@
 
 **[Documentation](https://github.com/alessioricco/certo/blob/main/docs/README.md)** · [Getting started](https://github.com/alessioricco/certo/blob/main/docs/getting-started.md) · [Troubleshooting](https://github.com/alessioricco/certo/blob/main/docs/troubleshooting.md)
 
+Certo is a **coding-agent harness**: the layer around the model that runs the agent, gives it its tools, chooses the model, sets the limits, and checks the result. The model writes the code; the harness decides what counts as done. The agent loop and the basic tools come from the [OpenHands SDK](https://docs.openhands.dev/sdk); Certo adds the model choice, the limits and the verification.
+
 Certo runs coding tasks on any model, local or cloud. It can pick the best model for each task. When a model can't finish, or its provider goes down, it hands the task to the next one, with a note on where things stand.
 
 It knows when to switch because it doesn't take the agent's word for it: when the agent says it's done, Certo runs your real tests and build itself, with no AI involved, and ends with one verdict and an exit code a script can rely on. *Certo* is Italian for "sure".

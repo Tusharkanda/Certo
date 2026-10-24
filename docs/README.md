@@ -1,6 +1,6 @@
 # Certo documentation
 
-Certo is a coding agent that doesn't depend on one model or one
+Certo is a coding-agent harness that doesn't depend on one model or one
 provider. It runs coding tasks on any model, local or cloud, can pick the
 best model for each task, and hands a task to the next model when one
 can't finish or its provider goes down. You give it a task. An agent
