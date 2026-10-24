@@ -392,6 +392,16 @@ Internal and architectural; the user-facing ones are in `docs/`.
 
 **SDK/tooling gotchas** (re-verify on any SDK upgrade — see CLAUDE.md golden
 rule 2):
+- **`load_project_skills=True` also reads the git repo root's
+  `AGENTS.md`/`CLAUDE.md`/`GEMINI.md`/`.cursorrules`**, not only the
+  workspace's (SDK 1.47.0, `skills/skill.py` `load_project_skills`, via
+  `_find_git_repo_root`), and `CLAUDE.md` only for Claude models,
+  `GEMINI.md` only for Gemini (`context/agent_context.py`, vendor gating).
+  So a project inside another repo gets that repo's file. Found
+  2026-10-24: a `--escalate` run in this repo's `projects/` gave
+  `claude-haiku-5-5` Certo's own `CLAUDE.md` (278 extra system-prompt
+  lines); `qwen3-coder` on rung 1 got nothing. `certo bench` is not
+  affected (workspaces in `tempfile.mkdtemp`). TODO.md, Smaller bugs.
 - **The terminal tool's `timeout` is in seconds, with no upper limit**
   (SDK 1.47.0, `openhands/tools/terminal/definition.py`). A model that
   means milliseconds waits hours: in the 0.1.23 baseline, `gpt-6-luna`
