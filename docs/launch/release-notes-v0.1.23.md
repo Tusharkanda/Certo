@@ -57,6 +57,20 @@ counts the tests they ran: none makes the check `skipped` and the verdict
 `inconclusive`. A Go package without tests next to one with tests, such
 as `cmd/server`, is fine.
 
+## Fixed: Windows
+
+These Windows gaps are fixed, and Certo's test suite now passes on
+Windows:
+
+- Java projects use the Windows wrappers `mvnw.cmd` and `gradlew.bat`
+  (Docker runs keep `./mvnw` and `./gradlew`).
+- A failed run in a project on another drive prints the full path of
+  `STATUS.md` instead of crashing.
+- On Windows, settings files take their folder's access permissions;
+  the Unix permission `600` applies only on macOS and Linux.
+
+Thanks to @Erfouni (#29, after #8).
+
 ## Removed: the old skill folders and `certo-admin skills`
 
 As announced in 0.1.22, Certo no longer reads `./skills`
