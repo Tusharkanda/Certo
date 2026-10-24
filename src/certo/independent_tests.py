@@ -249,6 +249,24 @@ def run_independent_tests(
     return IndependentTestsResult(result.status, result.summary, written.model, result.output)
 
 
+def failing_tests(result: IndependentTestsResult, limit: int = 5) -> list[str]:
+    """The failing tests' names, as each test tool prints them: pytest's
+    `FAILED file::test`, `node --test`'s `not ok N - name`, `go test`'s
+    `--- FAIL: Name`, `cargo test`'s `test name ... FAILED`."""
+    found = []
+    for raw in result.output.splitlines():
+        line = raw.strip()
+        if line.startswith("FAILED "):
+            found.append(line.removeprefix("FAILED ").split(" - ")[0])
+        elif line.startswith("not ok ") and " - " in line:
+            found.append(line.split(" - ", 1)[1])
+        elif line.startswith("--- FAIL: "):
+            found.append(line.removeprefix("--- FAIL: ").split(" ")[0])
+        elif line.startswith("test ") and line.endswith(" ... FAILED"):
+            found.append(line.removeprefix("test ").removesuffix(" ... FAILED"))
+    return found[:limit]
+
+
 def report_line(result: IndependentTestsResult) -> str:
     """The line under the verdict."""
     if result.status == "none":

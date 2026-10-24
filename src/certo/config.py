@@ -181,6 +181,12 @@ class Config:
     # unchanged.
     interactive: bool = False
 
+    # CERTO_INDEPENDENT_TESTS: before the build, a separate conversation
+    # writes tests from the task and the project as it is then; after the
+    # verdict Certo runs them and reports the result next to it, without
+    # changing the verdict (independent_tests.py). Local runs only.
+    independent_tests: bool = False
+
     # The full SDK console output: the system prompt, the whole task with
     # its skills, the SDK's INFO logs. Off by default (console.py shows a
     # line for each instead).
@@ -641,6 +647,7 @@ def load_config(
         default=False,
     )
     verbose = _parse_bool(env, "VERBOSE", default=False)
+    independent_tests = _parse_bool(env, "INDEPENDENT_TESTS", default=False)
     model_selection = _parse_choice(
         env,
         "MODEL_SELECTION",
@@ -692,6 +699,7 @@ def load_config(
         task_store_redis_password=task_store_redis_password,
         task_store_redis_use_tls=task_store_redis_use_tls,
         interactive=interactive,
+        independent_tests=independent_tests,
         verbose=verbose,
         model_selection=model_selection,
         models_file=models_file,

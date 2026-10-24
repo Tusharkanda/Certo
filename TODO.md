@@ -69,19 +69,20 @@ first item is the suggested next one.
 - **Milestone mode.** Split a big task into milestones, each with its own
   acceptance checks, run and verified one at a time, building on
   `--resume`/`STATUS.md`. The main step from "small task" to "app".
-- **Independent acceptance tests from the spec.** Before building, a
-  separate conversation (optionally another model) writes tests from the
-  task text only; the builder may not edit them. Brings the benchmark's
-  hidden-test idea to real runs. Agreed 2026-10-22: the first version is
-  opt-in and report-only (the results are shown next to the verdict but
-  don't change it), written by the same model by default, another model
-  as an option. A live case (2026-10-24, `ledger-transfers` run by hand
-  with `ollama/qwen3-coder:30b`, Certo at 77dea16): `verified` in 5m 41s,
-  hidden tests 18 of 27. Bug 1 fixed in the wrong place, the report part
-  of the feature missing, no tests for the two fixes (the task asked for
-  them); the existing tests and its own transfer tests all passed. The
-  verdict rule is decided later from the benchmark:
-  how often these tests catch a real bug, and how often they are wrong.
+- **Independent tests: measure them, then the rest** (first version in
+  0.1.24: `--independent-tests`, written before the build from the task
+  and the project as it was, report only). Left: (1) a bench arm option
+  `independent_tests: true` recording, per run, the verdict, the hidden
+  tests and the independent tests, and a report of the catch rate (Certo
+  said `verified`, hidden tests failed, independent tests failed too) and
+  false alarms (hidden passed, independent failed); run it on a
+  `qwen3-coder:30b` arm (it fooled Certo on `ledger-transfers`,
+  2026-10-24: hidden 18 of 27) and a cloud model, per Phase 1's exit. Two
+  live runs with `claude-haiku-5-5` on `ledger-transfers` (2026-10-24)
+  were both false alarms: correct work (hidden 27/27), one independent
+  test reading the transfer rule wrong. (2) An option to have another
+  model write them. (3) Server mode (the stored result needs a place for
+  it). The verdict rule is decided from (1).
 - **Protect verification files from silent agent changes.** The agent can
   weaken or delete tests, build scripts or lint config before Certo
   verifies; only prompts discourage it (golden rule 6 gap). Record those
@@ -338,6 +339,15 @@ database).
   (`/qa-changes`) and are large (about 4,200 tokens). Done when a
   catalog skill installs and runs from one command and the benchmark
   says whether it helps.
+- **Explicit support for non-skill OpenHands plugins** (future; skills
+  only for now). Plugins may add MCP servers/tools or executable hooks,
+  so ambient loading stays blocked. First verify a supported SDK API for
+  loading only user-selected plugins; if available, design opt-in
+  selection, source/version and content pinning, review on changes, and
+  isolation/capability controls. Do not monkey-patch the SDK or claim
+  untrusted plugins are safe. Done when selected non-skill capabilities
+  can run without ambient plugins, with documented limits and tests for
+  selection, rejection and isolation.
 - **`certo skills suggest`** (later, agreed 2026-10-22): match a
   project's files against an index of vetted third-party skills shipped
   with Certo, and print `add` commands; never install by itself.

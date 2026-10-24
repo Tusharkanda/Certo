@@ -114,6 +114,12 @@ def write_run_artifacts(
             if outcome is not None and outcome.acceptance_results
             else None
         ),
+        # CERTO_INDEPENDENT_TESTS: status, summary, model, output tail.
+        "independent_tests": (
+            asdict(outcome.independent_tests)
+            if outcome is not None and getattr(outcome, "independent_tests", None)
+            else None
+        ),
         "error": error,
         # Running time, models used, total tokens and cost — run_summary.py.
         "run_summary": run_summary,

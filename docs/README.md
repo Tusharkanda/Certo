@@ -84,6 +84,7 @@ takes you from install to your first verified project.
 | Set up my project so Certo can check it | [Make your project checkable](guides/make-a-project-checkable.md) |
 | Check projects in CI | [Verify in CI](guides/verify-in-ci.md) |
 | Add my own pass/fail rules for a task | [Acceptance checks](guides/acceptance-checks.md) |
+| Check the work with tests written before the build | [Independent tests](guides/independent-tests.md) |
 | Run the agent inside a container | [Run in Docker](guides/run-in-docker.md) |
 | Call Certo over HTTP | [Run as a server](guides/run-as-a-server.md) |
 | See what a run did and what it cost | [Run records and costs](guides/run-records-and-costs.md) |

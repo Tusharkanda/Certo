@@ -1059,3 +1059,12 @@ considered and live-verification detail: `docs/ROADMAP.txt`.
   its instructions: with a relative `tests/` it wrote into the copy's own
   `tests/` folder. First live result with `claude-haiku-5-5`: 15 tests,
   15/15 on the reference solution, failing on the starter, $0.014.
+- **Independent tests in runs: what a first version leaves out** (2026-10-24,
+  within the Phase 1.5 decisions). Not on `--resume` (the project already
+  holds earlier work, so it isn't "before the build"); not under Docker
+  (the tests run on this computer); not in server mode (a stored task
+  result has no field for it: five storage backends). Failing tests are
+  named under the report line, and with `CERTO_ARTIFACTS_DIR` the tests
+  are kept in the run's records folder, never in the project, where a
+  later task's agent could read them. Both came from the first live runs:
+  two false alarms nobody could have checked otherwise.

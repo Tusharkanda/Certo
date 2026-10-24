@@ -2902,3 +2902,134 @@ def test_run_task_passes_certo_notices_on_as_they_happen(monkeypatch):
 
     assert notices == ["Certo: escalating from a to b"]  # the agent's text is not a notice
     assert len(result) == 2
+
+
+# --- CERTO_INDEPENDENT_TESTS: written before the build, run after ---------
+
+
+def _independent_tests_run(monkeypatch, tmp_path, *, verdict="verified", **cfg_overrides):
+    """stream_task with a fake conversation, verification, writer and test
+    run; returns (outcome, the order things happened in, what the fakes saw)."""
+    from pathlib import Path
+
+    from certo.independent_tests import WRITER_USAGE_ID, IndependentTestsResult, WrittenTests
+
+    events: list[str] = []
+    seen: dict = {}
+    conversation = _FakeConversation(statuses_after_run=[ConversationExecutionStatus.FINISHED])
+    original_run = conversation.run
+
+    def run() -> None:
+        events.append("build")
+        original_run()
+
+    conversation.run = run
+    monkeypatch.setattr(runner, "Conversation", lambda **_kwargs: conversation)
+    monkeypatch.setattr(runner, "build_agent", lambda cfg, **_kw: "fake-agent")
+    monkeypatch.setattr(runner, "build_workspace", lambda cfg: nullcontext("fake-workspace"))
+    _mock_task_tracker_and_verify(monkeypatch, verification_state=verdict)
+
+    def fake_write(task, writer_cfg, scratch, *, project):
+        events.append("write")
+        seen.update(task=task, model=writer_cfg.model, project=project, scratch=scratch)
+        folder = Path(scratch) / "new_tests"
+        folder.mkdir(parents=True)
+        return WrittenTests(
+            folder=folder,
+            model=writer_cfg.model,
+            files=("test_x.py",),
+            language="python",
+            metrics={WRITER_USAGE_ID: {"accumulated_cost": 0.25}},
+        )
+
+    def fake_run(written, workspace):
+        events.append("independent tests")
+        seen["ran_in"] = workspace
+        return IndependentTestsResult("failed", "1 failed, 2 passed", written.model)
+
+    monkeypatch.setattr(runner, "write_tests", fake_write)
+    monkeypatch.setattr(runner, "run_independent_tests", fake_run)
+    cfg = _cfg(workspace=str(tmp_path), **cfg_overrides)
+    outcome = runner.stream_task("Write calc.add.", cfg=cfg)
+    return outcome, events, seen
+
+
+def test_independent_tests_are_off_by_default(monkeypatch, tmp_path):
+    outcome, events, _ = _independent_tests_run(monkeypatch, tmp_path)
+
+    assert events == ["build"]
+    assert outcome.independent_tests is None
+
+
+def test_independent_tests_are_written_before_the_build_and_run_after(monkeypatch, tmp_path):
+    outcome, events, seen = _independent_tests_run(monkeypatch, tmp_path, independent_tests=True)
+
+    assert events == ["write", "build", "independent tests"]
+    assert seen["task"] == "Write calc.add." and seen["model"] == "openai/gpt-4o"
+    assert str(seen["project"]) == str(tmp_path) and seen["ran_in"] == str(tmp_path)
+    assert not str(seen["scratch"]).startswith(str(tmp_path))  # outside the project
+    assert not seen["scratch"].exists()  # removed afterwards
+
+
+def test_independent_tests_never_change_the_verdict(monkeypatch, tmp_path):
+    outcome, _, _ = _independent_tests_run(monkeypatch, tmp_path, independent_tests=True)
+
+    assert outcome.verification_state == "verified"
+    assert outcome.independent_tests.status == "failed"
+    assert outcome.independent_tests.summary == "1 failed, 2 passed"
+
+
+def test_the_writers_cost_is_in_the_run_summary(monkeypatch, tmp_path):
+    outcome, _, _ = _independent_tests_run(monkeypatch, tmp_path, independent_tests=True)
+
+    assert outcome.run_summary.total_cost == pytest.approx(0.25)
+
+
+def test_independent_tests_are_skipped_under_docker(monkeypatch, tmp_path):
+    notices = []
+    cfg = _cfg(workspace=str(tmp_path), independent_tests=True, execution="docker")
+    monkeypatch.setattr(runner, "write_tests", lambda *a, **k: pytest.fail("written"))
+    monkeypatch.setattr(runner, "_emit_notice", lambda _emit, text: notices.append(text))
+
+    assert runner._write_independent_tests("t", cfg, cfg, lambda _m: None) is None
+    assert notices == ["Certo: independent tests are for local runs only; skipped."]
+
+
+def test_independent_tests_are_skipped_on_resume(monkeypatch, tmp_path):
+    notices = []
+    cfg = _cfg(workspace=str(tmp_path), independent_tests=True)
+    monkeypatch.setattr(runner, "write_tests", lambda *a, **k: pytest.fail("written"))
+    monkeypatch.setattr(runner, "_emit_notice", lambda _emit, text: notices.append(text))
+
+    assert runner._write_independent_tests("t", cfg, cfg, lambda _m: None, resuming=True) is None
+    assert "aren't written on --resume" in notices[0]
+
+
+def test_independent_tests_are_kept_in_the_run_records_not_the_project(monkeypatch, tmp_path):
+    from certo.independent_tests import IndependentTestsResult, WrittenTests
+
+    scratch = tmp_path / "scratch"
+    folder = scratch / "new_tests"
+    folder.mkdir(parents=True)
+    (folder / "test_x.py").write_text("def test_x():\n    assert True\n")
+    written = WrittenTests(folder=folder, model="m", files=("test_x.py",), language="python")
+    monkeypatch.setattr(
+        runner,
+        "run_independent_tests",
+        lambda w, ws: IndependentTestsResult("passed", "1 passed", "m"),
+    )
+    outcome = runner.TaskOutcome(
+        verification_state="verified",
+        completion_contract=runner.CompletionContract(
+            goal="", acceptance_criteria=[], verification_checks=[], limitations=[]
+        ),
+    )
+    records = tmp_path / "records" / "run-1"
+
+    result = runner._apply_independent_tests(
+        outcome, written, _cfg(workspace=str(tmp_path / "project")), str(records)
+    )
+
+    assert result.independent_tests.status == "passed"
+    assert (records / "independent_tests" / "test_x.py").is_file()
+    assert not scratch.exists()

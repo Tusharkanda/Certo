@@ -304,6 +304,16 @@ def _build_parser() -> argparse.ArgumentParser:
         ),
     )
     parser.add_argument(
+        "--independent-tests",
+        action="store_true",
+        help=(
+            "Before the build, have a separate conversation write tests from "
+            "the task and the project as it is then; after the verdict, run "
+            "them and report the result. Report only: the verdict doesn't "
+            "change. Local runs only. The same as CERTO_INDEPENDENT_TESTS=yes."
+        ),
+    )
+    parser.add_argument(
         "--interactive",
         action="store_true",
         help=(
@@ -535,6 +545,8 @@ def main(argv: list[str] | None = None) -> int:
 
     if args.interactive:
         cfg = replace(cfg, interactive=True)
+    if args.independent_tests:
+        cfg = replace(cfg, independent_tests=True)
 
     if args.verbose:
         cfg = replace(cfg, verbose=True)
@@ -759,6 +771,12 @@ def main(argv: list[str] | None = None) -> int:
     print(f"\nVerification: {outcome.verification_state}")
     for note in outcome.completion_contract.limitations:
         print(f"  - {note}")
+    if outcome.independent_tests is not None:
+        from .independent_tests import failing_tests, report_line
+
+        print(report_line(outcome.independent_tests))
+        for name in failing_tests(outcome.independent_tests):
+            print(f"  - {name}")
     if outcome.run_summary is not None:
         print("\nRun summary:")
         for line in outcome.run_summary.format_lines():

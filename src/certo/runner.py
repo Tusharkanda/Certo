@@ -9,11 +9,14 @@ import errno
 import logging
 import os
 import re
+import shutil
+import tempfile
 import time
 import uuid
 from collections.abc import Callable, Sequence
 from dataclasses import dataclass, replace
 from datetime import UTC, datetime
+from pathlib import Path
 from typing import Any
 
 from openhands.sdk import (
@@ -34,10 +37,17 @@ from openhands.tools.task_tracker import TaskTrackerTool
 
 from .acceptance import AcceptanceCheck, AcceptanceCheckResult, evaluate_acceptance_checks
 from .agent import build_agent
-from .artifacts import write_run_artifacts
+from .artifacts import resolve_run_artifacts_dir, write_run_artifacts
 from .catalog_check import load_checked_catalog
 from .config import Config, load_config, override_llm
 from .console import quiet_sdk_logs, visualizer_for
+from .independent_tests import (
+    WRITER_USAGE_ID,
+    IndependentTestsResult,
+    WrittenTests,
+    run_independent_tests,
+    write_tests,
+)
 from .verification import (
     CheckOutcome,
     CompletionContract,
@@ -243,6 +253,10 @@ class TaskOutcome:
     # ran, in order, and the number of the rung whose verdict this is.
     rungs: tuple[RungResult, ...] = ()
     final_rung: int | None = None
+    # CERTO_INDEPENDENT_TESTS: the result of the tests written before the
+    # build (independent_tests.py). Report only: it never changes
+    # verification_state.
+    independent_tests: IndependentTestsResult | None = None
 
     @property
     def success(self) -> bool:
@@ -1157,6 +1171,73 @@ def _enforce_task_tracker_completion(
     return None
 
 
+def _write_independent_tests(
+    task: str,
+    writer_cfg: Config,
+    cfg: Config,
+    emit: Callable[[Message], None],
+    *,
+    resuming: bool = False,
+) -> WrittenTests | None:
+    """CERTO_INDEPENDENT_TESTS: have `writer_cfg`'s model write tests before
+    the build, from the task and the project as it is now, into a folder
+    outside the project. None when the setting is off, or the run can't
+    have them (Docker: the tests run on this computer; a resume: the
+    project already holds earlier work)."""
+    if not cfg.independent_tests:
+        return None
+    if cfg.execution != "local":
+        _emit_notice(emit, "Certo: independent tests are for local runs only; skipped.")
+        return None
+    if resuming:
+        _emit_notice(
+            emit,
+            "Certo: independent tests aren't written on --resume (the project already "
+            "holds earlier work); skipped.",
+        )
+        return None
+    _emit_notice(emit, f"Certo: writing independent tests from the task with {writer_cfg.model}.")
+    scratch = Path(tempfile.mkdtemp(prefix="certo-independent-tests-"))
+    written = write_tests(task, writer_cfg, scratch, project=Path(cfg.workspace))
+    if written.runnable:
+        _emit_notice(
+            emit,
+            f"Certo: independent tests written ({', '.join(written.files)}); the agent "
+            "won't see them.",
+        )
+    else:
+        _emit_notice(emit, f"Certo: no independent tests: {written.reason}")
+    return written
+
+
+def _apply_independent_tests(
+    outcome: TaskOutcome,
+    written: WrittenTests | None,
+    cfg: Config,
+    keep_in: str | None = None,
+) -> TaskOutcome:
+    """Run the independent tests on the finished project and attach the
+    result. Report only: `verification_state` stays as it is. The tests are
+    copied to `keep_in` (the run's records folder, never the project, so a
+    later task's agent can't see them), then the scratch folder is removed."""
+    if written is None:
+        return outcome
+    try:
+        result = run_independent_tests(written, cfg.workspace)
+    except Exception as exc:  # noqa: BLE001 - report only, never the run's outcome
+        result = IndependentTestsResult("error", f"{type(exc).__name__}: {exc}", written.model)
+    finally:
+        if keep_in is not None:
+            try:
+                shutil.copytree(
+                    written.folder, Path(keep_in) / "independent_tests", dirs_exist_ok=True
+                )
+            except OSError:
+                logger.warning("Could not keep the independent tests", exc_info=True)
+        shutil.rmtree(written.folder.parent, ignore_errors=True)
+    return replace(outcome, independent_tests=result)
+
+
 def _apply_acceptance_checks(
     outcome: TaskOutcome,
     cfg: Config,
@@ -1363,6 +1444,9 @@ def stream_task(
         agent_cfg = config_for_entry(cfg, entry)
         agent_usage_id = f"certo:{entry.name}"
 
+    # Before the build: the writer sees the project as it is now.
+    written = _write_independent_tests(task, agent_cfg, cfg, emit, resuming=resume_from is not None)
+
     with build_workspace(cfg) as workspace:
         runner = _command_runner(cfg, workspace)
         project_env = _prepare_agent_env(task, cfg, runner, emit)
@@ -1441,10 +1525,20 @@ def stream_task(
                 state_writer.on_verification if state_writer is not None else None,
                 check_changes=resume_from is None,
             )
+            outcome = _apply_independent_tests(
+                outcome,
+                written,
+                cfg,
+                resolve_run_artifacts_dir(cfg.artifacts_dir, project, run_id)
+                if cfg.artifacts_dir and run_id
+                else None,
+            )
         except BaseException as exc:  # recorded for artifacts.py, then always re-raised as-is
             captured_error = exc
             raise
         finally:
+            if written is not None:  # already gone after a normal finish
+                shutil.rmtree(written.folder.parent, ignore_errors=True)
             if state_writer is not None and captured_error is not None:
                 state_writer.fail(captured_error)
             # Written even when a phase raises (e.g. every candidate in an
@@ -1454,11 +1548,11 @@ def stream_task(
             if model_chain is not None:
                 write_model_decisions(cfg.workspace, model_chain.decisions)
             per_model_metrics = _per_model_metrics(conversation)
-            run_summary = summarize_run(
-                time.monotonic() - run_started,
-                per_model_metrics,
-                _usage_efforts(cfg, agent_cfg, model_chain),
-            )
+            efforts = _usage_efforts(cfg, agent_cfg, model_chain)
+            if written is not None:
+                per_model_metrics.update(written.metrics)
+                efforts[WRITER_USAGE_ID] = agent_cfg.reasoning_effort
+            run_summary = summarize_run(time.monotonic() - run_started, per_model_metrics, efforts)
             if cfg.artifacts_dir:
                 stats = conversation.conversation_stats
                 write_run_artifacts(
@@ -2028,6 +2122,13 @@ def _stream_escalation(
         )
 
     decide("ladder", ladder.rungs[0].label, _ladder_reason(ladder))
+    # Written once, before the first rung, with its model; they judge the
+    # final result, whichever rung produced it.
+    first_cfg = _rung_config(cfg, ladder.rungs[0])
+    written = _write_independent_tests(task, first_cfg, cfg, io.emit)
+    if written is not None:
+        per_model_metrics.update(written.metrics)
+        efforts[WRITER_USAGE_ID] = first_cfg.reasoning_effort
     captured_error: BaseException | None = None
     try:
         with build_workspace(cfg) as workspace:
@@ -2208,10 +2309,21 @@ def _stream_escalation(
                     reason += f" The error: {failure}"
                 decide(kind, nxt.label, reason)
                 failing_output = "\n\n---\n\n".join(_check_followup(c) for c in failing)
+        if final_outcome is not None and final_rung == (rungs[-1].number if rungs else None):
+            final_outcome = _apply_independent_tests(
+                final_outcome,
+                written,
+                cfg,
+                resolve_run_artifacts_dir(cfg.artifacts_dir, project, run_id)
+                if cfg.artifacts_dir and run_id
+                else None,
+            )
     except BaseException as exc:
         captured_error = exc
         raise
     finally:
+        if written is not None:  # already gone after a normal finish
+            shutil.rmtree(written.folder.parent, ignore_errors=True)
         write_model_decisions(cfg.workspace, decisions)
         if cfg.artifacts_dir:
             final = final_outcome if captured_error is None else None

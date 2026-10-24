@@ -116,7 +116,10 @@ Be clear about the limits:
 
 - **It only knows what the checks test.** If the tests don't cover a
   feature, a broken feature can still be `verified`. Certo makes the agent
-  honest about the tests; it doesn't make the tests complete.
+  honest about the tests; it doesn't make the tests complete. When the
+  agent writes the tests, they can share its mistakes:
+  [independent tests](../guides/independent-tests.md), written before the
+  build, are a second opinion (report only for now).
 - **It goes by the check's exit code.** A test runner that exits
   successfully when it finds no tests (such as `node --test`) makes a
   project with no tests `verified`. See

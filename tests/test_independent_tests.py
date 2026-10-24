@@ -154,3 +154,24 @@ def test_a_test_changed_after_writing_is_not_run(tmp_path):
     assert it.report_line(result) == (
         "Independent tests: couldn't run (test_add.py changed after it was written; not run)."
     )
+
+
+def test_failing_tests_are_named_for_each_test_tool():
+    output = "\n".join(
+        [
+            "FAILED new_tests/test_money.py::test_bad_parentheses - assert 1 == 2",
+            "not ok 3 - transfers are left out",
+            "--- FAIL: TestLoanLimit (0.00s)",
+            "test due_dates ... FAILED",
+            "test fines ... ok",
+        ]
+    )
+    result = it.IndependentTestsResult("failed", "4 failed", "m", output)
+
+    assert it.failing_tests(result) == [
+        "new_tests/test_money.py::test_bad_parentheses",
+        "transfers are left out",
+        "TestLoanLimit",
+        "due_dates",
+    ]
+    assert it.failing_tests(result, limit=2) == it.failing_tests(result)[:2]

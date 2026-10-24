@@ -74,6 +74,7 @@ enough for a local model that needs no key.
 | `CERTO_MAX_VERIFY_RETRIES` | `2` | How many times a failure is sent back to the agent to fix. Must be at least 1. Also used for unfinished to-do items. |
 | `CERTO_CONFIRM_MODE` | `never` | `never` or `always`. `always` asks you to approve every action. See [Interactive and confirm mode](../guides/interactive-mode.md). |
 | `CERTO_INTERACTIVE` | `false` | Let the agent stop and ask you questions. The same as `--interactive`. Has no useful effect in server mode. |
+| `CERTO_INDEPENDENT_TESTS` | `false` | Before the build, a separate conversation with the same model writes tests from the task and the project as it is then; after the verdict, Certo runs them and prints the result under it. Report only: the verdict and exit code don't change. Local runs only, not on `--resume`. The same as `--independent-tests`. See [Independent tests](../guides/independent-tests.md). |
 | `CERTO_VERBOSE` | `false` | Print the agent's full output: the whole system prompt, the task with the skills Certo adds, and the SDK's `INFO` logs. By default the system prompt and the task are one line each and the `INFO` logs are hidden (the SDK's own `LOG_LEVEL`, when set, still applies). The same as `--verbose`. |
 
 ## Execution
