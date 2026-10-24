@@ -31,6 +31,12 @@ first item is the suggested next one.
   badge. 0.1.13, 0.1.15, 0.1.18 (local only) and 0.1.22 exist; no badge
   yet. A `qwen2.5-coder:7b` arm would replace "unmeasured" for the
   small-machine suggestion ([#18](https://github.com/alessioricco/certo/issues/18) asks contributors for local runs).
+- **`certo bench --stop-at`, for a baseline run over several nights**
+  (2026-10-24). Slices work today by interrupting in the morning and
+  continuing with `--resume`, but the run in progress is lost. A flag
+  like `--max-cost` (stop starting new runs after a time, or after N
+  runs) would end each night cleanly. Done when a slice stops on its own
+  and `--resume` continues it.
 - **Bench task set v2: app-scale tasks.** Multi-file, multi-language: Go
   REST API with a database, React frontend + API, Rust CLI with
   subcommands, a fix inside an existing mid-size repo. Grading supports

@@ -990,3 +990,14 @@ considered and live-verification detail: `docs/ROADMAP.txt`.
   current work needs: `skill-creator` (built-in skills) and
   `webapp-testing` (web tasks, run-the-app verification); `mcp-builder`
   waits for the MCP server. Separate from Certo's own built-in skills.
+- **When a full baseline is worth it, and running it in slices** (the
+  Author, 2026-10-24; refines "a baseline per release is optional"). A
+  full baseline when something changes how the agent works in general:
+  prompts or built-in skills, verification rules, escalation, a new model
+  or SDK version, a new task set version. Otherwise a targeted run (the
+  tasks the change touches, one or two repeats, a cost cap) is enough,
+  including for working agreement 2. The 0.1.23 baseline took 3h10m in
+  the cloud and about 10-11 hours locally, so a full one is run in
+  slices, one night each: the same benchmark file and `--out`, stopped
+  in the morning and continued with `--resume`, so one report covers
+  every night.
