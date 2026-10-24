@@ -1,6 +1,20 @@
 # Certo v0.1.23
 
-Not released yet.
+This release is about harder tests for Certo itself, and about keeping a
+project's instructions its own:
+
+- **Benchmark:** four larger tasks (task set version 2), graded in Go,
+  Rust and Node with packages. On them, three cloud models passed 13 of
+  13 and `qwen3.8:27b` 32 of 39, and Certo was not fooled once in 78 runs.
+- **Results:** a command-line program that needs arguments is no longer
+  failed, and a Go or Rust project with no tests is no longer
+  `verified`. A generated project no longer gets the instructions of a
+  repository around it.
+- **Skills:** skills from OpenHands' public catalog can be downloaded,
+  and the docs say where to find skills.
+- **Also:** the Windows test suite passes, thanks to @Erfouni, and a
+  recorded run shows a local model's half-done work finished by a cloud
+  model.
 
 ## New: the benchmark grades Go, Rust and Node tasks with packages
 
