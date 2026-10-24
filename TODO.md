@@ -69,20 +69,20 @@ first item is the suggested next one.
 - **Milestone mode.** Split a big task into milestones, each with its own
   acceptance checks, run and verified one at a time, building on
   `--resume`/`STATUS.md`. The main step from "small task" to "app".
-- **Independent tests: voting, then the rest** (first version in 0.1.24:
-  `--independent-tests`, report only). Measured 2026-10-24 by replaying
-  saved bench projects (`scripts/replay_independent_tests.py`,
-  `docs/benchmark/independent-tests-replay-0.1.24.md`; Haiku writer,
-  $0.32): one set caught 7 of 8 fooled runs but 5 of 39 sets had a wrong
-  test; with three sets and "2 of 3 must fail", 7 of 8 fooled caught, 0
-  of 13 references flagged, and the 24 right projects flagged were real
-  bugs the hidden tests miss. Left: (1) three writers per run with the
-  2-of-3 rule (writer runs in parallel; cost ~3x), still report only;
-  (2) the same replay with a local writer (`qwen3.8`), per agreement 2;
-  (3) then decide whether a 2-of-3 failure changes the verdict; (4) an
-  option for another writer model; (5) server mode. The live
-  `--independent-tests` runs with the same model building were two false
-  alarms on `ledger-transfers`, consistent with one-set results.
+- **Independent tests: the rest** (0.1.24: `--independent-tests`, three
+  sets by default with a 2-of-3 vote, report only; replay in
+  `docs/benchmark/independent-tests-replay-0.1.24.md`). Left: (1) the
+  replay with a local writer (`qwen3.8`), per agreement 2 (running
+  2026-10-24 night into `bench-results/independent-replay-qwen3.8`);
+  (2) writers share misreadings the task's wording invites: on
+  `ledger-transfers` most sets read "the outgoing amount is negative" as
+  a role given by name, not by sign (live 2026-10-24: 3 of 3 sets failed
+  right work; a rewrite: 2 of 3 failed the reference). Try a writer rule
+  against it (e.g. "when a rule can be read two ways, don't test the
+  unclear case") and re-run the replay ($0.32 with Haiku) before
+  claiming it helps; or fix the task text, which is the benchmark's own
+  ambiguity; (3) then decide whether a 2-of-3 failure changes the
+  verdict; (4) an option for another writer model; (5) server mode.
 - **Protect verification files from silent agent changes.** The agent can
   weaken or delete tests, build scripts or lint config before Certo
   verifies; only prompts discourage it (golden rule 6 gap). Record those

@@ -772,11 +772,12 @@ def main(argv: list[str] | None = None) -> int:
     for note in outcome.completion_contract.limitations:
         print(f"  - {note}")
     if outcome.independent_tests is not None:
-        from .independent_tests import failing_tests, report_line
+        from .independent_tests import failing_tests, report_line, set_lines
 
         print(report_line(outcome.independent_tests))
-        for name in failing_tests(outcome.independent_tests):
-            print(f"  - {name}")
+        details = set_lines(outcome.independent_tests) or failing_tests(outcome.independent_tests)
+        for line in details:
+            print(f"  - {line}")
     if outcome.run_summary is not None:
         print("\nRun summary:")
         for line in outcome.run_summary.format_lines():

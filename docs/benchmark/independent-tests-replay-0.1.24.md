@@ -85,6 +85,12 @@ writers instead of one: about $0.01 to $0.07 per task with this model.
   worse; not measured yet.
 - **The writer judged other models' work.** In a real run the same model
   writes the tests and builds, which this replay doesn't show.
+- **Writers can share a misreading.** In a live run afterwards
+  (`ledger-transfers`, the same writer, three sets), all three sets
+  failed right work on the same rule of the task, so the vote didn't
+  help; three more sets for that task failed its reference solution 2 of
+  3 times. In this replay the same task's sets passed it every time. See
+  [Independent tests](../guides/independent-tests.md#what-you-see).
 - "Right" means the hidden tests passed. Some of those projects have
   real bugs, as above, so a few "false alarms" in the first table are
   correct catches.

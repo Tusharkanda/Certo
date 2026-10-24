@@ -1090,3 +1090,12 @@ considered and live-verification detail: `docs/ROADMAP.txt`.
   writing costs (Haiku, 39 sets: $0.32). Result: wrong tests appear in
   one set of three, real bugs in all three, so the next step is voting
   over three sets, not one set's verdict.
+- **Independent tests: three sets, 2 of 3 to fail** (the Author asked for
+  three writers, 2026-10-24; from the replay). Default
+  `CERTO_INDEPENDENT_TESTS_SETS=3` (1 to 5); `failed` needs most sets,
+  one failing set of three is `split`, a set that can't run doesn't count
+  as failing. Writers run at the same time for a cloud model, one by one
+  for a local one (a local server answers one request at a time). Still
+  report only: a live `ledger-transfers` run showed all three sets
+  sharing one misreading invited by the task's wording, so the vote
+  removes random wrong tests, not shared ones.

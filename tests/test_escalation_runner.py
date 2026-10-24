@@ -670,7 +670,7 @@ def test_independent_tests_are_written_once_with_rung_1_and_judge_the_final_rung
 
     seen: dict = {"runs": []}
 
-    def fake_write(task, writer_cfg, scratch, *, project):
+    def fake_write(task, writer_cfg, scratch, *, project, usage_id, run_writer):
         seen.setdefault("writers", []).append(writer_cfg.model)
         seen["calls_before_writing"] = len(fake_run.calls)
         folder = scratch / "new_tests"
@@ -679,16 +679,19 @@ def test_independent_tests_are_written_once_with_rung_1_and_judge_the_final_rung
             folder=folder, model=writer_cfg.model, files=("t.py",), language="python"
         )
 
-    def fake_run_tests(written, workspace):
+    def fake_run_tests(written, workspace, runner=None):
         seen["runs"].append(len(fake_run.calls))
         return IndependentTestsResult("passed", "3 passed", written.model)
 
-    monkeypatch.setattr(runner, "write_tests", fake_write)
-    monkeypatch.setattr(runner, "run_independent_tests", fake_run_tests)
+    import certo.independent_tests as it
+
+    monkeypatch.setattr(it, "write_tests", fake_write)
+    monkeypatch.setattr(it, "run_independent_tests", fake_run_tests)
     fake_run.script[:] = [("retry_exhausted", 0.0, {}), ("verified", 0.01, {})]
     ladder = _ladder(tmp_path)
+    cfg = replace(_cfg(tmp_path), independent_tests=True, independent_tests_sets=1)
 
-    outcome, _ = _run(tmp_path, ladder, cfg=replace(_cfg(tmp_path), independent_tests=True))
+    outcome, _ = _run(tmp_path, ladder, cfg=cfg)
 
     assert seen["writers"] == [ladder.rungs[0].entry.model]  # once, rung 1's model
     assert seen["calls_before_writing"] == 0  # before any rung ran

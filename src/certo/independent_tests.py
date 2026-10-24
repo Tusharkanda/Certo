@@ -13,6 +13,11 @@ during the build, so the builder can't read, run or edit the tests;
 afterwards `bench_tasks.run_test_folder` copies them in, runs them and
 removes them again.
 
+Several sets, each from its own writer, vote (`write_test_sets`,
+`run_test_sets`): measured on saved benchmark projects, a wrong test turns
+up in one set of three, a real bug in all three, so a project fails only
+when most sets fail (docs/benchmark/independent-tests-replay-0.1.24.md).
+
 Report only, in this first version: the result is a line under the verdict
 and a field of the outcome; the verdict and the exit code don't change.
 """
@@ -23,7 +28,8 @@ import hashlib
 import os
 import shutil
 from collections.abc import Callable
-from dataclasses import dataclass, field
+from concurrent.futures import ThreadPoolExecutor
+from dataclasses import dataclass, field, replace
 from pathlib import Path
 
 from .bench_tasks import HIDDEN_DIR_NAME, run_test_folder, test_language
@@ -108,10 +114,12 @@ class WrittenTests:
 class IndependentTestsResult:
     """The independent tests' result on the finished project."""
 
-    status: str  # passed | failed | error | none
+    status: str  # passed | failed | split | error | none
     summary: str
     model: str
     output: str = ""
+    # With several sets: each set's own result, in order.
+    sets: tuple[IndependentTestsResult, ...] = ()
 
 
 # (prompt, scratch folder, cfg, usage_id) -> {usage_id: metrics}
@@ -230,6 +238,99 @@ def write_tests(
     )
 
 
+@dataclass(frozen=True)
+class TestSets:
+    """Every set of tests written for one run, under one scratch folder."""
+
+    scratch: Path
+    sets: tuple[WrittenTests, ...]
+
+    @property
+    def model(self) -> str:
+        return self.sets[0].model if self.sets else ""
+
+    @property
+    def metrics(self) -> dict[str, dict]:
+        merged: dict[str, dict] = {}
+        for written in self.sets:
+            merged.update(written.metrics)
+        return merged
+
+    @property
+    def usage_ids(self) -> list[str]:
+        return [set_usage_id(k) for k in range(1, len(self.sets) + 1)]
+
+
+def set_usage_id(k: int) -> str:
+    """The writer of set `k` (from 1): `certo:test-writer`, then `-2`, `-3`."""
+    return WRITER_USAGE_ID if k == 1 else f"{WRITER_USAGE_ID}-{k}"
+
+
+def write_test_sets(
+    task: str,
+    cfg: Config,
+    scratch: Path,
+    *,
+    count: int,
+    project: Path | None = None,
+    parallel: bool = True,
+    run_writer: WriterRun | None = None,
+) -> TestSets:
+    """`count` independent writers, each in `scratch/set<k>` with its own
+    copy of the project; at the same time when `parallel` (a local model
+    server answers one at a time, so the caller passes False for one)."""
+    scratch = scratch.resolve()
+
+    def one(k: int) -> WrittenTests:
+        return write_tests(
+            task,
+            cfg,
+            scratch / f"set{k}",
+            project=project,
+            usage_id=set_usage_id(k),
+            run_writer=run_writer,
+        )
+
+    numbers = range(1, count + 1)
+    if parallel and count > 1:
+        with ThreadPoolExecutor(count) as pool:
+            sets = tuple(pool.map(one, numbers))
+    else:
+        sets = tuple(one(k) for k in numbers)
+    return TestSets(scratch=scratch, sets=sets)
+
+
+def failing_sets_needed(count: int) -> int:
+    """How many sets must fail for the result to be `failed`: most of them
+    (1 of 1, 2 of 2, 2 of 3, 3 of 4, 3 of 5)."""
+    return count // 2 + 1
+
+
+def run_test_sets(
+    written: TestSets, workspace: str | Path, runner: CommandRunner | None = None
+) -> IndependentTestsResult:
+    """Run every set on the finished project and vote. One set: its own
+    result. Several: `failed` when most of the sets failed, `split` when
+    some did but fewer, `passed` when every set that ran passed; a set that
+    couldn't run or has no tests counts as not failing."""
+    results = tuple(run_independent_tests(w, workspace, runner) for w in written.sets)
+    if len(results) == 1:
+        return results[0]
+    ran = [r for r in results if r.status in ("passed", "failed")]
+    failed = sum(r.status == "failed" for r in ran)
+    count = len(results)
+    if not ran:
+        return replace(results[0], sets=results)
+    if failed >= failing_sets_needed(count):
+        status = "failed"
+    elif failed:
+        status = "split"
+    else:
+        status = "passed"
+    summary = f"{failed} of {count} sets failed" if failed else f"{len(ran)} of {count} sets passed"
+    return IndependentTestsResult(status, summary, written.model, sets=results)
+
+
 def run_independent_tests(
     written: WrittenTests, workspace: str | Path, runner: CommandRunner | None = None
 ) -> IndependentTestsResult:
@@ -273,6 +374,11 @@ def failing_tests(result: IndependentTestsResult, limit: int = 5) -> list[str]:
 
 def report_line(result: IndependentTestsResult) -> str:
     """The line under the verdict."""
+    if result.sets and result.status in ("passed", "failed", "split"):
+        return (
+            f"Independent tests: {result.status}, {result.summary} "
+            f"(written from the task by {result.model}; report only)."
+        )
     if result.status == "none":
         return f"Independent tests: none ({result.summary})."
     if result.status == "error":
@@ -281,3 +387,13 @@ def report_line(result: IndependentTestsResult) -> str:
         f"Independent tests: {result.status}, {result.summary} "
         f"(written from the task by {result.model}; report only)."
     )
+
+
+def set_lines(result: IndependentTestsResult, limit: int = 5) -> list[str]:
+    """With several sets: one line per set, naming its failing tests."""
+    lines = []
+    for k, one in enumerate(result.sets, start=1):
+        names = failing_tests(one, limit)
+        detail = f": {', '.join(names)}" if names else ""
+        lines.append(f"set {k}: {one.status} ({one.summary}){detail}")
+    return lines

@@ -27,45 +27,67 @@ model, `--auto-model` and `--escalate`, on local runs.
 
 ## What happens
 
-1. **Before the build**, a separate, short conversation with the same
-   model (with `--escalate`, the first model on the ladder) reads the task
-   and a copy of the project as it is before the agent starts. It writes
-   tests for what the task states, or none when the task doesn't say what
-   to call (a function, a command, an endpoint) or in which language.
+1. **Before the build**, three separate, short conversations with the same
+   model (with `--escalate`, the first model on the ladder) each read the
+   task and a copy of the project as it is before the agent starts. Each
+   writes its own *set* of tests for what the task states, or none when
+   the task doesn't say what to call (a function, a command, an endpoint)
+   or in which language.
 2. **The tests stay outside the project** while the agent works, so the
    agent can't see, run or change them.
-3. **After the verdict**, Certo copies the tests into the project, runs
-   them, and removes them again.
+3. **After the verdict**, Certo copies each set into the project, runs
+   it, and removes it again.
+4. **The sets vote.** The result is `failed` only when most sets fail (2
+   of 3). A wrong test usually turns up in one set only, so one failing
+   set alone is reported as `split`.
 
 They can be written in Python (pytest), Node (`node --test`), Go and Rust.
 For a Go or Rust project the task must name the module or crate.
 
+`CERTO_INDEPENDENT_TESTS_SETS` sets how many sets are written, from 1 to
+5. Each set costs one more short conversation. With a cloud model they
+are written at the same time; with a local one, one after another.
+
 ## What you see
 
 From a real run (`ledger-transfers`, one of Certo's benchmark tasks, with
-`claude-haiku-5-5`):
+`claude-haiku-5-5`; the folder paths are shortened):
 
 ```text
-Certo: writing independent tests from the task with anthropic/claude-haiku-5-5.
-Certo: independent tests written (test_bugfixes.py, test_transfers.py); the agent won't see them.
+Certo: writing 3 sets of independent tests from the task with anthropic/claude-haiku-5-5.
+Certo: independent tests written in set 1 (test_parenthesized_amounts.py, test_store_uncategorized.py, test_transfer_report.py, test_transfers.py); the agent won't see them.
+Certo: independent tests written in set 2 (test_bug_fixes.py, test_transfers.py); the agent won't see them.
+Certo: independent tests written in set 3 (test_ledger_fixes.py, test_transfers.py); the agent won't see them.
 […]
 Verification: verified
-Independent tests: failed, 1 failed, 17 passed in 0.03s (written from the task by anthropic/claude-haiku-5-5; report only).
-  - .certo_hidden_tests/test_transfers.py::test_amount_sign_and_currency_must_match
+Independent tests: failed, 3 of 3 sets failed (written from the task by anthropic/claude-haiku-5-5; report only).
+  - set 1: failed (1 failed, 22 passed in 0.04s): .certo_hidden_tests/test_transfers.py::test_outgoing_must_be_negative_and_incoming_positive[100.00--100.00]
+  - set 2: failed (1 failed, 25 passed in 0.03s): .certo_hidden_tests/test_transfers.py::test_amounts_must_be_equal_and_opposite[100--100]
+  - set 3: failed (1 failed, 14 passed in 0.03s): .certo_hidden_tests/test_transfers.py::test_amounts_must_match_in_size_currency_and_sign
 ```
 
 In this run the agent's work was right (the task's hidden tests passed 27
-of 27), and the failing independent test was wrong: it read a rule of the
-task the wrong way. That is why the result is a report, not a verdict.
-When an independent test fails, read it before you trust it either way.
+of 27), and all three sets were wrong in the same way. The task defines
+the outgoing side of a transfer by its negative amount; the tests called
+one transaction "outgoing" by its name and expected a +100 there to stop
+the match. When the task's words invite one misreading, most writers make
+it, and voting doesn't help. That is why the result is a report, not a
+verdict. When an independent test fails, read it before you trust it
+either way.
 
 Other results:
 
-- `Independent tests: passed, …`: they all passed.
+- `Independent tests: passed, …`: every set that ran passed.
+- `Independent tests: split, 1 of 3 sets failed …`: a set failed, but
+  not most of them. Often a wrong test, sometimes a real bug only one
+  writer thought of; read the failing test.
 - `Independent tests: none (…)`: no tests were written; the reason
   follows, often that the task names nothing to call.
 - `Independent tests: couldn't run (…)`: the tests couldn't run, for
   example a missing toolchain.
+
+With `CERTO_INDEPENDENT_TESTS_SETS=1` there is one set and no vote; the
+line shows that set's own result.
 
 ## How often they're right
 
@@ -80,21 +102,27 @@ Measured on 379 projects from earlier benchmark runs, with
 - Some failures on work the benchmark counted as right were real bugs,
   such as accepting `NaN` where the task asked for a number greater
   than 0.
+- With "2 of 3 sets must fail", those wrong tests stopped counting
+  (none of the 13 reference solutions failed) and 7 of the 8 were still
+  caught.
+- The vote doesn't help when most writers misread the task the same
+  way, as in the run above.
 
 So read a failing independent test before you trust it either way.
 
 ## Keep the tests
 
 With [`CERTO_ARTIFACTS_DIR`](../reference/configuration.md) set, the
-tests are kept in the run's record folder, under `independent_tests/`, so
-you can read the one that failed. They are never left in the project,
+tests are kept in the run's record folder, under `independent_tests/`
+(one folder per set: `set1/`, `set2/`, …), so you can read the one that
+failed. They are never left in the project,
 where a later task's agent could see them.
 
 ## Costs and limits
 
-- **Cost:** one extra short conversation per task. Its tokens and cost
-  are part of the run summary. In the run above, the whole task cost
-  $0.043.
+- **Cost:** one extra short conversation per set, three by default.
+  Their tokens and cost are part of the run summary. In the run above,
+  the whole task cost $0.073.
 - **Not on `--resume`**: the project already holds earlier work, so it
   isn't "before the build" any more.
 - **Not with `--execution docker`**, and not in server mode yet.

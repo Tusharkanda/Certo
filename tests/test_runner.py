@@ -2907,12 +2907,17 @@ def test_run_task_passes_certo_notices_on_as_they_happen(monkeypatch):
 # --- CERTO_INDEPENDENT_TESTS: written before the build, run after ---------
 
 
-def _independent_tests_run(monkeypatch, tmp_path, *, verdict="verified", **cfg_overrides):
-    """stream_task with a fake conversation, verification, writer and test
-    run; returns (outcome, the order things happened in, what the fakes saw)."""
+def _independent_tests_run(
+    monkeypatch, tmp_path, *, verdict="verified", set_results=(), **cfg_overrides
+):
+    """stream_task with a fake conversation, verification, writers and test
+    runs (one set unless `independent_tests_sets` says otherwise; each set's
+    result from `set_results`); returns (outcome, the order things happened
+    in, what the fakes saw)."""
     from pathlib import Path
 
-    from certo.independent_tests import WRITER_USAGE_ID, IndependentTestsResult, WrittenTests
+    import certo.independent_tests as it
+    from certo.independent_tests import IndependentTestsResult, WrittenTests
 
     events: list[str] = []
     seen: dict = {}
@@ -2929,9 +2934,10 @@ def _independent_tests_run(monkeypatch, tmp_path, *, verdict="verified", **cfg_o
     monkeypatch.setattr(runner, "build_workspace", lambda cfg: nullcontext("fake-workspace"))
     _mock_task_tracker_and_verify(monkeypatch, verification_state=verdict)
 
-    def fake_write(task, writer_cfg, scratch, *, project):
+    def fake_write(task, writer_cfg, scratch, *, project, usage_id, run_writer):
         events.append("write")
-        seen.update(task=task, model=writer_cfg.model, project=project, scratch=scratch)
+        seen.update(task=task, model=writer_cfg.model, project=project)
+        seen.setdefault("scratches", []).append(scratch)
         folder = Path(scratch) / "new_tests"
         folder.mkdir(parents=True)
         return WrittenTests(
@@ -2939,16 +2945,22 @@ def _independent_tests_run(monkeypatch, tmp_path, *, verdict="verified", **cfg_o
             model=writer_cfg.model,
             files=("test_x.py",),
             language="python",
-            metrics={WRITER_USAGE_ID: {"accumulated_cost": 0.25}},
+            metrics={usage_id: {"accumulated_cost": 0.25}},
         )
 
-    def fake_run(written, workspace):
+    def fake_run(written, workspace, runner=None):
         events.append("independent tests")
         seen["ran_in"] = workspace
-        return IndependentTestsResult("failed", "1 failed, 2 passed", written.model)
+        return (
+            results.pop(0)
+            if results
+            else IndependentTestsResult("failed", "1 failed, 2 passed", written.model)
+        )
 
-    monkeypatch.setattr(runner, "write_tests", fake_write)
-    monkeypatch.setattr(runner, "run_independent_tests", fake_run)
+    results = list(set_results)
+    monkeypatch.setattr(it, "write_tests", fake_write)
+    monkeypatch.setattr(it, "run_independent_tests", fake_run)
+    cfg_overrides.setdefault("independent_tests_sets", 1)
     cfg = _cfg(workspace=str(tmp_path), **cfg_overrides)
     outcome = runner.stream_task("Write calc.add.", cfg=cfg)
     return outcome, events, seen
@@ -2967,8 +2979,9 @@ def test_independent_tests_are_written_before_the_build_and_run_after(monkeypatc
     assert events == ["write", "build", "independent tests"]
     assert seen["task"] == "Write calc.add." and seen["model"] == "openai/gpt-4o"
     assert str(seen["project"]) == str(tmp_path) and seen["ran_in"] == str(tmp_path)
-    assert not str(seen["scratch"]).startswith(str(tmp_path))  # outside the project
-    assert not seen["scratch"].exists()  # removed afterwards
+    (scratch,) = seen["scratches"]
+    assert not str(scratch).startswith(str(tmp_path))  # outside the project
+    assert not scratch.exists()  # removed afterwards
 
 
 def test_independent_tests_never_change_the_verdict(monkeypatch, tmp_path):
@@ -2988,7 +3001,7 @@ def test_the_writers_cost_is_in_the_run_summary(monkeypatch, tmp_path):
 def test_independent_tests_are_skipped_under_docker(monkeypatch, tmp_path):
     notices = []
     cfg = _cfg(workspace=str(tmp_path), independent_tests=True, execution="docker")
-    monkeypatch.setattr(runner, "write_tests", lambda *a, **k: pytest.fail("written"))
+    monkeypatch.setattr(runner, "write_test_sets", lambda *a, **k: pytest.fail("written"))
     monkeypatch.setattr(runner, "_emit_notice", lambda _emit, text: notices.append(text))
 
     assert runner._write_independent_tests("t", cfg, cfg, lambda _m: None) is None
@@ -2998,25 +3011,34 @@ def test_independent_tests_are_skipped_under_docker(monkeypatch, tmp_path):
 def test_independent_tests_are_skipped_on_resume(monkeypatch, tmp_path):
     notices = []
     cfg = _cfg(workspace=str(tmp_path), independent_tests=True)
-    monkeypatch.setattr(runner, "write_tests", lambda *a, **k: pytest.fail("written"))
+    monkeypatch.setattr(runner, "write_test_sets", lambda *a, **k: pytest.fail("written"))
     monkeypatch.setattr(runner, "_emit_notice", lambda _emit, text: notices.append(text))
 
     assert runner._write_independent_tests("t", cfg, cfg, lambda _m: None, resuming=True) is None
     assert "aren't written on --resume" in notices[0]
 
 
-def test_independent_tests_are_kept_in_the_run_records_not_the_project(monkeypatch, tmp_path):
-    from certo.independent_tests import IndependentTestsResult, WrittenTests
+def _test_sets(tmp_path, count):
+    from certo.independent_tests import TestSets, WrittenTests
 
     scratch = tmp_path / "scratch"
-    folder = scratch / "new_tests"
-    folder.mkdir(parents=True)
-    (folder / "test_x.py").write_text("def test_x():\n    assert True\n")
-    written = WrittenTests(folder=folder, model="m", files=("test_x.py",), language="python")
+    sets = []
+    for k in range(1, count + 1):
+        folder = scratch / f"set{k}" / "new_tests"
+        folder.mkdir(parents=True)
+        (folder / "test_x.py").write_text("def test_x():\n    assert True\n")
+        sets.append(WrittenTests(folder=folder, model="m", files=("test_x.py",), language="python"))
+    return TestSets(scratch=scratch, sets=tuple(sets))
+
+
+def _kept(monkeypatch, tmp_path, count):
+    import certo.independent_tests as it
+
+    written = _test_sets(tmp_path, count)
     monkeypatch.setattr(
-        runner,
+        it,
         "run_independent_tests",
-        lambda w, ws: IndependentTestsResult("passed", "1 passed", "m"),
+        lambda w, ws, r=None: it.IndependentTestsResult("passed", "1 passed", "m"),
     )
     outcome = runner.TaskOutcome(
         verification_state="verified",
@@ -3025,11 +3047,46 @@ def test_independent_tests_are_kept_in_the_run_records_not_the_project(monkeypat
         ),
     )
     records = tmp_path / "records" / "run-1"
-
     result = runner._apply_independent_tests(
         outcome, written, _cfg(workspace=str(tmp_path / "project")), str(records)
     )
+    return result, records / "independent_tests", written.scratch
+
+
+def test_independent_tests_are_kept_in_the_run_records_not_the_project(monkeypatch, tmp_path):
+    result, kept, scratch = _kept(monkeypatch, tmp_path, 1)
 
     assert result.independent_tests.status == "passed"
-    assert (records / "independent_tests" / "test_x.py").is_file()
+    assert (kept / "test_x.py").is_file()
     assert not scratch.exists()
+
+
+def test_several_sets_are_kept_one_folder_each(monkeypatch, tmp_path):
+    result, kept, scratch = _kept(monkeypatch, tmp_path, 3)
+
+    assert result.independent_tests.summary == "3 of 3 sets passed"
+    assert [p.name for p in sorted(kept.iterdir())] == ["set1", "set2", "set3"]
+    assert not scratch.exists()
+
+
+def test_three_sets_are_written_and_vote(monkeypatch, tmp_path):
+    from certo.independent_tests import IndependentTestsResult as R
+
+    outcome, events, seen = _independent_tests_run(
+        monkeypatch,
+        tmp_path,
+        independent_tests=True,
+        independent_tests_sets=3,
+        set_results=[
+            R("failed", "1 failed", "m"),
+            R("passed", "4 passed", "m"),
+            R("failed", "2 failed", "m"),
+        ],
+    )
+
+    assert events.count("write") == 3 and events[3:] == ["build"] + ["independent tests"] * 3
+    assert len({s.parent for s in seen["scratches"]}) == 1  # one scratch folder
+    assert outcome.independent_tests.status == "failed"
+    assert outcome.independent_tests.summary == "2 of 3 sets failed"
+    assert outcome.verification_state == "verified"  # report only
+    assert outcome.run_summary.total_cost == pytest.approx(0.75)  # every writer counted

@@ -36,6 +36,7 @@ DEFAULT_MAX_ITERATIONS = 50
 DEFAULT_CONFIRM_MODE = "never"
 DEFAULT_EXECUTION = "local"
 DEFAULT_PROJECTS_DIR = "./projects"
+MAX_INDEPENDENT_TESTS_SETS = 5
 # First-party catalog shipped inside the package, so it loads from any cwd
 # and from an installed wheel, not only from a repo checkout.
 BUILTIN_SKILLS_DIR = str(Path(__file__).resolve().parent / "builtin_skills")
@@ -186,6 +187,9 @@ class Config:
     # verdict Certo runs them and reports the result next to it, without
     # changing the verdict (independent_tests.py). Local runs only.
     independent_tests: bool = False
+    # CERTO_INDEPENDENT_TESTS_SETS: how many writers each write a set; the
+    # result is "failed" only when most sets fail (1 to 5).
+    independent_tests_sets: int = 3
 
     # The full SDK console output: the system prompt, the whole task with
     # its skills, the SDK's INFO logs. Off by default (console.py shows a
@@ -648,6 +652,12 @@ def load_config(
     )
     verbose = _parse_bool(env, "VERBOSE", default=False)
     independent_tests = _parse_bool(env, "INDEPENDENT_TESTS", default=False)
+    independent_tests_sets = _parse_positive_int(env, "INDEPENDENT_TESTS_SETS", default=3)
+    if independent_tests_sets > MAX_INDEPENDENT_TESTS_SETS:
+        raise ConfigError(
+            f"CERTO_INDEPENDENT_TESTS_SETS must be at most {MAX_INDEPENDENT_TESTS_SETS}, "
+            f"got {independent_tests_sets}."
+        )
     model_selection = _parse_choice(
         env,
         "MODEL_SELECTION",
@@ -700,6 +710,7 @@ def load_config(
         task_store_redis_use_tls=task_store_redis_use_tls,
         interactive=interactive,
         independent_tests=independent_tests,
+        independent_tests_sets=independent_tests_sets,
         verbose=verbose,
         model_selection=model_selection,
         models_file=models_file,

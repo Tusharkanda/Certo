@@ -398,7 +398,12 @@ given design was chosen.
   `persistence_dir=None`, usage id `certo:test-writer`) that writes into
   `scratch/new_tests/` or leaves `NO_TESTS.txt`. `run_independent_tests()`
   checks the files' hashes and runs them with `bench_tasks.run_test_folder
-  (clean_up=True)`; `report_line()` is the line under the verdict.
+  (clean_up=True)`; `report_line()` is the line under the verdict. The
+  runner uses the set layer: `write_test_sets(count=)` writes each set in
+  `scratch/set<k>/` with usage id `certo:test-writer`, `-2`, `-3`
+  (threads unless the model is local), and `run_test_sets()` votes
+  (`failed` at `failing_sets_needed(n)` = most sets, else `split`;
+  one set returns its own result unchanged); `set_lines()` lists each set.
 - **`plugins.py`** — `foreign_plugins(workspace, projects_dir)`: the
   OpenHands plugins the SDK would load into a local run that don't belong
   to it (every user plugin; a project plugin from outside a generated

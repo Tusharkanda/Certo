@@ -588,6 +588,18 @@ def test_verbose_defaults_to_false_and_reads_yes():
     assert load_config(_base_env(CERTO_VERBOSE="yes")).verbose is True
 
 
+# --- Independent test sets (CERTO_INDEPENDENT_TESTS_SETS) ----------------
+
+
+def test_independent_tests_sets_default_to_three_and_stay_between_1_and_5():
+    assert load_config(_base_env()).independent_tests_sets == 3
+    assert load_config(_base_env(CERTO_INDEPENDENT_TESTS_SETS="1")).independent_tests_sets == 1
+    with pytest.raises(ConfigError, match="at most 5"):
+        load_config(_base_env(CERTO_INDEPENDENT_TESTS_SETS="6"))
+    with pytest.raises(ConfigError, match="positive"):
+        load_config(_base_env(CERTO_INDEPENDENT_TESTS_SETS="0"))
+
+
 # --- Deterministic auto model selection (CERTO_MODEL_SELECTION) ----------
 
 

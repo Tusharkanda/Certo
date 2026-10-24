@@ -186,3 +186,88 @@ def test_failing_pytest_names_start_at_the_tests_folder():
     result = it.IndependentTestsResult("failed", "1 failed", "m", line)
 
     assert it.failing_tests(result) == [".certo_hidden_tests/test_durations.py::test_parse_parts"]
+
+
+# --- Several sets, each by its own writer, voting -------------------------
+
+
+def test_each_set_has_its_own_writer_folder_and_usage_id(tmp_path):
+    used = []
+
+    def run(prompt: str, scratch: Path, cfg: Config, usage_id: str) -> dict[str, dict]:
+        used.append((scratch, usage_id))
+        (scratch / it.TESTS_DIR / "test_add.py").write_text(TEST_ADD)
+        return {usage_id: {"accumulated_cost": 0.001}}
+
+    written = it.write_test_sets("Write calc.add.", _cfg(), tmp_path, count=3, run_writer=run)
+
+    assert [w.folder for w in written.sets] == [
+        tmp_path.resolve() / f"set{k}" / it.TESTS_DIR for k in (1, 2, 3)
+    ]
+    assert sorted(u for _, u in used) == [
+        "certo:test-writer",
+        "certo:test-writer-2",
+        "certo:test-writer-3",
+    ]
+    assert written.usage_ids == ["certo:test-writer", "certo:test-writer-2", "certo:test-writer-3"]
+    assert set(written.metrics) == set(written.usage_ids)  # every writer's cost
+    assert written.scratch == tmp_path.resolve()
+
+
+def test_most_sets_must_fail():
+    assert [it.failing_sets_needed(n) for n in (1, 2, 3, 4, 5)] == [1, 2, 2, 3, 3]
+
+
+def _sets(tmp_path: Path, statuses: list[str], monkeypatch) -> it.IndependentTestsResult:
+    sets = tuple(
+        it.WrittenTests(folder=tmp_path / f"set{k}", model="m", language="python")
+        for k in range(1, len(statuses) + 1)
+    )
+    results = {
+        w.folder: it.IndependentTestsResult(s, f"{s} summary", "m", f"FAILED t.py::t{k}")
+        for k, (w, s) in enumerate(zip(sets, statuses, strict=True), start=1)
+    }
+    monkeypatch.setattr(it, "run_independent_tests", lambda w, ws, r=None: results[w.folder])
+    return it.run_test_sets(it.TestSets(scratch=tmp_path, sets=sets), tmp_path)
+
+
+def test_two_of_three_failing_sets_fail(tmp_path, monkeypatch):
+    result = _sets(tmp_path, ["failed", "passed", "failed"], monkeypatch)
+
+    assert (result.status, result.summary) == ("failed", "2 of 3 sets failed")
+    assert it.report_line(result) == (
+        "Independent tests: failed, 2 of 3 sets failed (written from the task by m; report only)."
+    )
+    assert it.set_lines(result) == [
+        "set 1: failed (failed summary): t.py::t1",
+        "set 2: passed (passed summary): t.py::t2",
+        "set 3: failed (failed summary): t.py::t3",
+    ]
+
+
+def test_one_failing_set_of_three_is_split(tmp_path, monkeypatch):
+    result = _sets(tmp_path, ["passed", "failed", "passed"], monkeypatch)
+
+    assert (result.status, result.summary) == ("split", "1 of 3 sets failed")
+
+
+def test_a_set_that_couldnt_run_doesnt_count_as_failing(tmp_path, monkeypatch):
+    result = _sets(tmp_path, ["error", "passed", "failed"], monkeypatch)
+
+    assert result.status == "split"
+    passed = _sets(tmp_path, ["none", "passed", "passed"], monkeypatch)
+    assert (passed.status, passed.summary) == ("passed", "2 of 3 sets passed")
+
+
+def test_no_set_ran_reports_the_first_reason(tmp_path, monkeypatch):
+    result = _sets(tmp_path, ["none", "none", "error"], monkeypatch)
+
+    assert result.status == "none" and len(result.sets) == 3
+    assert it.report_line(result) == "Independent tests: none (none summary)."
+
+
+def test_one_set_reports_as_before(tmp_path, monkeypatch):
+    result = _sets(tmp_path, ["failed"], monkeypatch)
+
+    assert result.sets == () and it.set_lines(result) == []
+    assert it.report_line(result).startswith("Independent tests: failed, failed summary")

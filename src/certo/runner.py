@@ -42,11 +42,10 @@ from .catalog_check import load_checked_catalog
 from .config import Config, load_config, override_llm
 from .console import quiet_sdk_logs, visualizer_for
 from .independent_tests import (
-    WRITER_USAGE_ID,
     IndependentTestsResult,
-    WrittenTests,
-    run_independent_tests,
-    write_tests,
+    TestSets,
+    run_test_sets,
+    write_test_sets,
 )
 from .verification import (
     CheckOutcome,
@@ -70,7 +69,7 @@ from .escalation import (
     workspace_listing,
 )
 from .model_catalog import classify_task, find_trigger, rank_for_profile, task_title
-from .model_pricing import estimate_run_cost
+from .model_pricing import estimate_run_cost, is_local
 from .model_selection import (
     ModelChain,
     ModelDecisionRecord,
@@ -1178,9 +1177,10 @@ def _write_independent_tests(
     emit: Callable[[Message], None],
     *,
     resuming: bool = False,
-) -> WrittenTests | None:
-    """CERTO_INDEPENDENT_TESTS: have `writer_cfg`'s model write tests before
-    the build, from the task and the project as it is now, into a folder
+) -> TestSets | None:
+    """CERTO_INDEPENDENT_TESTS: have `writer_cfg`'s model write
+    `cfg.independent_tests_sets` sets of tests before the build, each by its
+    own writer, from the task and the project as it is now, into a folder
     outside the project. None when the setting is off, or the run can't
     have them (Docker: the tests run on this computer; a resume: the
     project already holds earlier work)."""
@@ -1196,45 +1196,61 @@ def _write_independent_tests(
             "holds earlier work); skipped.",
         )
         return None
-    _emit_notice(emit, f"Certo: writing independent tests from the task with {writer_cfg.model}.")
+    count = cfg.independent_tests_sets
+    sets = "a set" if count == 1 else f"{count} sets"
+    _emit_notice(
+        emit, f"Certo: writing {sets} of independent tests from the task with {writer_cfg.model}."
+    )
     scratch = Path(tempfile.mkdtemp(prefix="certo-independent-tests-"))
-    written = write_tests(task, writer_cfg, scratch, project=Path(cfg.workspace))
-    if written.runnable:
-        _emit_notice(
-            emit,
-            f"Certo: independent tests written ({', '.join(written.files)}); the agent "
-            "won't see them.",
-        )
-    else:
-        _emit_notice(emit, f"Certo: no independent tests: {written.reason}")
+    # A local model server answers one request at a time: write one by one.
+    written = write_test_sets(
+        task,
+        writer_cfg,
+        scratch,
+        count=count,
+        project=Path(cfg.workspace),
+        parallel=not is_local(writer_cfg),  # model and base_url are all it reads
+    )
+    for k, one in enumerate(written.sets, start=1):
+        which = "" if count == 1 else f" in set {k}"
+        if one.runnable:
+            _emit_notice(
+                emit,
+                f"Certo: independent tests written{which} ({', '.join(one.files)}); the agent "
+                "won't see them.",
+            )
+        else:
+            _emit_notice(emit, f"Certo: no independent tests{which}: {one.reason}")
     return written
 
 
 def _apply_independent_tests(
     outcome: TaskOutcome,
-    written: WrittenTests | None,
+    written: TestSets | None,
     cfg: Config,
     keep_in: str | None = None,
 ) -> TaskOutcome:
     """Run the independent tests on the finished project and attach the
     result. Report only: `verification_state` stays as it is. The tests are
     copied to `keep_in` (the run's records folder, never the project, so a
-    later task's agent can't see them), then the scratch folder is removed."""
+    later task's agent can't see them; one folder per set when there are
+    several), then the scratch folder is removed."""
     if written is None:
         return outcome
     try:
-        result = run_independent_tests(written, cfg.workspace)
+        result = run_test_sets(written, cfg.workspace)
     except Exception as exc:  # noqa: BLE001 - report only, never the run's outcome
         result = IndependentTestsResult("error", f"{type(exc).__name__}: {exc}", written.model)
     finally:
         if keep_in is not None:
+            target = Path(keep_in) / "independent_tests"
             try:
-                shutil.copytree(
-                    written.folder, Path(keep_in) / "independent_tests", dirs_exist_ok=True
-                )
+                for k, one in enumerate(written.sets, start=1):
+                    where = target if len(written.sets) == 1 else target / f"set{k}"
+                    shutil.copytree(one.folder, where, dirs_exist_ok=True)
             except OSError:
                 logger.warning("Could not keep the independent tests", exc_info=True)
-        shutil.rmtree(written.folder.parent, ignore_errors=True)
+        shutil.rmtree(written.scratch, ignore_errors=True)
     return replace(outcome, independent_tests=result)
 
 
@@ -1538,7 +1554,7 @@ def stream_task(
             raise
         finally:
             if written is not None:  # already gone after a normal finish
-                shutil.rmtree(written.folder.parent, ignore_errors=True)
+                shutil.rmtree(written.scratch, ignore_errors=True)
             if state_writer is not None and captured_error is not None:
                 state_writer.fail(captured_error)
             # Written even when a phase raises (e.g. every candidate in an
@@ -1551,7 +1567,7 @@ def stream_task(
             efforts = _usage_efforts(cfg, agent_cfg, model_chain)
             if written is not None:
                 per_model_metrics.update(written.metrics)
-                efforts[WRITER_USAGE_ID] = agent_cfg.reasoning_effort
+                efforts.update(dict.fromkeys(written.usage_ids, agent_cfg.reasoning_effort))
             run_summary = summarize_run(time.monotonic() - run_started, per_model_metrics, efforts)
             if cfg.artifacts_dir:
                 stats = conversation.conversation_stats
@@ -2128,7 +2144,7 @@ def _stream_escalation(
     written = _write_independent_tests(task, first_cfg, cfg, io.emit)
     if written is not None:
         per_model_metrics.update(written.metrics)
-        efforts[WRITER_USAGE_ID] = first_cfg.reasoning_effort
+        efforts.update(dict.fromkeys(written.usage_ids, first_cfg.reasoning_effort))
     captured_error: BaseException | None = None
     try:
         with build_workspace(cfg) as workspace:
@@ -2323,7 +2339,7 @@ def _stream_escalation(
         raise
     finally:
         if written is not None:  # already gone after a normal finish
-            shutil.rmtree(written.folder.parent, ignore_errors=True)
+            shutil.rmtree(written.scratch, ignore_errors=True)
         write_model_decisions(cfg.workspace, decisions)
         if cfg.artifacts_dir:
             final = final_outcome if captured_error is None else None
