@@ -3,6 +3,31 @@
 Questions people have asked about Certo, with short answers and links to
 the pages that explain each one in full.
 
+## Choosing models
+
+### Do I have to rate the models myself?
+
+No, there is a default to start from. Certo's example model list,
+`models_list.yaml`, rates each model from 1 to 5 on reasoning,
+precision, code and cost (on every rating, higher is better, so `cost: 5`
+means cheapest). The ratings are based on public benchmarks that compare
+providers. They are not measured on your projects. `certo init models`
+uses them as they are.
+
+You rate a model only when it isn't in the list: `certo init models`
+asks for its ratings and shows the ratings of your other models next to
+them, so you use the same scale. Certo never makes up a rating. To
+change a rating for yourself, override it in `models.yaml`
+(`ratings: {code: 4}`).
+
+To check the ratings against your own work, give the same task to
+several models ([Compare models on one task](guides/compare-models-on-a-task.md)),
+or run the [benchmark](guides/benchmark.md) with tasks of your own. If
+you would rather not use ratings for escalation, write the order
+yourself as a ladder in `escalation.yaml`. See
+[Pick models automatically](guides/pick-models-automatically.md) and
+[Escalate between models](guides/escalate-between-models.md).
+
 ## Handing a task to another model
 
 ### How does Certo decide a model can't finish?
@@ -110,6 +135,41 @@ the folder as it is, half-finished work included, and the note asks it
 to look at the files first, keep what works and finish the task. The
 file lists in the note come from comparing the folder before and after
 the previous model's turn; they are a list of files, not a full diff.
+
+### What if the provider drops in the middle of a model's work?
+
+The model's turn ends there, and the task moves to the next model. A
+provider fails during a call to the model, between tool calls, so each
+file edit the model made either happened or didn't. Certo runs no
+checks on that turn: there is no failing check output to pass on. The
+next model's note says the turn ended with a provider failure, names the
+error, and lists the files the model had created, changed or deleted by
+then. Then the next model works on the files as they are.
+
+A recorded run where the first model's provider fails:
+[Escalation past a provider failure](benchmark/escalation-provider-failure-0.1.22.md).
+
+### Is the final result reproducible if several models touched the files?
+
+The verdict is. It comes from Certo running the project's own checks on
+the folder as it is at the end, with no model involved. So whichever
+models worked on it, and in whatever order, `certo verify` on the same
+folder runs the same checks again, at no cost. In the benchmark, the
+hidden tests also run on the final folder only.
+
+The path that led there is not reproducible: models don't give the same
+answer twice, and a provider failure can come at any point. To see what
+each model did, keep the run records (next question).
+
+### Does `--auto-model` hand off the same way?
+
+No. [`--auto-model`](guides/pick-models-automatically.md) keeps the
+**same conversation** and swaps only the model, so the next model sees
+the full history as well as the files. It switches when the provider
+fails, or when a fix attempt still fails the checks. Under
+`--execution docker` it can't switch in the middle of a task.
+`--escalate` starts a fresh conversation for each model, as described
+above. Which to use: [Auto model or escalation](concepts/auto-model-or-escalation.md).
 
 ### Can I see what each model did, to debug a handoff?
 
