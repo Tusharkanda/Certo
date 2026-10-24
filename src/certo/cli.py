@@ -760,7 +760,12 @@ def main(argv: list[str] | None = None) -> int:
         args.require_verification and outcome.verification_state in _unproven_states()
     )
     if failing and save_state:
-        status = os.path.relpath(status_path(cfg.workspace))
+        status = status_path(cfg.workspace)
+        try:
+            status = os.path.relpath(status)
+        except ValueError:
+            # Windows cannot make a relative path between different drives.
+            pass
         print(f"\nWhere it stopped: {status}. Continue with: {resume_hint}")
     return 1 if failing else 0
 

@@ -339,7 +339,9 @@ def test_resolve_project_dir_allows_a_safe_nested_name(tmp_path):
 
     resolved = resolve_project_dir(projects_dir, "team/myapp")
 
-    assert resolved == os.path.join(os.path.abspath(projects_dir), "team", "myapp")
+    assert os.path.normpath(resolved) == os.path.join(
+        os.path.abspath(projects_dir), "team", "myapp"
+    )
 
 
 def test_resolve_project_dir_rejects_empty_or_dot_names(tmp_path):
@@ -367,20 +369,20 @@ def test_resolve_project_dir_rejects_dotdot_traversal(tmp_path):
             resolve_project_dir(projects_dir, traversal)
 
 
-def test_resolve_project_dir_rejects_a_symlinked_escape(tmp_path):
+def test_resolve_project_dir_rejects_a_symlinked_escape(tmp_path, directory_link):
     # Even a project name with no ".." at all must be rejected if the
     # resulting path resolves, via an existing symlink, outside projects_dir.
     projects_dir = tmp_path / "projects"
     projects_dir.mkdir()
     outside = tmp_path / "outside"
     outside.mkdir()
-    (projects_dir / "myapp").symlink_to(outside, target_is_directory=True)
+    directory_link(projects_dir / "myapp", outside)
 
     with pytest.raises(ConfigError, match="escapes CERTO_PROJECTS_DIR"):
         resolve_project_dir(str(projects_dir), "myapp")
 
 
-def test_resolve_project_dir_allows_a_symlink_that_stays_inside(tmp_path):
+def test_resolve_project_dir_allows_a_symlink_that_stays_inside(tmp_path, directory_link):
     # A symlink is not inherently a violation — only one that resolves
     # outside projects_dir is. This one points at a sibling directory that
     # is still under projects_dir.
@@ -388,7 +390,7 @@ def test_resolve_project_dir_allows_a_symlink_that_stays_inside(tmp_path):
     projects_dir.mkdir()
     real_target = projects_dir / "real-team-dir"
     real_target.mkdir()
-    (projects_dir / "myapp").symlink_to(real_target, target_is_directory=True)
+    directory_link(projects_dir / "myapp", real_target)
 
     resolved = resolve_project_dir(str(projects_dir), "myapp")
 
@@ -802,6 +804,7 @@ def test_user_settings_path_follows_xdg_config_home(tmp_path):
 @pytest.mark.parametrize("xdg", [None, "", "relative/dir"])
 def test_user_settings_path_falls_back_to_dot_config(xdg, monkeypatch, tmp_path):
     monkeypatch.setenv("HOME", str(tmp_path))
+    monkeypatch.setenv("USERPROFILE", str(tmp_path))
     env = {} if xdg is None else {"XDG_CONFIG_HOME": xdg}
     assert user_settings_path(env) == str(tmp_path / ".config" / "certo" / ".env")
 

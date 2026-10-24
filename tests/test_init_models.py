@@ -120,7 +120,8 @@ def test_choosing_a_listed_model_tests_both_and_writes_the_files(home):
         {"name": "qwen3.8-27b-local", "base_url": "http://gpu-box:11434"},
         {"name": "gemma4-31b-qat-local", "base_url": "http://gpu-box:11434"},
     ]
-    assert oct(os.stat(home / "models.yaml").st_mode & 0o777) == "0o600"
+    if os.name != "nt":  # Windows chmod cannot enforce Unix owner/group permissions.
+        assert oct(os.stat(home / "models.yaml").st_mode & 0o777) == "0o600"
     assert (home / "models_list.yaml").exists()
     # The copy's origin, for certo models update.
     assert (home / ".models_list.base.yaml").read_text() == (home / "models_list.yaml").read_text()

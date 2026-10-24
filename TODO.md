@@ -92,12 +92,6 @@ first item is the suggested next one.
 
 ## 3. Languages and verification
 
-- **Finish Windows test-suite support** ([#7](https://github.com/alessioricco/certo/issues/7),
-  reported in #6). Python environment discovery, dependency installation
-  and verification now handle Windows virtual environments. The suite still
-  has Windows failures involving path comparisons, Unix permissions,
-  symlink privileges and shell wrappers. Done when the suite passes on
-  Windows and the Known limitations line in `docs/README.md` can go.
 - **Run-the-app verification.** Start a server and probe an HTTP
   endpoint; build a frontend and load it in a headless browser (the SDK
   ships a browser tool) for a blank page or console errors.

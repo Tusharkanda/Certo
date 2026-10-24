@@ -39,6 +39,39 @@ def project_venv():
     return make_project_venv
 
 
+@pytest.fixture
+def make_symlink():
+    """Skip only when Windows explicitly denies symlink creation privileges."""
+
+    def create(link, target, *, target_is_directory=False):
+        try:
+            link.symlink_to(target, target_is_directory=target_is_directory)
+        except OSError as exc:
+            if os.name == "nt" and getattr(exc, "winerror", None) == 1314:
+                pytest.skip("Windows symlink creation requires Developer Mode or symlink privilege")
+            raise
+
+    return create
+
+
+@pytest.fixture(params=["symlink", *(["junction"] if os.name == "nt" else [])])
+def directory_link(request, make_symlink):
+    """Exercise directory containment with symlinks and real Windows junctions."""
+
+    def create(link, target):
+        if request.param == "symlink":
+            make_symlink(link, target, target_is_directory=True)
+        else:
+            subprocess.run(
+                ["cmd", "/d", "/c", "mklink", "/J", str(link), str(target)],
+                check=True,
+                capture_output=True,
+                text=True,
+            )
+
+    return create
+
+
 _REPO_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
 

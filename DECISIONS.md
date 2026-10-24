@@ -926,6 +926,15 @@ considered and live-verification detail: `docs/ROADMAP.txt`.
   benchmark (no copied repository, so no license question), and its
   hidden tests are checked against wrong variants of the reference
   before it ships.
+- **Windows portability follows the execution platform.** Local Java
+  verification uses `mvnw.cmd` and `gradlew.bat`; Docker keeps the Unix
+  wrappers. A failed run on another Windows drive prints an absolute
+  status path when a relative one cannot be formed. Tests compare native
+  paths, read UTF-8 reports explicitly, and control tool availability when
+  testing plan discovery. Symlink tests skip only Windows privilege error
+  1314; directory-containment checks also exercise Windows junctions. Unix
+  mode assertions stay on macOS/Linux because `chmod` does not set Windows
+  ACLs; the docs now state that limit instead of promising mode `600` there.
 - **A program that stops with its usage line has started** (2026-10-23,
   found by the `ledger-transfers` cloud run). The no-argument run of each
   Python entry point passes on exit 2 with a line starting `usage:`

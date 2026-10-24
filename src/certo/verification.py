@@ -33,6 +33,7 @@ import ast
 import json
 import os
 import re
+import sys
 import tomllib
 from collections.abc import Callable
 from dataclasses import dataclass, field
@@ -971,8 +972,11 @@ def _wrapper_or_tool(
     globally installed tool — the "prefer checked-in wrappers" convention of
     this project's own `testing-and-verification` skill. Returns
     (executable, error) — exactly one is None."""
+    windows = isinstance(runner, LocalRunner) and sys.platform == "win32"
+    if windows:
+        wrapper_name += ".cmd" if tool_name == "mvn" else ".bat"
     wrapper = os.path.join(root, wrapper_name)
-    if os.path.isfile(wrapper) and os.access(wrapper, os.X_OK):
+    if os.path.isfile(wrapper) and (windows or os.access(wrapper, os.X_OK)):
         return runner.exec_path(wrapper), None
     tool = runner.which(tool_name)
     if tool is not None:

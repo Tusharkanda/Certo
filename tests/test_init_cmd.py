@@ -378,7 +378,8 @@ def test_all_projects_writes_the_user_file_and_a_sample_folder_without_env(
     assert "Save these settings for:\n  1. All projects on this computer (recommended)\n" \
         "  2. This folder only\n" in script.text  # fmt: skip
     user = _user_file(tmp_path)
-    assert stat.S_IMODE(os.stat(user).st_mode) == 0o600
+    if os.name != "nt":  # Windows chmod does not set Unix owner/group permissions.
+        assert stat.S_IMODE(os.stat(user).st_mode) == 0o600
     assert dotenv_values(user)["CERTO_LLM_API_KEY"] == SECRET
     folder = tmp_path / "w"
     assert sorted(p.name for p in folder.iterdir()) == [".gitignore", "README.md", "tasks"]
@@ -450,7 +451,8 @@ def test_an_existing_user_file_is_replaced_on_yes(tmp_path, monkeypatch, checks)
 
     assert code == 0
     assert _active_lines(user)[0] == "CERTO_LLM_MODEL=gemini/gemini-3.8-flash"
-    assert stat.S_IMODE(os.stat(user).st_mode) == 0o600
+    if os.name != "nt":
+        assert stat.S_IMODE(os.stat(user).st_mode) == 0o600
 
 
 def test_without_asking_an_existing_user_file_needs_force(tmp_path, monkeypatch, no_check, capsys):
@@ -583,7 +585,10 @@ def test_after_a_passing_check_init_offers_to_run_the_sample(tmp_path, monkeypat
     code, text, ran = _with_sample(tmp_path, monkeypatch, ["2", "", "1"])
 
     assert code == 0
-    assert "It is built in w/projects/<name>/.\nEach takes a few minutes." in text
+    assert (
+        f"It is built in {os.path.join('w', 'projects')}/<name>/.\nEach takes a few minutes."
+        in text
+    )
     assert "A run uses your model credits; Certo prints the cost at the end." in text
     assert "How good the result is depends on your model" in text
     assert ran == [("w", "wordle")]
@@ -694,7 +699,8 @@ def test_creates_the_workspace_files(tmp_path, monkeypatch, no_check):
     _run(tmp_path, monkeypatch, [], interactive=False)
 
     folder = tmp_path / "certo-workspace"
-    assert stat.S_IMODE(os.stat(folder / ".env").st_mode) == 0o600
+    if os.name != "nt":
+        assert stat.S_IMODE(os.stat(folder / ".env").st_mode) == 0o600
     assert (folder / ".gitignore").read_text().splitlines()[1:] == [
         ".env",
         "# What Certo builds and records.",
@@ -758,7 +764,8 @@ def test_force_replaces_env_but_keeps_a_foreign_readme_and_merges_gitignore(
 
     assert code == 0
     assert "OLD=1" not in (folder / ".env").read_text()
-    assert stat.S_IMODE(os.stat(folder / ".env").st_mode) == 0o600
+    if os.name != "nt":
+        assert stat.S_IMODE(os.stat(folder / ".env").st_mode) == 0o600
     assert (folder / "README.md").read_text() == "# My project\n"
     assert "Kept your existing README.md" in script.text
     assert (folder / ".gitignore").read_text() == "node_modules/\n.env\nprojects/\nartifacts/\n"

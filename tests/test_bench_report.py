@@ -114,11 +114,11 @@ def test_write_report_writes_markdown_and_csv(tmp_path: Path):
     for record in RECORDS:
         (tmp_path / "runs" / f"{record['run_id']}.json").write_text(json.dumps(record))
     markdown = write_report(tmp_path)
-    assert markdown.read_text() == render_markdown(
+    assert markdown.read_text(encoding="utf-8") == render_markdown(
         META,
         sorted(RECORDS, key=lambda r: (r["repeat"], r["task"], ["local", "cloud"].index(r["arm"]))),
     )
-    with (tmp_path / "results.csv").open() as f:
+    with (tmp_path / "results.csv").open(encoding="utf-8", newline="") as f:
         rows = list(csv.DictReader(f))
     assert len(rows) == 7
     first = rows[0]
