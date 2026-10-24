@@ -1,0 +1,13 @@
+# The local half of baseline-0.1.23.md (Certo 0.1.23, task set version 2):
+# qwen3.8:27b, the model `certo init` suggests, on Ollama, alone, three
+# times, on all 13 tasks.
+# Run it with: certo bench --config bench-0.1.23-local.yaml
+# The model must be enabled in your models.yaml; see
+# docs/guides/write-a-benchmark-file.md. Expect about 11 hours; to split
+# it over several sessions, stop it and continue with the same --out and
+# --resume. The Go, Rust and Node tasks need go, cargo and npm;
+# room-bookings needs the network for npm ci.
+tasks: all
+repeats: 3
+arms:
+  - {name: qwen3.8, strategy: single, model: qwen3.8-27b-local}

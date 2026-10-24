@@ -85,3 +85,10 @@ If you still have skills in the old folders, add each one again with
 [Moving from the old folders](../guides/manage-skills.md#moving-from-the-old-folders).
 While one of the three settings is still set, Certo prints a warning
 naming it.
+
+## Also
+
+- **Benchmarked.** On the 13 tasks of task set version 2, Sonnet, Haiku
+  and Luna passed 13 of 13 each, and `qwen3.8:27b` 32 of 39; Certo was
+  not fooled once in 78 runs. See
+  [Baseline 0.1.23](../benchmark/baseline-0.1.23.md).

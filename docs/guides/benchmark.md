@@ -267,6 +267,9 @@ bundled set: [Write or contribute a benchmark task](contribute-a-benchmark-task.
   `qwen3.8:27b` against `qwen3-coder:30b`, which set the local default
 - [Baseline 0.1.22](../benchmark/baseline-0.1.22.md): `qwen3.8:27b`
   and three cloud models, checking 0.1.22 made nothing worse
+- [Baseline 0.1.23](../benchmark/baseline-0.1.23.md): the first on task
+  set version 2, with Go, Rust and React tasks; `qwen3.8:27b` and three
+  cloud models
 - [Escalation in 0.1.17](../benchmark/escalation-0.1.17.md): two
   local-then-cloud ladders
 - [Provider swap in 0.1.19](../benchmark/provider-swap-0.1.19.md): one

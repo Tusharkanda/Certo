@@ -26,10 +26,9 @@ first item is the suggested next one.
   does the 1200s call timeout), from more than one run.
 - **Baselines, when the Author chooses.** `docs/benchmark/baseline-<version>.md`
   (local vs cloud, fooled rate, cost per solved task), run when the
-  Author decides; minor releases may skip it (2026-10-23). Next one:
-  baseline v2 on the 13 tasks, without the `auto` arm. Also a README
-  badge. 0.1.13, 0.1.15, 0.1.18 (local only) and 0.1.22 exist; no badge
-  yet. A `qwen2.5-coder:7b` arm would replace "unmeasured" for the
+  Author decides; minor releases may skip it (2026-10-23). Also a README
+  badge. 0.1.13, 0.1.15, 0.1.18 (local only), 0.1.22 and 0.1.23 (the
+  first on task set v2) exist; no badge yet. A `qwen2.5-coder:7b` arm would replace "unmeasured" for the
   small-machine suggestion ([#18](https://github.com/alessioricco/certo/issues/18) asks contributors for local runs).
 - **`certo bench --stop-at`, for a baseline run over several nights**
   (2026-10-24). Slices work today by interrupting in the morning and
@@ -37,19 +36,12 @@ first item is the suggested next one.
   like `--max-cost` (stop starting new runs after a time, or after N
   runs) would end each night cleanly. Done when a slice stops on its own
   and `--resume` continues it.
-- **Bench task set v2: app-scale tasks.** Multi-file, multi-language: Go
-  REST API with a database, React frontend + API, Rust CLI with
-  subcommands, a fix inside an existing mid-size repo. Grading supports
-  Go, Rust and Node with packages since 0.1.23. Task set version 2 is
-  complete: `ledger-transfers` (the existing-repo fix), `todo-deps` (the
-  Rust CLI, std only), `library-loans` (Go REST API, std only) and
-  `room-bookings` (Node API + React page, packages from a lock file).
-  All four fit the budget (Sonnet, 2026-10-23, verified and hidden tests
-  passed: 2m 00s/$0.37, 2m 22s/$0.39, 2m 37s/$0.38, 1m 54s/$0.32; only
-  the first needed a fix attempt, from the since-fixed usage-line bug).
-  Next: baseline v2 (Phase 1.4). Today's 9 tasks don't
-  separate a local 27B model from a cloud one. Contributed tasks in the
-  current format help meanwhile: [#3](https://github.com/alessioricco/certo/issues/3).
+- **Bench tasks that separate cloud models.** Task set v2 separates
+  `qwen3.8` from the cloud models (7 of 12 on the four larger tasks,
+  against 4 of 4 each) but not the cloud models from each other: all
+  three passed 13 of 13 (`docs/benchmark/baseline-0.1.23.md`). Harder
+  tasks would. Contributed tasks in the current format help:
+  [#3](https://github.com/alessioricco/certo/issues/3).
 - **Escalation after a `failed` rung is unmeasured.** The 0.1.17
   escalation run climbed 10 times, all past a model that did no work.
   Climbing after a failed verification, the handoff of half-done work and
