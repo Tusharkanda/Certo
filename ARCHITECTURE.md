@@ -392,6 +392,16 @@ Internal and architectural; the user-facing ones are in `docs/`.
 
 **SDK/tooling gotchas** (re-verify on any SDK upgrade — see CLAUDE.md golden
 rule 2):
+- **Every `LocalConversation` loads "ambient plugins", with no switch**
+  (SDK 1.47.0, `conversation/impl/local_conversation.py`
+  `_ensure_plugins_loaded`, about line 1111: `load_available_plugins(work_dir,
+  include_user=True, include_project=True)`). User plugins come from
+  `~/.agents/plugins/`, `~/.openhands/plugins/` (or `OH_PERSISTENCE_DIR`)
+  and the installed store; project plugins from `.agents/plugins/` and
+  `.openhands/plugins/` in the workspace **and at the git repo root**
+  (`plugin/discovery.py:128-148`). A plugin can add skills, MCP servers and
+  hooks. Not handled yet (TODO.md, Smaller bugs). Found 2026-10-24 while
+  verifying the test-writer conversation for independent tests.
 - **`load_project_skills=True` also reads the git repo root's
   `AGENTS.md`/`CLAUDE.md`/`GEMINI.md`/`.cursorrules`**, not only the
   workspace's (SDK 1.47.0, `skills/skill.py` `load_project_skills`, via
