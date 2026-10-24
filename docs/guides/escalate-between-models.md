@@ -347,6 +347,9 @@ Certo's own run of two ladders, with the numbers, is
 A recorded run where the first model's provider fails (its key was
 rejected on purpose) and the next model finishes the task is
 [Escalation past a provider failure](../benchmark/escalation-provider-failure-0.1.22.md).
+One where the local model's checks keep failing and the next model
+finishes its half-done work is
+[Escalation past failing tests](../benchmark/escalation-handoff-0.1.23.md).
 
 ## Related
 

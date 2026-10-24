@@ -136,6 +136,10 @@ to look at the files first, keep what works and finish the task. The
 file lists in the note come from comparing the folder before and after
 the previous model's turn; they are a list of files, not a full diff.
 
+A recorded run where a local model leaves the task half done (45 of 46
+tests passing) and a cloud model finishes it, keeping the local model's
+fixes: [Escalation past failing tests](benchmark/escalation-handoff-0.1.23.md).
+
 ### What if the provider drops in the middle of a model's work?
 
 The model's turn ends there, and the task moves to the next model. A

@@ -45,7 +45,10 @@ first item is the suggested next one.
 - **Escalation after a `failed` rung is unmeasured.** The 0.1.17
   escalation run climbed 10 times, all past a model that did no work.
   Climbing after a failed verification, the handoff of half-done work and
-  derived-ladder ordering are still unmeasured. Needs task set v2. Candidate ladder from the
+  derived-ladder ordering are still unmeasured as a benchmark; one
+  recorded run of a half-done handoff exists
+  (`docs/benchmark/escalation-handoff-0.1.23.md`, tests in the folder
+  from the start). Needs task set v2. Candidate ladder from the
   0.1.15 local benchmark: `qwen3.8-27b-local` → `gemma4-31b-qat-local` →
   a cloud model (qwen3.8 is about 3× faster; gemma never wrote tool calls
   as text, qwen3.8's only failure mode). Bench it as three arms: each
@@ -219,14 +222,6 @@ cut that first run's output from 2,949 lines to 1,021.)
   that path. Measured 2026-10-19 in an empty home folder: 88.5s from
   `uv tool install` to `verified` (`docs/benchmark/first-run-0.1.19.md`).
   Still to do: a truly clean machine (no Python, no uv).
-- **A recorded handoff caused by failing tests** (promised on Reddit,
-  2026-10-24; not urgent). The only recorded handoff is a provider failure
-  (`escalation-provider-failure-0.1.22.md`). Record one real
-  `--escalate` run, local then cloud, where the local model's fix
-  attempts fail (`retry_exhausted` or `no_progress`) and the next model
-  ends `verified`: todo-deps on qwen3.8 is a likely task. Done when the
-  record, with a recording, is in `docs/benchmark/` and linked from the
-  Q&A and the escalation guide.
 - **GitHub Action**: an issue labelled `certo` becomes a pull request with
   the verdict and checks in its description.
 - **Docs articles still to write** (ideas from 2026-10-18): build an

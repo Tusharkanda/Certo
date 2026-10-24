@@ -94,7 +94,7 @@ takes you from install to your first verified project.
 | Measure which models and strategies really deliver | [Benchmark models and strategies](guides/benchmark.md) |
 | Set up my own benchmark file | [Write a benchmark file](guides/write-a-benchmark-file.md) |
 | Benchmark my own tasks, or add one to Certo's set | [Write or contribute a benchmark task](guides/contribute-a-benchmark-task.md) |
-| See how Certo did on its own benchmark | [Baseline 0.1.23](benchmark/baseline-0.1.23.md), [0.1.22](benchmark/baseline-0.1.22.md), [0.1.18, local](benchmark/baseline-0.1.18-local.md), [0.1.15](benchmark/baseline-0.1.15.md) (and [0.1.13](benchmark/baseline-0.1.13.md)), [escalation in 0.1.17](benchmark/escalation-0.1.17.md), [one escalation run](benchmark/escalation-wordle-0.1.19.md), [escalation past a provider failure](benchmark/escalation-provider-failure-0.1.22.md), [provider swap in 0.1.19](benchmark/provider-swap-0.1.19.md), [first run with two models in 0.1.21](benchmark/first-run-auto-model-0.1.21.md), [five models build an Asteroids-style game](benchmark/compare-asteroids-0.1.19.md) |
+| See how Certo did on its own benchmark | [Baseline 0.1.23](benchmark/baseline-0.1.23.md), [0.1.22](benchmark/baseline-0.1.22.md), [0.1.18, local](benchmark/baseline-0.1.18-local.md), [0.1.15](benchmark/baseline-0.1.15.md) (and [0.1.13](benchmark/baseline-0.1.13.md)), [escalation in 0.1.17](benchmark/escalation-0.1.17.md), [one escalation run](benchmark/escalation-wordle-0.1.19.md), [escalation past a provider failure](benchmark/escalation-provider-failure-0.1.22.md), [escalation past failing tests](benchmark/escalation-handoff-0.1.23.md), [provider swap in 0.1.19](benchmark/provider-swap-0.1.19.md), [first run with two models in 0.1.21](benchmark/first-run-auto-model-0.1.21.md), [five models build an Asteroids-style game](benchmark/compare-asteroids-0.1.19.md) |
 
 **Looking something up?** The reference pages are complete and exact:
 
@@ -164,6 +164,13 @@ limitation below.
   calls as plain text, and the run ends at once. `certo check` tests for
   it. Which models worked in Certo's benchmark:
   [Choose a local model](guides/choose-a-local-model.md).
+- **A project inside a git repository also gets that repository's
+  instructions.** The agent reads `AGENTS.md` from the project folder and
+  from the root of the git repository around it, and `CLAUDE.md` too for
+  Claude models (`GEMINI.md` for Gemini). If you keep projects inside
+  another repository, its instructions reach the agent, and with
+  `--escalate` a Claude model can see instructions another model didn't.
+  Keep `CERTO_PROJECTS_DIR` outside other repositories to avoid it.
 - **Costs show as unknown** for models newer than your installed LiteLLM.
 - **New, empty folders:** the agent starts with a Python environment only
   if the task mentions Python (or a Python tool such as pytest). Otherwise
