@@ -250,21 +250,33 @@ def integrity_status(skill_dir: Path, entry: LockEntry) -> str:
     return "ok" if actual == entry.integrity else "modified"
 
 
-def copy_regular_files(src: Path, dst: Path) -> None:
-    """Copy regular files only (no symlinks, no `.git`, no exec bits)."""
+def copy_regular_files(src: Path, dst: Path) -> list[str]:
+    """Copy regular files only (no symlinks, no `.git`, no exec bits).
+
+    A symlink that resolves inside `src` is skipped, not copied: what it
+    points to is copied on its own (OpenHands skills link `.claude-plugin`
+    to their own `.plugin`). One that leads outside `src` is refused.
+    Returns the skipped links, relative to `src`."""
+    root = src.resolve()
+    skipped: list[str] = []
     for dirpath, dirnames, filenames in os.walk(src):
-        dirnames[:] = [d for d in dirnames if d != ".git"]
         current = Path(dirpath)
-        for name in (*dirnames, *filenames):
-            if (current / name).is_symlink():
+        links = [n for n in (*dirnames, *filenames) if (current / n).is_symlink()]
+        for name in links:
+            rel = (current / name).relative_to(src).as_posix()
+            if not (current / name).resolve().is_relative_to(root):
                 raise ThirdPartySkillError(
-                    f"Upstream skill contains a symlink ({(current / name).relative_to(src)}); "
+                    f"Upstream skill contains a symlink that leads outside it ({rel}); "
                     "refusing to install."
                 )
+            skipped.append(rel)
+        dirnames[:] = [d for d in dirnames if d != ".git" and d not in links]
         target_dir = dst / current.relative_to(src)
         target_dir.mkdir(parents=True, exist_ok=True)
         for name in filenames:
-            shutil.copyfile(current / name, target_dir / name)
+            if name not in links:
+                shutil.copyfile(current / name, target_dir / name)
+    return sorted(skipped)
 
 
 def _matches_stem(path: Path, stems: Iterable[str]) -> bool:
@@ -403,7 +415,7 @@ def _fetch_and_stage(
     # Stage under the upstream directory's own name: strict SKILL.md loading
     # requires the frontmatter name to match its directory name.
     staged = staging_root / fetched.name
-    copy_regular_files(fetched, staged)
+    skipped_links = copy_regular_files(fetched, staged)
     root_attribution = [
         p
         for p in sorted(repo_root.iterdir())
@@ -424,6 +436,12 @@ def _fetch_and_stage(
         staged, skill.license, skill_path, web_base, revision
     )
     warnings: list[str] = []
+    if skipped_links:
+        warnings.append(
+            "Skipped links inside the skill (what they point to is copied on its own): "
+            + ", ".join(skipped_links)
+            + "."
+        )
     if _INLINE_COMMAND_RE.search(skill.content):
         warnings.append(
             "SKILL.md contains inline !`command` syntax; the harness escapes it on load so it "

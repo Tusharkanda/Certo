@@ -113,6 +113,10 @@ written by someone else is untrusted input. A skill downloaded with
   disabled, has changed files, or has an unaccepted unknown license is
   skipped. A downloaded folder with no lockfile entry is never loaded.
   `update` disables a skill again if its content or license changed.
+- **Only regular files are copied.** A link inside the skill's folder
+  is skipped (what it points to is copied on its own, and Certo names the
+  skipped links). A link that leads outside the folder stops the
+  download.
 - **Nothing is executed by Certo.** Downloaded files lose their executable
   permission. A skill's `.mcp.json` is ignored, so it can't start a server.
   Inline shell snippets (`` !`command` ``), which the agent framework would

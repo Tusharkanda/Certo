@@ -327,16 +327,12 @@ database).
 - **The OpenHands skill catalog from `certo skills`** (agreed
   2026-10-24). `OpenHands/extensions` holds about 70 MIT skills, a few
   about code quality (`code-review`, `code-simplifier`, `security`,
-  `qa-changes`, `iterate`). Three steps: (1) accept the links most of its
-  skill folders have (`.claude-plugin`, `.codex-plugin` → `.plugin`
-  inside the folder, other tools' plugin files): skip a link that stays
-  inside the skill folder instead of refusing the whole skill, keep
-  refusing one that leaves it; today only `qa-changes` and `iterate`
-  install (tried 2026-10-24). (2) A shortcut on the existing git path,
+  `qa-changes`, `iterate`), and since 0.1.23 they download (links inside a
+  skill are skipped). Two steps: (1) A shortcut on the existing git path,
   e.g. `certo skills browse openhands` and `certo skills add
   openhands:NAME`: pinned, license step, off until enabled, third-party
   in commands, folders and output. Not the SDK's `load_public_skills`
-  (unpinned, everything at once, no license step). (3) Benchmark two or
+  (unpinned, everything at once, no license step). (2) Benchmark two or
   three code-quality skills against none, local and cloud, before
   claiming they improve code; most fire only on a slash command
   (`/qa-changes`) and are large (about 4,200 tokens). Done when a

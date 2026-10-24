@@ -310,12 +310,13 @@ def _add_local(
     if scope.startswith("--project"):
         ensure_state_dir(str(root.parent.parent))
     root.mkdir(parents=True, exist_ok=True)
-    if source.is_dir():
-        tps.copy_regular_files(source, dest)
-    else:
+    skipped = tps.copy_regular_files(source, dest) if source.is_dir() else []
+    if not source.is_dir():
         shutil.copyfile(source, dest)
     added = lib.untrusted(lib.load_one(dest, root))
     prompter.say(f"Added '{name}' to {lib.describe_dir(root)}. It is on.")
+    if skipped:
+        prompter.say(f"  Skipped links inside it: {', '.join(skipped)}.")
     prompter.say(f"  Fires {lib.how_it_fires(added)}; about {lib.size_in_tokens(added):,} tokens.")
     if any(s.name == name for s in lib.official_skills()):
         prompter.say(

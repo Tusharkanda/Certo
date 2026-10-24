@@ -1011,3 +1011,12 @@ considered and live-verification detail: `docs/ROADMAP.txt`.
   still count. An existing folder outside `CERTO_PROJECTS_DIR` keeps the
   SDK's behaviour: there the repository's files describe the code being
   worked on (as other coding agents read them).
+
+- **A downloaded skill's links: skip the ones inside, refuse the ones
+  that leave** (the Author, 2026-10-24). Every link used to be refused,
+  which blocked most of OpenHands' catalog (`.claude-plugin` and
+  `.codex-plugin` link to the skill's own `.plugin`). A link that resolves
+  inside the skill folder adds nothing (its target is copied on its own),
+  so it is skipped and named; one that resolves outside could pull in
+  files the user never saw, so it still stops the install. Installed
+  skills still contain no links, so the integrity check is unchanged.

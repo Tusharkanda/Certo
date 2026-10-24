@@ -47,7 +47,7 @@ setting comes from and makes one small call to the model.
   [can't load](#isnt-a-skill-certo-can-load),
   [already has a skill named](#already-has-a-skill-named),
   [a downloaded skill is off](#a-downloaded-skill-is-off),
-  [a skill with a symlink](#upstream-skill-contains-a-symlink),
+  [a skill with a symlink](#upstream-skill-contains-a-symlink-that-leads-outside-it),
   [replaces the official one](#your-skill-replaces-the-official-one),
   [an old skill setting is no longer read](#certo_skills_dir-is-no-longer-read)
 - Benchmark: [no bench.yaml or model files](#certo-bench-no-benchyaml-or-model-files),
@@ -707,19 +707,18 @@ downloaded (edited by hand, or deleted).
 downloaded skill, copy it, edit the copy, and add the copy as your own
 skill.
 
-### "Upstream skill contains a symlink"
+### "Upstream skill contains a symlink that leads outside it"
 
-**You see:** `Error: Upstream skill contains a symlink (.claude-plugin);
-refusing to install.` from `certo skills add`.
+**You see:** `Error: Upstream skill contains a symlink that leads outside
+it (NAME); refusing to install.` from `certo skills add`.
 
-**Cause:** the skill's folder contains a link to another file. Certo
-copies only regular files from a downloaded skill, so it refuses links.
-Most skills in `OpenHands/extensions` have two, `.claude-plugin` and
-`.codex-plugin`, which point to plugin files for other tools.
+**Cause:** the skill's folder contains a link to a file or folder outside
+the skill. Certo copies only regular files, and never follows a link out
+of the skill. (A link that stays inside the folder is fine: it is skipped,
+and Certo names it.)
 
-**Fix:** pick a skill without links (in `OpenHands/extensions`,
-`qa-changes` and `iterate`), or copy the skill's `SKILL.md` into a folder
-of your own and add it as your own skill
+**Fix:** copy the files the skill needs into a folder of your own and add
+it as your own skill
 ([Add a skill you wrote](guides/manage-skills.md#add-a-skill-you-wrote)).
 
 ### Your skill replaces the official one

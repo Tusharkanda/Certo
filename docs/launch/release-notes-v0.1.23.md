@@ -38,6 +38,20 @@ The nine small tasks don't change. To compare with a baseline
 made on version 1, list those nine under `tasks:`; see
 [Benchmark models and strategies](../guides/benchmark.md#the-tasks).
 
+## New: skills from the OpenHands catalog can be downloaded
+
+`certo skills add` now copies a skill whose folder contains links that
+stay inside it: the links are skipped, what they point to is copied, and
+Certo names the skipped links. Most skills in OpenHands' public catalog
+have two such links (`.claude-plugin`, `.codex-plugin`) and were refused
+before. A link that leads outside the skill still stops the download.
+
+```bash
+certo skills add github:OpenHands/extensions skills/code-review --global
+```
+
+Where to find skills: [Manage skills](../guides/manage-skills.md#where-to-find-skills).
+
 ## Fixed: a command-line program that needs arguments passes verification
 
 Certo runs each Python program with no arguments to check that it

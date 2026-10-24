@@ -228,6 +228,39 @@ def test_install_refuses_symlinks_and_leaves_no_trace(env, make_symlink, tmp_pat
     assert not paths["lock_path"].exists()
 
 
+def test_links_inside_the_skill_are_skipped_and_named(env, make_symlink):
+    # The OpenHands shape: .claude-plugin and .codex-plugin link to .plugin.
+    fetch, paths = env
+    skill = fetch.upstream / "skills" / "demo-skill"
+    (skill / ".plugin").mkdir()
+    (skill / ".plugin" / "plugin.json").write_text("{}")
+    make_symlink(skill / ".claude-plugin", Path(".plugin"), target_is_directory=True)
+    make_symlink(skill / "README-link.md", Path("SKILL.md"))
+
+    result = _install(paths)
+
+    installed = paths["install_dir"] / "demo-skill"
+    assert (installed / ".plugin" / "plugin.json").read_text() == "{}"
+    assert not (installed / ".claude-plugin").exists()
+    assert not (installed / "README-link.md").exists()
+    assert not any(p.is_symlink() for p in installed.rglob("*"))
+    assert any(".claude-plugin, README-link.md" in w for w in result.warnings)
+    assert tps.integrity_status(installed, result.entry) == "ok"
+
+
+@pytest.mark.parametrize("target, is_dir", [("../../outside.txt", False), ("../..", True)])
+def test_a_link_that_leaves_the_skill_is_still_refused(env, make_symlink, target, is_dir):
+    fetch, paths = env
+    skill = fetch.upstream / "skills" / "demo-skill"
+    (fetch.upstream / "outside.txt").write_text("must not be copied")
+    make_symlink(skill / "leak", Path(target), target_is_directory=is_dir)
+
+    with pytest.raises(tps.ThirdPartySkillError, match="leads outside"):
+        _install(paths)
+    assert not (paths["install_dir"] / "demo-skill").exists()
+    assert not paths["lock_path"].exists()
+
+
 def test_install_rejects_directory_without_skill_md(env):
     fetch, paths = env
     (fetch.upstream / "skills" / "demo-skill" / "SKILL.md").unlink()

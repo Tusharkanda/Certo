@@ -240,10 +240,14 @@ Two things to know about the OpenHands skills:
 - **Most fire on a slash command.** `qa-changes` fires when the task
   says `/qa-changes`, so write that in the task. `certo skills list`
   shows when each skill fires.
-- **Most can't be downloaded yet.** Their folders contain links to
-  other tools' plugin files, and Certo refuses a skill with links (see
-  [Troubleshooting](../troubleshooting.md#upstream-skill-contains-a-symlink)).
-  `qa-changes` and `iterate` have none and download fine.
+- **Their links are skipped.** Most of their folders contain
+  `.claude-plugin` and `.codex-plugin`, links to plugin files for other
+  tools. Certo copies a downloaded skill without its links, and says which
+  ones it skipped:
+
+  ```text
+  Warning: Skipped links inside the skill (what they point to is copied on its own): .claude-plugin, .codex-plugin.
+  ```
 
 ## The project's own skills
 
