@@ -20,7 +20,7 @@ It knows when to switch because it doesn't take the agent's word for it: when th
 *A real run: the first model's key was rejected (invalid on purpose, for the demo), so Certo handed the task to the next model, which passed the checks. 1m 32s, $0.02. [The record of this run](https://github.com/alessioricco/Certo/blob/main/docs/benchmark/escalation-provider-failure-0.1.22.md).*
 
 ```bash
-pip install certo
+uv tool install certo           # or: pip install certo
 certo init                      # pick Ollama for a local model, or a cloud provider
 cd certo-workspace && certo tasks/wordle.md --project wordle
 ```
@@ -170,11 +170,13 @@ With `--escalate`, the failing verdicts are what move a task to the next model. 
 ## Quickstart
 
 ```bash
-pip install certo
+uv tool install certo
 certo init
 cd certo-workspace
 certo tasks/wordle.md --project wordle
 ```
+
+[uv](https://docs.astral.sh/uv/) installs Certo as a command in its own environment. With pip, install it inside a virtual environment: `python3 -m venv ~/.venvs/certo`, then `~/.venvs/certo/bin/pip install certo` (on systems that protect their Python, `pip install` outside one fails). Upgrade with `uv tool upgrade certo` or `pip install -U certo`. See [Getting started](https://github.com/alessioricco/certo/blob/main/docs/getting-started.md#1-install).
 
 `certo init` asks which provider you use (OpenAI, Anthropic, Gemini, a local Ollama, or any LiteLLM model), takes your API key at a hidden prompt, saves the settings, and makes one real call to check the model works. It also leaves five sample tasks in `tasks/`: Wordle and the Tower of Hanoi in the terminal, in Python, and three browser games (a space-rocks shooter, a maze chase and an alien-fleet shooter), which need Node 18+. With a cloud model a run uses your credits, and Certo prints the cost at the end. The generated project lands in `projects/wordle`.
 
