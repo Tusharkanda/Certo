@@ -23,6 +23,16 @@ See [`CLAUDE.md`](CLAUDE.md) for the project's working rules,
 and [`ARCHITECTURE.md`](ARCHITECTURE.md) for how the code is built. To add a benchmark task, see
 [Write or contribute a benchmark task](docs/guides/contribute-a-benchmark-task.md).
 
+If you work with Claude Code, download the skills this project uses
+from [Anthropic's skills repository](https://github.com/anthropics/skills)
+into `.claude/skills/` (git-ignored). The list and the pinned commit are
+in the script, so everyone gets the same files. [`SKILLS.md`](SKILLS.md)
+lists them and says why each one is used:
+
+```bash
+uv run python scripts/fetch_claude_skills.py
+```
+
 Only needed for Docker mode or server mode:
 
 ```bash

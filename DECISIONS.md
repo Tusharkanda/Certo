@@ -982,3 +982,11 @@ considered and live-verification detail: `docs/ROADMAP.txt`.
   1314; directory-containment checks also exercise Windows junctions. Unix
   mode assertions stay on macOS/Linux because `chmod` does not set Windows
   ACLs; the docs now state that limit instead of promising mode `600` there.
+- **Claude Code skills for developing Certo come from `anthropics/skills`,
+  pinned, by a script** (2026-10-24). `scripts/fetch_claude_skills.py`
+  (in git) lists the skills and a commit; the downloaded files go to
+  `.claude/skills/` (git-ignored), so contributors get the same skills
+  and the repo carries no third-party skill copies. Only skills the
+  current work needs: `skill-creator` (built-in skills) and
+  `webapp-testing` (web tasks, run-the-app verification); `mcp-builder`
+  waits for the MCP server. Separate from Certo's own built-in skills.

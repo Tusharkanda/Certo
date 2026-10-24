@@ -250,6 +250,8 @@ bench-results/
 
 # Claude Code personal overrides
 .claude/settings.local.json
+# Skills from anthropics/skills, downloaded by scripts/fetch_claude_skills.py
+.claude/skills/
 # Private project review and plan (not published)
 /PROJECT_REVIEW.md
 
