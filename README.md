@@ -311,6 +311,7 @@ The full list is in the [documentation](https://github.com/alessioricco/certo/bl
 - [Getting started](https://github.com/alessioricco/certo/blob/main/docs/getting-started.md): install, `certo init`, your first task, and reading the verdict
 - [Write a task Certo can check](https://github.com/alessioricco/certo/blob/main/docs/guides/write-a-good-task.md): the habits that turn a vague request into a verified result
 - [Troubleshooting](https://github.com/alessioricco/certo/blob/main/docs/troubleshooting.md): the problems people actually hit, with their fix
+- [Questions and answers](https://github.com/alessioricco/certo/blob/main/docs/questions-and-answers.md): how Certo decides to hand a task to another model, what that model gets, and verdicts in CI
 - [Why agents lie](https://github.com/alessioricco/certo/blob/main/docs/concepts/why-agents-lie.md): the real cases of agents claiming "done", and how Certo catches each one
 - [ROADMAP.md](https://github.com/alessioricco/certo/blob/main/ROADMAP.md): where Certo is going; [TODO.md](https://github.com/alessioricco/certo/blob/main/TODO.md): what's left to do
 

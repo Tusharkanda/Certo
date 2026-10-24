@@ -1,0 +1,151 @@
+# Questions and answers
+
+Questions people have asked about Certo, with short answers and links to
+the pages that explain each one in full.
+
+## Handing a task to another model
+
+### How does Certo decide a model can't finish?
+
+From what it can check, not from how the model feels about its work, and
+not from how long it takes. With
+[`--escalate`](guides/escalate-between-models.md), a task moves to the
+next model when the model's whole run ends with a verdict that shows it
+couldn't finish, or when its provider fails:
+
+- **The checks kept failing.** When a check fails, Certo sends the real
+  failure output back to the model for a fix. If the next attempt gives
+  exactly the same failure, Certo stops at once with `no_progress`. If
+  the failure keeps changing but never passes, the result is
+  `retry_exhausted` after the fix attempts. Both hand the task on.
+- **The run got stuck.** The agent's run ended in a stuck or error state
+  (`stuck`), its to-do list still had open items (`incomplete`), or a
+  check hung (`timed_out`).
+- **The provider failed.** A rejected key, a refused request (no credit,
+  or rate limited), a provider that can't be reached, or no answer in
+  time. This is recorded as a provider failure, not a quality failure.
+- **The model did no work, or nothing could be checked** (`unchanged`,
+  `inconclusive`). These hand on only once in a row: if the next model
+  ends the same way, Certo stops instead of paying for every model on
+  the list.
+
+The full table: [What makes Certo climb](guides/escalate-between-models.md#what-makes-certo-climb).
+What each verdict means: [Verdicts](reference/verdicts.md).
+
+### Does a failed test send the task to another model straight away?
+
+No. A failed test first goes back to the **same** model, with the real
+failure output, for another attempt. Each model gets up to
+`CERTO_MAX_VERIFY_RETRIES` fix attempts (2 by default), or the number set
+by `retries` on its step of the ladder. Only when those attempts run out
+(`retry_exhausted`), or one of them changes nothing (`no_progress`), does
+the task move to the next model. The order is: try, fix, fix again, then
+hand over.
+
+A recorded run where the first model's provider fails and the next model
+passes the checks:
+[Escalation past a provider failure](benchmark/escalation-provider-failure-0.1.22.md).
+One where the local model finishes and no other model is called:
+[One escalation run](benchmark/escalation-wordle-0.1.19.md).
+
+### Does a tool error make Certo switch models?
+
+No. A command that fails inside a run is output like any other: the model
+sees the error and can fix it. Only the verdict at the end of the run, or
+a provider failure, moves the task.
+
+### Can Certo tell a stuck model from a slow one, on local models?
+
+Certo never switches because a model is slow. A slow local model is
+handled with limits you set:
+
+- **One model call.** `timeout_seconds` in the model files, or
+  `CERTO_LLM_TIMEOUT_SECONDS`, sets how long one call may take
+  (`certo init` sets 1200 seconds for Ollama). A call that takes longer
+  is tried again, up to 5 more times. Only when every try fails does it
+  count as a provider failure ("the provider didn't answer in time"), and
+  the task moves on.
+- **The whole task.** `CERTO_MAX_TASK_SECONDS` and `CERTO_MAX_TASK_COST`
+  cover every model together. When one runs out, Certo stops with
+  `budget_exhausted` instead of moving on: these are your limits, not a
+  sign that the model was too weak.
+- **Steps.** A model that uses all its steps (`CERTO_MAX_ITERATIONS`) is
+  checked like one that finished: passing checks give `verified`, failing
+  checks get the fix attempts.
+
+A stuck model is caught in two ways. The agent SDK under Certo
+(OpenHands) ends a run that repeats itself in a loop; the verdict is
+`stuck`. And `no_progress` catches a model whose fix attempts change
+nothing in the check output, even when what it writes sounds sensible.
+
+One limit: the time budget is checked between runs, not during one, so
+a very slow local model can end well past it. The SDK's loop detection
+only catches exact repetition; a model that writes new but useless text
+is caught at the next check, or by the step and time limits.
+
+### What does the next model get: the conversation, a summary, or the diff?
+
+Each model starts a **fresh conversation** in the **same folder**. It
+gets:
+
+- the files exactly as the previous model left them;
+- the original task;
+- the real output of the checks that were still failing;
+- a short note written by Certo from what it recorded, never by a model:
+  which model tried, how it ended, how many fix attempts it used, the
+  files it created, changed or deleted, and which checks were failing.
+
+It doesn't get the previous model's conversation or reasoning. A
+conversation can be huge, and replaying it to a more expensive model
+costs money and adds noise. A summary written by the model that just
+failed would be the least reliable part to pass on. The files and the
+failing check output are the state that matters.
+
+An example note: [What the next model receives](guides/escalate-between-models.md#what-the-next-model-receives).
+
+### What if a model leaves half-finished work or a messy folder?
+
+Certo doesn't clean up or roll back between models. The next model gets
+the folder as it is, half-finished work included, and the note asks it
+to look at the files first, keep what works and finish the task. The
+file lists in the note come from comparing the folder before and after
+the previous model's turn; they are a list of files, not a full diff.
+
+### Can I see what each model did, to debug a handoff?
+
+Yes. `MODEL_DECISIONS.md` in the project records every handoff and its
+reason. With `CERTO_ARTIFACTS_DIR` set, each model also gets its own
+folder with its full transcript, tokens, cost and verdict. See
+[Run records and costs](guides/run-records-and-costs.md#keep-a-record-of-every-run).
+
+## CI and exit codes
+
+### Can CI tell "tests failed" from "the agent couldn't finish"?
+
+Not from the exit code: it is 0 for `verified` and 1 for every failure.
+The difference is in the verdict, which you can read in three places:
+
+- the `Verification: <verdict>` line Certo prints;
+- `verification_state` in the run's `metadata.json` (with
+  `CERTO_ARTIFACTS_DIR`);
+- the result of the [server API](reference/server-api.md).
+
+For example, `retry_exhausted` means the tests still fail after the fix
+attempts; `no_progress` that a fix attempt changed nothing; `stuck` or
+`incomplete` that the agent didn't finish; `budget_exhausted` that it ran
+out of time.
+
+`inconclusive` (nothing could be checked) and `unchanged` exit 0 by
+default. Add `--require-verification` in CI to make them fail too. See
+[Verdicts](reference/verdicts.md) and [Verify in CI](guides/verify-in-ci.md).
+
+## The verdict
+
+### Why not trust the model when it says the work is done?
+
+Because agents are often wrong about being finished. Certo runs the
+project's own tests and build itself, with no AI involved, after the
+agent stops. "The model said it worked" never counts as `verified`. The
+real cases behind this are in [Why agents lie](concepts/why-agents-lie.md),
+and how the checks work in
+[How verification works](concepts/how-verification-works.md).

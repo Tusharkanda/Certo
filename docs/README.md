@@ -119,6 +119,9 @@ takes you from install to your first verified project.
 - [Why agents lie](concepts/why-agents-lie.md)
 - [Safety](concepts/safety.md)
 
+**Have a question?** See [Questions and answers](questions-and-answers.md):
+how handoff decides, what the next model gets, and verdicts in CI.
+
 **Something went wrong?** See [Troubleshooting](troubleshooting.md).
 
 ## Experimental features
