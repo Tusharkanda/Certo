@@ -218,6 +218,33 @@ A skill from git is treated as untrusted:
 > no downloaded skill has been benchmarked. See
 > [Experimental features](../README.md#experimental-features).
 
+### Where to find skills
+
+Two public repositories hold skills in the format Certo reads (a folder
+with a `SKILL.md`). Licenses differ from skill to skill: `certo skills
+add` shows the one it found, so read it before you enable the skill.
+
+| Repository | Path of a skill | Example |
+|---|---|---|
+| [anthropics/skills](https://github.com/anthropics/skills) | `skills/NAME` | `certo skills add github:anthropics/skills skills/algorithmic-art --global` |
+| [OpenHands/extensions](https://github.com/OpenHands/extensions) | `skills/NAME` | `certo skills add github:OpenHands/extensions skills/qa-changes --global` |
+
+The OpenHands repository is the public skill catalog of OpenHands, the
+agent toolkit Certo is built on. It has about 70 skills. Most connect to
+a service (GitHub, GitLab, Jira, Linear, Datadog, Kubernetes and others);
+a few are about the code itself, such as `code-review`,
+`code-simplifier`, `security`, `qa-changes` and `iterate`.
+
+Two things to know about the OpenHands skills:
+
+- **Most fire on a slash command.** `qa-changes` fires when the task
+  says `/qa-changes`, so write that in the task. `certo skills list`
+  shows when each skill fires.
+- **Most can't be downloaded yet.** Their folders contain links to
+  other tools' plugin files, and Certo refuses a skill with links (see
+  [Troubleshooting](../troubleshooting.md#upstream-skill-contains-a-symlink)).
+  `qa-changes` and `iterate` have none and download fine.
+
 ## The project's own skills
 
 `AGENTS.md` and `.agents/skills/` at the top of a project are part of the
