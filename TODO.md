@@ -308,6 +308,19 @@ database).
 
 ## Smaller bugs
 
+- **One tool call can wait for hours.** The terminal tool's `timeout` is
+  in seconds and unlimited, and the task budget is checked only between
+  runs: a `luna` run in the 0.1.23 baseline waited 10,000 seconds
+  (`docs/benchmark/baseline-0.1.23.md`, "The 2h53m run"). Cap the wait
+  (for example at the remaining task budget), or stop a run when the
+  budget runs out. Done when a long `timeout` can't outlast the budget.
+- **Tool calls written as text rose in the 0.1.23 baseline**: 7 of 39
+  `qwen3.8` runs, against 1 of 27 in 0.1.22, with the same prompt, SDK,
+  LiteLLM and Ollama settings; 3 of 3 on `ledger-transfers`. Find out
+  whether it is chance, the model's build (record the Ollama model digest
+  in the bench results; it is in `/api/ps`) or the larger task, and
+  whether Certo could recover (for example, send the text back as a
+  reminder to make the call). Done when the cause is known.
 - **`certo skills`: turn an official skill off**, globally or for one
   project (later, agreed 2026-10-22). Today a third-party skill can only
   replace one.

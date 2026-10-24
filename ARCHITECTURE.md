@@ -392,6 +392,12 @@ Internal and architectural; the user-facing ones are in `docs/`.
 
 **SDK/tooling gotchas** (re-verify on any SDK upgrade — see CLAUDE.md golden
 rule 2):
+- **The terminal tool's `timeout` is in seconds, with no upper limit**
+  (SDK 1.47.0, `openhands/tools/terminal/definition.py`). A model that
+  means milliseconds waits hours: in the 0.1.23 baseline, `gpt-6-luna`
+  sent `timeout: 10000` to wait on a shell it had closed with `exit`, and
+  waited 2h47m. Certo neither caps it nor checks `CERTO_MAX_TASK_SECONDS`
+  during a run (TODO.md, Smaller bugs).
 - **Importing the SDK takes about 2 seconds.** `cli.py`, `verification.py`
   and everything they import at module level must not import `openhands`
   (or `runner`, `init_cmd`, `skills`, which do), so `certo --version`,
