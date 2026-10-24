@@ -385,6 +385,14 @@ given design was chosen.
   (`.cache/`, whole repositories). Downloaded skills reuse
   `third_party_skills.py` with the folder's own `skills.lock.json`.
   `certo skills` loads config under `defer_llm_check()`: it needs no model.
+- **`independent_tests.py`** — Phase 1.5's test writer and runner (not
+  wired into runs yet). `write_tests(task, cfg, scratch, project=)` copies
+  the project before the build into `scratch/project_before/` and runs a
+  separate conversation (file editor + finish only, no `AgentContext`,
+  `persistence_dir=None`, usage id `certo:test-writer`) that writes into
+  `scratch/new_tests/` or leaves `NO_TESTS.txt`. `run_independent_tests()`
+  checks the files' hashes and runs them with `bench_tasks.run_test_folder
+  (clean_up=True)`; `report_line()` is the line under the verdict.
 - **`plugins.py`** — `foreign_plugins(workspace, projects_dir)`: the
   OpenHands plugins the SDK would load into a local run that don't belong
   to it (every user plugin; a project plugin from outside a generated

@@ -214,6 +214,9 @@ def _grade_python(tests_dir: Path, workspace: Path, runner: CommandRunner) -> Gr
         "-q",
         "-p",
         "no:cacheprovider",
+        # One test file that can't import (a module the work never wrote)
+        # must not hide the others' results.
+        "--continue-on-collection-errors",
         "-c",
         str(ini),
         "--rootdir",

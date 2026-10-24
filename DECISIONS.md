@@ -1048,3 +1048,14 @@ considered and live-verification detail: `docs/ROADMAP.txt`.
   its `AGENTS.md`. Docker runs aren't checked (no user plugins in the
   container). Cost: a user of OpenHands' own plugins moves them aside
   while using Certo.
+- **The independent-tests writer also reads the project before the build**
+  (the Author, 2026-10-24; supersedes "from the task text only" in the
+  Phase 1.5 entry). Seen live: on `ledger-transfers`, a writer with the
+  task text alone rightly refused (the task refers to existing code it
+  couldn't see). It now gets a read-only copy of the project as it is
+  before the builder starts (`project_before/`: no `.git`, environments,
+  packages, build output or `.certo/`; 200 KB per file, 5 MB in all),
+  which keeps it independent of the builder's work. Absolute paths in
+  its instructions: with a relative `tests/` it wrote into the copy's own
+  `tests/` folder. First live result with `claude-haiku-5-5`: 15 tests,
+  15/15 on the reference solution, failing on the starter, $0.014.
