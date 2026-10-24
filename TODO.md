@@ -72,7 +72,12 @@ first item is the suggested next one.
   hidden-test idea to real runs. Agreed 2026-10-22: the first version is
   opt-in and report-only (the results are shown next to the verdict but
   don't change it), written by the same model by default, another model
-  as an option. The verdict rule is decided later from the benchmark:
+  as an option. A live case (2026-10-24, `ledger-transfers` run by hand
+  with `ollama/qwen3-coder:30b`, Certo at 77dea16): `verified` in 5m 41s,
+  hidden tests 18 of 27. Bug 1 fixed in the wrong place, the report part
+  of the feature missing, no tests for the two fixes (the task asked for
+  them); the existing tests and its own transfer tests all passed. The
+  verdict rule is decided later from the benchmark:
   how often these tests catch a real bug, and how often they are wrong.
 - **Protect verification files from silent agent changes.** The agent can
   weaken or delete tests, build scripts or lint config before Certo
@@ -308,11 +313,6 @@ database).
 
 ## Smaller bugs
 
-- **One tool call can wait for hours.** The terminal tool's `timeout` is
-  in seconds and unlimited, and the task budget is checked only between
-  runs: a `luna` run in the 0.1.23 baseline waited 10,000 seconds
-  (`docs/benchmark/baseline-0.1.23.md`, "The 2h53m run"). Cap the wait
-  (for example at the remaining task budget), or stop a run when the
 - **A project inside another git repo gets that repo's `CLAUDE.md`**
   (Claude models only; `AGENTS.md` for every model, `GEMINI.md` for
   Gemini). The SDK reads them from the git repo root too (ARCHITECTURE.md,
@@ -324,6 +324,11 @@ database).
   ran a Claude model under `projects/`. Done when the rule is chosen,
   applied and documented.
 
+- **One tool call can wait for hours.** The terminal tool's `timeout` is
+  in seconds and unlimited, and the task budget is checked only between
+  runs: a `luna` run in the 0.1.23 baseline waited 10,000 seconds
+  (`docs/benchmark/baseline-0.1.23.md`, "The 2h53m run"). Cap the wait
+  (for example at the remaining task budget), or stop a run when the
   budget runs out. Done when a long `timeout` can't outlast the budget.
 - **Tool calls written as text rose in the 0.1.23 baseline**: 7 of 39
   `qwen3.8` runs, against 1 of 27 in 0.1.22, with the same prompt, SDK,
