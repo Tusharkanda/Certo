@@ -80,6 +80,32 @@ def test_a_task_with_no_collected_hidden_tests_is_an_error(tmp_path, project_ven
     assert result.status == "error"
 
 
+def test_test_language_is_none_without_runnable_tests(tmp_path):
+    assert bench_tasks.test_language(tmp_path / "missing") is None
+    (tmp_path / "notes.txt").write_text("not a test")
+    assert bench_tasks.test_language(tmp_path) is None
+    (tmp_path / "test_x.py").write_text("")
+    assert bench_tasks.test_language(tmp_path) == "python"
+
+
+def test_a_test_folder_runs_and_can_leave_the_project_as_it_was(tmp_path, project_venv):
+    tests = tmp_path / "tests-from-elsewhere"
+    tests.mkdir()
+    (tests / "test_add.py").write_text(
+        "from calc import add\n\n\ndef test_add():\n    assert add(2, 3) == 5\n"
+    )
+    workspace = tmp_path / "ws"
+    workspace.mkdir()
+    (workspace / "calc.py").write_text("def add(a, b):\n    return a + b\n")
+    project_venv(workspace)
+
+    result = bench_tasks.run_test_folder(tests, workspace, clean_up=True)
+
+    assert result.status == "passed", result.output
+    assert not (workspace / bench_tasks.HIDDEN_DIR_NAME).exists()
+    assert (workspace / "calc.py").exists()
+
+
 def test_task_folders_must_have_the_required_shape(tmp_path):
     (tmp_path / "no-prompt" / "hidden_tests").mkdir(parents=True)
     with pytest.raises(BenchTaskError, match="task.md"):

@@ -21,6 +21,8 @@ The hidden tests' language is the task's language:
   binary, `CARGO_BIN_EXE_<name>`.
 
 Only the hidden tests run: the agent's own tests can't change the score.
+`run_test_folder()` runs any folder of tests the same way, for the
+independent tests a run can have (DECISIONS.md).
 
 The bundled set lives in `benchmark_tasks/` inside the package, like the
 built-in skills. No SDK import here: loading, preparing and grading are all
@@ -87,12 +89,21 @@ _TEST_SUFFIXES = {"python": ".py", "node": ".js", "go": "_test.go", "rust": ".rs
 LANGUAGES = tuple(_TEST_SUFFIXES)
 
 
-def _language(hidden: Path) -> str:
-    names = [p.name for p in hidden.iterdir() if p.is_file()]
+def test_language(tests_dir: Path) -> str | None:
+    """The language of the test files in `tests_dir`, from their names, or
+    None when it holds none Certo can run."""
+    names = [p.name for p in tests_dir.iterdir() if p.is_file()] if tests_dir.is_dir() else []
     for language, suffix in _TEST_SUFFIXES.items():
         if any(n.endswith(suffix) for n in names):
             return language
-    raise BenchTaskError(f"{hidden} has no .py, .js, _test.go or .rs test files")
+    return None
+
+
+def _language(hidden: Path) -> str:
+    language = test_language(hidden)
+    if language is None:
+        raise BenchTaskError(f"{hidden} has no .py, .js, _test.go or .rs test files")
+    return language
 
 
 def load_task(path: Path) -> BenchTask:
@@ -168,16 +179,16 @@ def _last_line(text: str) -> str:
     return lines[-1] if lines else ""
 
 
-def _copy_hidden_tests(task: BenchTask, workspace: Path) -> list[str]:
+def _copy_hidden_tests(tests_dir: Path, language: str, workspace: Path) -> list[str]:
     hidden = workspace / HIDDEN_DIR_NAME
     if hidden.exists():
         shutil.rmtree(hidden)
-    shutil.copytree(task.hidden_dir, hidden)
-    suffix = _TEST_SUFFIXES[task.language]
+    shutil.copytree(tests_dir, hidden)
+    suffix = _TEST_SUFFIXES[language]
     return sorted(str(p) for p in hidden.iterdir() if p.is_file() and p.name.endswith(suffix))
 
 
-def _grade_python(task: BenchTask, workspace: Path, runner: CommandRunner) -> GradeResult:
+def _grade_python(tests_dir: Path, workspace: Path, runner: CommandRunner) -> GradeResult:
     setup = ensure_project_env(str(workspace), runner, stop_at=str(workspace))
     if setup.env is None:
         return GradeResult("error", f"no project environment: {setup.unavailable_reason}")
@@ -190,7 +201,7 @@ def _grade_python(task: BenchTask, workspace: Path, runner: CommandRunner) -> Gr
         if install.returncode != 0:
             detail = _last_line(install.error or install.output) or "install failed"
             return GradeResult("error", f"could not install pytest for grading: {detail}")
-    files = _copy_hidden_tests(task, workspace)
+    files = _copy_hidden_tests(tests_dir, "python", workspace)
     hidden = workspace / HIDDEN_DIR_NAME
     # An ini file of our own: the project's pytest settings (addopts, plugins)
     # must not change how the hidden tests run.
@@ -255,33 +266,33 @@ def _install_node_packages(workspace: Path, runner: CommandRunner) -> GradeResul
     )
 
 
-def _grade_node(task: BenchTask, workspace: Path, runner: CommandRunner) -> GradeResult:
+def _grade_node(tests_dir: Path, workspace: Path, runner: CommandRunner) -> GradeResult:
     node = runner.which("node")
     if node is None:
         return GradeResult("error", "node is not installed")
     failed_install = _install_node_packages(workspace, runner)
     if failed_install is not None:
         return failed_install
-    files = _copy_hidden_tests(task, workspace)
+    files = _copy_hidden_tests(tests_dir, "node", workspace)
     command = [node, "--test", *files]
     result = runner.run(command, cwd=str(workspace), timeout=GRADE_TIMEOUT_SECONDS)
     return _result(command, result, failed_codes=None)
 
 
-def _grade_go(task: BenchTask, workspace: Path, runner: CommandRunner) -> GradeResult:
+def _grade_go(tests_dir: Path, workspace: Path, runner: CommandRunner) -> GradeResult:
     go = runner.which("go")
     if go is None:
         return GradeResult("error", "go is not installed")
     if not (workspace / "go.mod").is_file():
         return GradeResult("failed", "no go.mod: the project isn't a Go module")
-    _copy_hidden_tests(task, workspace)
+    _copy_hidden_tests(tests_dir, "go", workspace)
     # An explicit path: `./...` skips dot folders. -count=1: never a cached result.
     command = [go, "test", "-v", "-count=1", f"./{HIDDEN_DIR_NAME}"]
     result = runner.run(command, cwd=str(workspace), timeout=GRADE_TIMEOUT_SECONDS)
     return _result(command, result, failed_codes=None)
 
 
-def _grade_rust(task: BenchTask, workspace: Path, runner: CommandRunner) -> GradeResult:
+def _grade_rust(tests_dir: Path, workspace: Path, runner: CommandRunner) -> GradeResult:
     cargo = runner.which("cargo")
     if cargo is None:
         return GradeResult("error", "cargo is not installed")
@@ -292,7 +303,7 @@ def _grade_rust(task: BenchTask, workspace: Path, runner: CommandRunner) -> Grad
     for old in tests.glob(f"{RUST_HIDDEN_PREFIX}*.rs"):
         old.unlink()
     targets = []
-    for source in sorted(task.hidden_dir.glob("*.rs")):
+    for source in sorted(tests_dir.glob("*.rs")):
         target = RUST_HIDDEN_PREFIX + source.stem
         shutil.copyfile(source, tests / f"{target}.rs")
         targets += ["--test", target]
@@ -311,7 +322,7 @@ def _result(command, result, *, failed_codes) -> GradeResult:
     # Counted on the whole output: `go test -v` lists every test.
     if result.returncode == 0:
         if _counts(result.output) == (0, 0):
-            return GradeResult("error", "no hidden tests ran", shown, output)
+            return GradeResult("error", "no tests ran", shown, output)
         return GradeResult("passed", _summary(result.output), shown, output)
     if failed_codes is None or result.returncode in failed_codes:
         return GradeResult("failed", _summary(result.output), shown, output)
@@ -347,17 +358,42 @@ def _summary(output: str) -> str:
     return f"pass {counts[0]}, fail {counts[1]}" if counts else _last_line(output)
 
 
+_GRADERS = {
+    "python": _grade_python,
+    "node": _grade_node,
+    "go": _grade_go,
+    "rust": _grade_rust,
+}
+
+
+def run_test_folder(
+    tests_dir: Path | str,
+    workspace: Path | str,
+    runner: CommandRunner | None = None,
+    *,
+    language: str | None = None,
+    clean_up: bool = False,
+) -> GradeResult:
+    """Copy the tests in `tests_dir` into `workspace` and run only them, in
+    the project's own environment. `language` defaults to the test files'
+    own (`test_language`). `clean_up` removes the copies afterwards, so the
+    project is left as it was (the hidden-test folder, Rust's copies in
+    `tests/`); Python's environment and Node's packages stay."""
+    tests_dir = Path(tests_dir)
+    root = Path(os.path.abspath(workspace))
+    language = language or _language(tests_dir)
+    try:
+        return _GRADERS[language](tests_dir, root, runner or LocalRunner())
+    finally:
+        if clean_up:
+            shutil.rmtree(root / HIDDEN_DIR_NAME, ignore_errors=True)
+            for copy in (root / "tests").glob(f"{RUST_HIDDEN_PREFIX}*.rs"):
+                copy.unlink()
+
+
 def grade(
     task: BenchTask, workspace: Path | str, runner: CommandRunner | None = None
 ) -> GradeResult:
     """Copy the hidden tests into `workspace` and run them in the project's
     own environment. Only these tests decide the score."""
-    root = Path(os.path.abspath(workspace))
-    runner = runner or LocalRunner()
-    graders = {
-        "python": _grade_python,
-        "node": _grade_node,
-        "go": _grade_go,
-        "rust": _grade_rust,
-    }
-    return graders[task.language](task, root, runner)
+    return run_test_folder(task.hidden_dir, workspace, runner, language=task.language)
