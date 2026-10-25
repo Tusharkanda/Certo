@@ -62,7 +62,12 @@ first item is the suggested next one.
 
 - **Milestone mode.** Split a big task into milestones, each with its own
   acceptance checks, run and verified one at a time, building on
-  `--resume`/`STATUS.md`. The main step from "small task" to "app".
+  `--resume`/`STATUS.md`. The main step from "small task" to "app". The
+  Author's decisions are in DECISIONS.md (2026-10-25); next is the
+  design, then the task-file form, a bench task run as milestones
+  against the same task in one go (local and cloud), and a docs article.
+  Done when an app-sized task ends `verified` in milestone mode on a
+  local model, with a published record.
 - **Independent tests: the rest** (0.1.24: `--independent-tests`, three
   sets by default with a 2-of-3 vote, report only; replay in
   `docs/benchmark/independent-tests-replay-0.1.24.md`). Live Haiku arm

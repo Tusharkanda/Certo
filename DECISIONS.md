@@ -1228,3 +1228,17 @@ considered and live-verification detail: `docs/ROADMAP.txt`.
   each task's profile ranks first. `ModelDecisionRecord` gained
   `chosen_name` (the plain catalog name; `chosen` is a label with the
   effort), because the benchmark looks the model up.
+- **Milestone mode: the Author's three decisions** (2026-10-25, before
+  the design). (1) Who splits: both. Milestones written in the task file
+  are used as they are; otherwise Certo plans them. With `--interactive`
+  it shows the plan and asks; without it, Certo decides alone (as
+  `--auto-model` does), saves the plan in `.certo/` beside `STATUS.md`,
+  and `--resume` continues that plan. The task-file form is built first.
+  (2) Each milestone passes the project's checks plus the acceptance
+  checks written in it; independent tests per milestone only with
+  `--independent-tests`. (3) A failed milestone gets the usual fix
+  attempts, then escalation when a ladder is set, then stops; earlier
+  milestones are kept, `--resume` continues, and the failed milestone's
+  changes stay in the folder with a checkpoint before it, so
+  `certo rollback` can undo them by hand (manual rollback, as decided
+  for checkpoints).
