@@ -86,3 +86,7 @@ latest steps (`CERTO_CONDENSE`, on by default). It only acts near the
 window, so a run that fits is unchanged; the run summary says
 `Older steps summarized` when it happened.
 
+In `certo bench`, an arm can set `context_tokens` (a smaller window for
+a local model, without restarting Ollama) and `condense: false`, and each
+run's record counts its condensations. See
+[the benchmark file](../reference/bench-yaml.md#arms).

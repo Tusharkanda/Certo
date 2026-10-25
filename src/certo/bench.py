@@ -422,6 +422,10 @@ def _print_plan(
             likely += worst * runs
         if arm.params.get("independent_tests"):
             note += " (independent tests on; their writing isn't in the estimate)"
+        if arm.params.get("context_tokens"):
+            note += f" (context window {arm.params['context_tokens']:,} tokens)"
+        if arm.params.get("condense") is False:
+            note += " (no condensing)"
         print(f"  {arm.name}: {arm.strategy}, {'; '.join(parts)}, {runs} run(s){note}")
     line = f"  Estimated cost: at most ~${at_most:.2f}"
     if likely_known and abs(likely - at_most) > 0.005:

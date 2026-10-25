@@ -478,3 +478,56 @@ def test_an_independent_tests_arm_turns_them_on_in_the_run(tmp_path):
     STRATEGIES["single"].run(ctx, without.params)
     STRATEGIES["escalate"].run(ctx, ladder.params)
     assert seen == [True, False, True]
+
+
+CONTEXT = """
+tasks: all
+arms:
+  - {name: small, strategy: single, model: cloud, context_tokens: 32768}
+  - {name: small-raw, strategy: single, model: cloud, context_tokens: 32768, condense: false}
+  - {name: plain, strategy: single, model: cloud, condense: true}
+"""
+
+
+def test_context_tokens_and_condense_are_arm_options(tmp_path):
+    small, raw, plain = load_bench_config(_write(tmp_path, CONTEXT)).arms
+    assert small.params == {"model": "cloud", "context_tokens": 32768}
+    assert raw.params == {"model": "cloud", "context_tokens": 32768, "condense": False}
+    assert plain.params == {"model": "cloud"}  # defaults left out, for --resume
+
+
+def test_the_arm_options_reach_the_run(tmp_path):
+    cfg = load_bench_config(_write(tmp_path, CONTEXT))
+    seen = []
+
+    def fake_stream(task, *, cfg, ladder=None):
+        seen.append((cfg.llm_context_tokens, cfg.condense))
+        return SimpleNamespace(verification_state="verified", retries_used=0, run_summary=None)
+
+    ctx = RunContext("do it", "/ws", cfg.catalog, "/iso", fake_stream, cfg.model_catalog)
+    for arm in cfg.arms:
+        STRATEGIES["single"].run(ctx, arm.params)
+    assert seen == [(32768, True), (32768, False), (0, True)]
+
+
+@pytest.mark.parametrize(
+    ("option", "message"),
+    [
+        ("context_tokens: 8192", "at least 16,384"),
+        ("context_tokens: big", "must be a whole number"),
+        ("condense: 'no'", "'condense' must be true or false"),
+    ],
+)
+def test_bad_arm_options_are_refused(tmp_path, option, message):
+    bench = f"arms:\n  - {{name: a, strategy: single, model: cloud, {option}}}\n"
+    with pytest.raises(BenchConfigError, match=message):
+        load_bench_config(_write(tmp_path, bench))
+
+
+def test_context_tokens_is_for_single_arms_only(tmp_path):
+    bench = (
+        "arms:\n  - {name: a, strategy: escalate, models: [local-coder, cloud], "
+        "context_tokens: 32768}\n"
+    )
+    with pytest.raises(BenchConfigError, match="strategy 'single' only"):
+        load_bench_config(_write(tmp_path, bench))

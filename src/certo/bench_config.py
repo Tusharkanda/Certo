@@ -17,6 +17,7 @@ from typing import Any
 
 import yaml
 
+from .context_window import MIN_CONTEXT_TOKENS
 from .bench_strategies import STRATEGIES, BenchConfigError
 from .bench_tasks import BUILTIN_TASKS_DIR, BenchTask, BenchTaskError, load_tasks
 from .catalog_check import load_checked_catalog
@@ -83,6 +84,12 @@ class BenchConfig:
             "arm_models": {a.name: a.models for a in self.arms},
             "models": {name: self.catalog[name].model for a in self.arms for name in a.models},
         }
+
+
+# Options every arm may have, whatever its strategy (bench_strategies.arm_config).
+# Each is kept out of params at its default, so results folders from before
+# it still match on --resume.
+_ARM_OPTIONS = ("independent_tests", "condense", "context_tokens")
 
 
 def _load_yaml(path: Path) -> dict[str, Any]:
@@ -157,10 +164,30 @@ def _arms(raw: Any, catalog: dict[str, ModelCatalogEntry], where: str) -> list[A
         independent = item.get("independent_tests", False)
         if not isinstance(independent, bool):
             raise BenchConfigError(f"{arm_where}: 'independent_tests' must be true or false.")
-        rest = {k: v for k, v in item.items() if k != "independent_tests"}
+        condense = item.get("condense", True)
+        if not isinstance(condense, bool):
+            raise BenchConfigError(f"{arm_where}: 'condense' must be true or false.")
+        context = item.get("context_tokens")
+        if context is not None:
+            if isinstance(context, bool) or not isinstance(context, int):
+                raise BenchConfigError(f"{arm_where}: 'context_tokens' must be a whole number.")
+            if context < MIN_CONTEXT_TOKENS:
+                raise BenchConfigError(
+                    f"{arm_where}: 'context_tokens' must be at least {MIN_CONTEXT_TOKENS:,}."
+                )
+            if strategy != "single":
+                raise BenchConfigError(
+                    f"{arm_where}: 'context_tokens' works with strategy 'single' only (a "
+                    "ladder's models take theirs from models.yaml)."
+                )
+        rest = {k: v for k, v in item.items() if k not in _ARM_OPTIONS}
         params = STRATEGIES[strategy].parse(rest, catalog, arm_where)
         if independent:
             params["independent_tests"] = True
+        if not condense:
+            params["condense"] = False
+        if context is not None:
+            params["context_tokens"] = context
         arms.append(Arm(name=name, strategy=strategy, params=params))
     return arms
 

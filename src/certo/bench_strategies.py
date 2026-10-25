@@ -108,9 +108,16 @@ def run_config(entry: ModelCatalogEntry, workspace: str, isolation_dir: str) -> 
 
 
 def arm_config(entry: ModelCatalogEntry, ctx: RunContext, params: Mapping[str, Any]) -> Config:
-    """run_config, plus the arm's own options (`independent_tests`)."""
+    """run_config, plus the arm's own options (`independent_tests`,
+    `condense`, `context_tokens`; bench_config._ARM_OPTIONS)."""
     cfg = run_config(entry, ctx.workspace, ctx.isolation_dir)
-    return replace(cfg, independent_tests=True) if params.get("independent_tests") else cfg
+    if params.get("independent_tests"):
+        cfg = replace(cfg, independent_tests=True)
+    if params.get("condense") is False:
+        cfg = replace(cfg, condense=False)
+    if params.get("context_tokens"):
+        cfg = replace(cfg, llm_context_tokens=params["context_tokens"])
+    return cfg
 
 
 def model_name(
@@ -148,7 +155,8 @@ def reject_unknown_keys(arm: Mapping[str, Any], allowed: set[str], where: str) -
     if extra:
         raise BenchConfigError(
             f"{where}: unknown key(s) {', '.join(extra)}. This strategy takes: "
-            f"name, strategy, {', '.join(sorted(allowed))}, independent_tests."
+            f"name, strategy, {', '.join(sorted(allowed))}, independent_tests, condense, "
+            "context_tokens."
         )
 
 
