@@ -1220,3 +1220,11 @@ considered and live-verification detail: `docs/ROADMAP.txt`.
   rungs; a resume starts from the conversation's own spent cost, so it
   gets a fresh limit, like the time budget. Checks still run once after
   it, as after the time budget: they cost nothing.
+- **A bench `auto` strategy, the Phase 1.3 hold lifted** (2026-10-25,
+  the Author). It runs `stream_task` with `model_selection="auto"` and the
+  benchmark's own catalog, narrowed to the arm's `models` (a new
+  `model_catalog` argument, so the files aren't read again and an arm can
+  limit the candidates). The plan's likely cost counts only the model
+  each task's profile ranks first. `ModelDecisionRecord` gained
+  `chosen_name` (the plain catalog name; `chosen` is a label with the
+  effort), because the benchmark looks the model up.

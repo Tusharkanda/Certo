@@ -2248,6 +2248,33 @@ def test_auto_mode_picks_the_best_fit_candidate_for_the_initial_run(monkeypatch,
     assert len(outcome.model_decisions) == 1
     assert outcome.model_decisions[0].kind == "initial"
     assert outcome.model_decisions[0].chosen == "cheap (effort default)"
+    assert outcome.model_decisions[0].chosen_name == "cheap"
+
+
+def test_auto_mode_uses_a_catalog_it_is_given(monkeypatch, tmp_path):
+    # The benchmark passes its own catalog, narrowed to an arm's models.
+    from dataclasses import replace as dc_replace
+
+    from certo.catalog_check import load_checked_catalog
+
+    files = _catalog_files(tmp_path)
+    loaded = load_checked_catalog(files["models_file"], files["models_list_file"])
+    narrowed = dc_replace(loaded, models=[m for m in loaded.models if m.name == "strong"])
+    conversation = _SwitchableConversation([])
+    _stub_stream_task_dependencies(monkeypatch, conversation, tmp_path)
+
+    def _must_not_load(*_a, **_k):
+        raise AssertionError("a given catalog must not be loaded again")
+
+    monkeypatch.setattr(runner, "load_checked_catalog", _must_not_load)
+
+    outcome = runner.stream_task(
+        "do the thing",
+        cfg=_cfg(workspace=str(tmp_path), model_selection="auto"),
+        model_catalog=narrowed,
+    )
+
+    assert [d.chosen_name for d in outcome.model_decisions] == ["strong"]
 
 
 def test_auto_mode_writes_model_decisions_to_the_workspace(monkeypatch, tmp_path):

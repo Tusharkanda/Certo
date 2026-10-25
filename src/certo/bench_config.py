@@ -38,6 +38,7 @@ _TOP_LEVEL_KEYS = {
     "models_file",
     "models_list_file",
     "escalation_file",
+    "task_profiles_file",
     "tasks_dir",
 }
 # Arm names become file names in the results folder.
@@ -68,8 +69,10 @@ class BenchConfig:
     catalog: dict[str, ModelCatalogEntry]
     models_list_file: str = ""
     # escalation.yaml, when there is one: cost_axis and max_rungs for the
-    # derived ladders of `escalate` arms. Task profiles are never used.
+    # derived ladders of `escalate` arms.
     escalation_file: str = ""
+    # task_profiles.yaml, when there is one: only `auto` arms use it.
+    task_profiles_file: str = ""
     # models.yaml warnings (catalog_check.py), printed with the plan.
     catalog_warnings: list[str] = field(default_factory=list)
     # The whole catalog (task profiles, escalation settings), for ladders.
@@ -214,19 +217,25 @@ def load_bench_config(path: str = DEFAULT_BENCH_FILE) -> BenchConfig:
                 f"{LIST_FILE}. {missing_message(name, repr(key) + ' in the benchmark file')}"
             )
         files[key] = found
-    escalation_file = raw.get("escalation_file") or ""
-    if not isinstance(escalation_file, str):
-        raise BenchConfigError(f"{where}: 'escalation_file' must be a path.")
-    if escalation_file and not Path(escalation_file).is_file():
-        raise BenchConfigError(
-            f"{where}: 'escalation_file' names {escalation_file!r}, which doesn't exist."
-        )
+    optional = {}
+    for key in ("escalation_file", "task_profiles_file"):
+        value = raw.get(key) or ""
+        if not isinstance(value, str):
+            raise BenchConfigError(f"{where}: '{key}' must be a path.")
+        if value and not Path(value).is_file():
+            raise BenchConfigError(f"{where}: '{key}' names {value!r}, which doesn't exist.")
+        optional[key] = value
+    escalation_file, task_profiles_file = (
+        optional["escalation_file"],
+        optional["task_profiles_file"],
+    )
     catalog_warnings: list[str] = []
     try:
         loaded = load_checked_catalog(
             files["models_file"],
             files["models_list_file"],
             escalation_file=escalation_file,
+            task_profiles_file=task_profiles_file,
             on_warning=catalog_warnings.append,
         )
         catalog = {e.name: e for e in loaded.models}
@@ -252,6 +261,7 @@ def load_bench_config(path: str = DEFAULT_BENCH_FILE) -> BenchConfig:
         models_file=str(Path(files["models_file"]).resolve()),
         models_list_file=str(Path(files["models_list_file"]).resolve()),
         escalation_file=str(Path(escalation_file).resolve()) if escalation_file else "",
+        task_profiles_file=str(Path(task_profiles_file).resolve()) if task_profiles_file else "",
         catalog=catalog,
         catalog_warnings=catalog_warnings,
         model_catalog=loaded,

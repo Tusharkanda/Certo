@@ -15,6 +15,7 @@ package (`certo/examples/`).
 models_file: ./models.yaml             # optional
 models_list_file: ./models_list.yaml   # optional
 escalation_file: ./escalation.yaml     # optional
+task_profiles_file: ./task_profiles.yaml   # optional
 tasks_dir: ./my-tasks        # optional
 tasks: all                   # or a list of task names
 repeats: 3
@@ -34,6 +35,7 @@ arms:
 | `models_file` | looked up | Your personal `models.yaml`. Without it: `./models.yaml`, else `~/.config/certo/models.yaml`. `CERTO_MODELS_FILE` is not read. |
 | `models_list_file` | looked up | The model catalog, `models_list.yaml`, the same way. `CERTO_MODELS_LIST_FILE` is not read. |
 | `escalation_file` | looked up | `escalation.yaml`, the same way, for the `cost_axis` and `max_rungs` of a derived `escalate` arm. Optional: without one, the defaults apply. `CERTO_ESCALATION_FILE` is not read. |
+| `task_profiles_file` | looked up | `task_profiles.yaml`, the same way, for `auto` arms: how a task is classified and which ratings count. Optional: without one, every task gets the `default` profile. `CERTO_TASK_PROFILES_FILE` is not read. |
 | `tasks_dir` | the bundled task set | A folder of your own tasks, in the same shape. |
 
 Any other key is an error. Relative paths are relative to the folder where
@@ -91,6 +93,29 @@ records every rung that ran and which one gave the final verdict.
 The named ladders in `escalation.yaml` are not used here: an arm's ladder
 is its `models` list, or a derived one.
 
+### `strategy: auto`
+
+What `certo --auto-model` does: Certo classifies each task by its first
+line, using the task profiles, starts on the model whose ratings fit that
+profile best, and moves to the next only when the provider fails or a fix
+attempt still fails the checks.
+
+| Key | Meaning |
+|---|---|
+| `models` | Optional. The models to choose from, at least one. Without it, every active model is a candidate. |
+
+```yaml
+arms:
+  - name: picked
+    strategy: auto
+    models: [qwen-local, claude-haiku-5-5, claude-sonnet-5-5]
+```
+
+The plan says which model each task will start on, and its likely cost
+counts only that model. Each run's record has its `task_profile` and the
+models it used, first the one it started on; `results.md` counts how many
+runs started on each model.
+
 ## How models are used
 
 - The arm's model is taken from the model files: its id, ratings,
@@ -104,12 +129,12 @@ is its `models` list, or a derived one.
 - Problems in the model files are checked as for every command (see
   [Checks](models-yaml.md#checks)): errors stop the benchmark,
   warnings are printed with the plan.
-- `task_profiles.yaml` is not used. The `escalation` settings
-  (`cost_axis`, `max_rungs`) are used only by a derived `escalate` arm, to
-  build its ladder.
+- `task_profiles.yaml` is used only by `auto` arms. The `escalation`
+  settings (`cost_axis`, `max_rungs`) are used only by a derived
+  `escalate` arm, to build its ladder.
 
 ## Strategies to come
 
 Strategies are a small registry in Certo's code, so new ones can be added
 without changing how the benchmark runs, for example `best_of` (several
-attempts, the verifier picks). `single` and `escalate` exist today.
+attempts, the verifier picks). `single`, `escalate` and `auto` exist today.

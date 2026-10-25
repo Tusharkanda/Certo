@@ -35,7 +35,7 @@ from . import __version__, context_window
 from .bench_config import DEFAULT_BENCH_FILE, Arm, BenchConfig, BenchConfigError, load_bench_config
 from .bench_report import arm_rows, cost_line, cost_summary, write_report
 from .independent_tests import failing_tests
-from .bench_strategies import STRATEGIES, RunContext
+from .bench_strategies import STRATEGIES, RunContext, auto_catalog
 from .bench_tasks import (
     BUILTIN_TASKS_DIR,
     BenchTask,
@@ -47,6 +47,7 @@ from .bench_tasks import (
     task_set_version,
 )
 from .escalation import ESCALATING_VERDICTS, EscalationError, derive_ladder
+from .model_catalog import ModelCatalogError, classify_task, rank_for_profile
 from .model_pricing import (
     ESTIMATE_INPUT_TOKENS,
     ESTIMATE_OUTPUT_TOKENS,
@@ -249,6 +250,8 @@ def execute_run(
         # Escalation only: every rung that ran, and which one gave the verdict.
         "rungs": list(attempt.rungs) if attempt else [],
         "final_rung": attempt.final_rung if attempt else None,
+        # Auto only: the task profile the task was classified as.
+        "task_profile": attempt.task_profile if attempt else None,
         # Arms with independent_tests: their result (report only), or None.
         "independent_tests": _independent_record(attempt.independent_tests if attempt else None),
         "error": error,
@@ -446,6 +449,13 @@ def _print_plan(
                 )
                 likely += expected * runs
             note = f" ({'; '.join(notes)})"
+        elif arm.strategy == "auto":
+            # One model per run, the one the task's profile ranks first;
+            # the others only on a fallback.
+            picks = _auto_picks(cfg, arm, [p.task for p in todo if p.arm.name == arm.name])
+            likely += sum((estimate_run_cost(cfg.catalog[n]) or 0.0) * c for n, c in picks.items())
+            chosen = ", ".join(f"{n} for {c} run(s)" for n, c in picks.items())
+            note = f" (picks {chosen}; the others only on a fallback)" if picks else ""
         else:
             likely += worst * runs
         if arm.params.get("independent_tests"):
@@ -472,6 +482,22 @@ def _print_plan(
         "at_most": round(at_most, 4),
         "likely": round(likely, 4) if likely_known else None,
     }
+
+
+def _auto_picks(cfg: BenchConfig, arm: Arm, tasks: list[BenchTask]) -> dict[str, int]:
+    """For an `auto` arm: which model each task starts on (the first of its
+    profile's ranking), counted per model."""
+    if cfg.model_catalog is None:
+        return {}
+    catalog = auto_catalog(cfg.model_catalog, arm.models)
+    picks: dict[str, int] = {}
+    for task in tasks:
+        try:
+            ranked, _ = rank_for_profile(catalog, classify_task(task.prompt, catalog))
+        except ModelCatalogError:
+            return {}
+        picks[ranked[0].name] = picks.get(ranked[0].name, 0) + 1
+    return picks
 
 
 def _confirm(yes: bool, interactive: bool) -> bool:
@@ -553,10 +579,12 @@ def _init_out_dir(cfg: BenchConfig, out_dir: Path, estimate: dict[str, Any]) -> 
         _write_json(out_dir / "meta.json", {**_meta(cfg), "estimate": estimate})
 
 
-def _default_stream(task: str, *, cfg, ladder=None, on_message=None) -> Any:
+def _default_stream(task: str, *, cfg, ladder=None, on_message=None, model_catalog=None) -> Any:
     from .runner import stream_task
 
-    return stream_task(task, cfg=cfg, ladder=ladder, on_message=on_message)
+    return stream_task(
+        task, cfg=cfg, ladder=ladder, on_message=on_message, model_catalog=model_catalog
+    )
 
 
 def run_benchmark(

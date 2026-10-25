@@ -100,6 +100,19 @@ Escalation only climbs when a model fails Certo's checks. On tasks the
 first model already solves, an escalate arm gives the same result as that
 model alone.
 
+**Does `--auto-model` pick well?** An `auto` arm next to each of its
+models alone. The plan shows which model each task starts on:
+
+```yaml
+# bench-auto.yaml
+tasks: all
+repeats: 1
+arms:
+  - {name: local,  strategy: single, model: qwen3.8-27b-local}
+  - {name: cloud,  strategy: single, model: gpt-6-luna}
+  - {name: picked, strategy: auto, models: [qwen3.8-27b-local, gpt-6-luna]}
+```
+
 **Does my setup work at all?** A quick run before a long one: a few tasks,
 one repeat.
 

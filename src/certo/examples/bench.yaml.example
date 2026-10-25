@@ -44,6 +44,11 @@ arms:
   - name: local-then-cloud
     strategy: escalate
     models: [qwen3.8-27b-local, gpt-6-luna]
+  # strategy: auto = pick a model per task from task_profiles.yaml (like
+  # certo --auto-model). Leave out `models` to choose from every active one.
+  # - name: picked
+  #   strategy: auto
+  #   models: [qwen3.8-27b-local, gpt-6-luna]
 
 # Optional: a folder of your own tasks instead of the bundled set, in the
 # same shape (task.md, starter/, hidden_tests/, reference/).

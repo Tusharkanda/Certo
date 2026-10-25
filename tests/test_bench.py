@@ -699,3 +699,101 @@ def test_the_real_cost_is_printed_and_kept_with_the_estimate(tmp_path, project_v
     assert [m["name"] for m in cost["per_model"]] == ["cloud-a"]
     assert "Total cost: $0.2500 (the plan estimated at most ~$" in printed
     assert "## Cost" in (out / "results.md").read_text()
+
+
+# --- strategy: auto (what `certo --auto-model` does) -------------------------
+
+PROFILES = """
+task_profiles:
+  tables:
+    triggers: [temperature]
+    weights: {cost: 3}
+  default:
+    weights: {reasoning: 3}
+"""
+
+AUTO_ARM = "  - {name: picked, strategy: auto, models: [local-coder, cloud-a, cloud-b]}\n"
+
+
+def _auto_bench(tmp_path: Path, arms: str = AUTO_ARM) -> str:
+    from model_file_helpers import write_model_files
+
+    list_path, models_path = write_model_files(tmp_path, RATED)
+    profiles = tmp_path / "task_profiles.yaml"
+    profiles.write_text(PROFILES)
+    path = tmp_path / "bench.yaml"
+    path.write_text(
+        f"models_file: {models_path}\nmodels_list_file: {list_path}\n"
+        f"task_profiles_file: {profiles}\n"
+        f"tasks: [temperature-table, page-ranges]\nrepeats: 1\narms:\n{arms}"
+    )
+    return str(path)
+
+
+class FakeAutoModel(FakeModel):
+    """Answers as `stream_task` does with --auto-model: the model it chose,
+    from the catalog it was given, in `model_decisions`."""
+
+    def __call__(self, task_text, *, cfg, on_message=None, model_catalog=None):
+        from certo.model_catalog import classify_task, rank_for_profile
+
+        outcome = super().__call__(task_text, cfg=cfg, on_message=on_message)
+        self.calls[-1].catalog = model_catalog
+        profile = classify_task(task_text, model_catalog)
+        ranked, _ = rank_for_profile(model_catalog, profile)
+        outcome.model_decisions = (
+            SimpleNamespace(chosen_name=ranked[0].name, task_profile=profile.name),
+        )
+        return outcome
+
+
+def test_an_auto_arm_chooses_from_its_own_models_or_every_active_one(tmp_path):
+    arms = AUTO_ARM + "  - {name: any, strategy: auto}\n"
+    cfg = load_bench_config(_auto_bench(tmp_path, arms))
+
+    assert cfg.arms[0].models == ["local-coder", "cloud-a", "cloud-b"]
+    assert cfg.arms[1].models == ["local-coder", "local-weak", "cloud-a", "cloud-b"]
+    assert [p.name for p in cfg.model_catalog.task_profiles] == ["tables", "default"]
+
+
+@pytest.mark.parametrize(
+    ("models", "error"),
+    [("[]", "must list the models"), ("[cloud-a, cloud-a]", "twice"), ("[nope]", "unknown model")],
+)
+def test_an_auto_arms_models_are_checked(tmp_path, models, error):
+    from certo.bench_config import BenchConfigError
+
+    arms = f"  - {{name: picked, strategy: auto, models: {models}}}\n"
+    with pytest.raises(BenchConfigError, match=error):
+        load_bench_config(_auto_bench(tmp_path, arms))
+
+
+def test_an_auto_run_records_the_model_it_chose_and_the_profile(tmp_path, project_venv):
+    model = FakeAutoModel(project_venv)
+    out = tmp_path / "out"
+
+    assert _run(_auto_bench(tmp_path), out, model) == 0
+
+    by_task = {r["task"]: r for r in _records(out)}
+    assert by_task["temperature-table"]["task_profile"] == "tables"
+    assert [m["name"] for m in by_task["temperature-table"]["models"]] == ["local-coder"]
+    assert by_task["page-ranges"]["task_profile"] == "default"
+    assert [m["name"] for m in by_task["page-ranges"]["models"]] == ["cloud-b"]
+    call = model.calls[0]
+    assert call.cfg.model_selection == "auto"
+    # Only the arm's models are candidates.
+    assert [m.name for m in call.catalog.models] == ["local-coder", "cloud-a", "cloud-b"]
+    assert "auto from" in (out / "results.md").read_text()
+    assert "started on: " in (out / "results.md").read_text()
+
+
+def test_the_plan_says_which_model_each_auto_run_starts_on(tmp_path, monkeypatch, capsys):
+    monkeypatch.setattr(bench, "estimate_run_cost", lambda entry: PRICES[entry.name])
+    out = tmp_path / "results" / "new"
+
+    bench.bench_main(["--config", _auto_bench(tmp_path), "--out", str(out)], interactive=False)
+
+    text = capsys.readouterr().out
+    assert "picks local-coder for 1 run(s), cloud-b for 1 run(s)" in text
+    # At most every candidate per run; likely only the picked one.
+    assert "Estimated cost: at most ~$10.00, likely ~$4.00" in text

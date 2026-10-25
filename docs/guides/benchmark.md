@@ -71,7 +71,7 @@ Node tasks with packages; see
 - **`bench.yaml`** says what to compare. Each arm names a strategy and
   models **by their `name`**. It holds no keys, so you can commit it.
 
-The benchmark never reads `.env` and never uses `--auto-model` ranking. An
+The benchmark never reads `.env`. An
 arm can only name a model that `models.yaml` enables: a model missing
 there, or with `activated: false`, is an error. (Before version 0.1.9 the
 benchmark ignored `activated`.)
@@ -92,7 +92,10 @@ arms:
 `strategy: single` means one model and the normal Certo run, exactly what
 `certo "<task>"` does. `strategy: escalate` climbs a ladder of models,
 like `certo --escalate`: give it `models: [a, b]` for a fixed ladder, or no
-`models` for the ladder Certo derives from the ratings. Start from
+`models` for the ladder Certo derives from the ratings. `strategy: auto`
+picks a model for each task from your task profiles, like
+`certo --auto-model`: give it `models: [a, b, c]` to choose from those, or
+no `models` to choose from every active model. Start from
 [bench.yaml.example](../../src/certo/examples/bench.yaml.example) (when
 `bench.yaml` is missing, `certo bench` prints the command that copies it); how to choose the arms for
 your question is in [Write a benchmark file](write-a-benchmark-file.md),

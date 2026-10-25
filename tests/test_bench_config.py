@@ -97,7 +97,8 @@ def test_unknown_model_lists_the_catalog_names(tmp_path):
 def test_unknown_strategy_lists_the_known_ones(tmp_path):
     bench = "arms:\n  - {name: a, strategy: cascade, models: [cloud]}\n"
     with pytest.raises(
-        BenchConfigError, match="unknown strategy 'cascade'.*Known strategies: escalate, single"
+        BenchConfigError,
+        match="unknown strategy 'cascade'.*Known strategies: auto, escalate, single",
     ):
         load_bench_config(_write(tmp_path, bench))
 

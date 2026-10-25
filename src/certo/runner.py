@@ -78,7 +78,13 @@ from .escalation import (
     rung_dicts,
     workspace_listing,
 )
-from .model_catalog import classify_task, find_trigger, rank_for_profile, task_title
+from .model_catalog import (
+    ModelCatalog,
+    classify_task,
+    find_trigger,
+    rank_for_profile,
+    task_title,
+)
 from .model_pricing import estimate_run_cost, is_local
 from .model_selection import (
     ModelChain,
@@ -1452,6 +1458,7 @@ def stream_task(
     ladder: ResolvedLadder | None = None,
     on_escalate: OnEscalate | None = None,
     on_progress: Callable[[str], None] | None = None,
+    model_catalog: ModelCatalog | None = None,
 ) -> TaskOutcome:
     """Run a task, invoking `on_message` with each message as it's produced,
     and return the terminal `TaskOutcome` once verification has settled.
@@ -1565,7 +1572,9 @@ def stream_task(
     agent_cfg = cfg
     agent_usage_id = "certo"
     if cfg.model_selection == "auto":
-        catalog = load_checked_catalog(
+        # `model_catalog`: the benchmark's own, already loaded and checked,
+        # perhaps narrowed to an arm's models (bench_strategies.py).
+        catalog = model_catalog or load_checked_catalog(
             cfg.models_file,
             cfg.models_list_file,
             task_profiles_file=cfg.task_profiles_file,

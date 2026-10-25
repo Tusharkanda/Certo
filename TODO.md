@@ -143,11 +143,11 @@ first item is the suggested next one.
   Needs, per model in `models_list.yaml`, the effort levels it accepts:
   some models ignore the setting or name the levels differently, and a
   wrong level fails only when the model is called.
-- **A `certo bench` strategy for `--auto-model`.** Only `single` and
-  `escalate` exist (`bench_strategies.py`), so the README can say auto-model
-  is unmeasured but not show a number. Add an `auto` strategy (task
-  profiles plus fallback, as the CLI runs it) and bench it next to the
-  single models and a ladder.
+- **Benchmark `--auto-model` for the README.** The bench `auto` arm
+  exists (0.1.25); a two-task live check picked Sonnet for a `debugging`
+  task and Haiku for a `default` one, both verified. Left: a full run of
+  an `auto` arm next to its models alone (cloud, or local plus cloud at
+  night), so the README can show a number instead of "unmeasured".
 - **Tool calls written as text.** In the 0.1.15 local benchmark, every
   failed `qwen3.6` and `qwen3.8` run and 18 of 22 failed `devstral` runs
   ended because the model wrote its tool call as JSON in a text answer;

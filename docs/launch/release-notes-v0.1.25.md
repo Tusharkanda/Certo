@@ -107,6 +107,16 @@ tests included. The checks still run once, so passing work is
 (exit 1), which doesn't climb under escalation. The banner shows the
 limit. See [Limit what a task can spend](../guides/run-records-and-costs.md#limit-what-a-task-can-spend).
 
+## New: benchmark `--auto-model`
+
+`certo bench` has a third strategy, `auto`: each task starts on the model
+its task profile ranks first, with fallbacks, as `certo --auto-model`
+does. `models: [...]` limits the candidates, and a new `task_profiles_file`
+key names the profiles. The plan says which model each task will start
+on, each record keeps the task's profile, and `results.md` counts how
+many runs started on each model. See
+[`strategy: auto`](../reference/bench-yaml.md#strategy-auto).
+
 ## Fixed: a Node project with no tests is no longer `verified`
 
 `node --test` exits successfully when it finds no test files, so a

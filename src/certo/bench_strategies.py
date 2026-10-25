@@ -7,7 +7,8 @@ only uses this interface, so a later strategy, such as `best_of` (N
 attempts, the verifier picks), is one new class and one new entry here,
 with no change to the runner. `single` is one model; `escalate` climbs a
 ladder of models (escalation.py), explicit or derived from the ratings
-(the same ladder for every task).
+(the same ladder for every task); `auto` picks a model per task from the
+task profiles, with fallbacks, as `certo --auto-model` does.
 
 Models always come from the `models.yaml` catalog, by name, and reach the
 normal Certo pipeline as an explicit configuration: never through `.env`.
@@ -64,6 +65,8 @@ class AttemptResult:
     final_rung: int | None = None
     # independent_tests.IndependentTestsResult, when the arm turns them on.
     independent_tests: Any = None
+    # Auto only: the task profile the task was classified as.
+    task_profile: str | None = None
 
 
 class Strategy(Protocol):
@@ -237,5 +240,63 @@ class EscalateStrategy:
         )
 
 
+def auto_catalog(catalog: ModelCatalog, names: list[str]) -> ModelCatalog:
+    """The catalog narrowed to an arm's candidate models, in the catalog's
+    order (the ranking breaks ties by it). Task profiles stay."""
+    return replace(catalog, models=[m for m in catalog.models if m.name in names])
+
+
+class AutoStrategy:
+    """What `certo --auto-model` does: classify the task by its first line
+    (task_profiles.yaml), start on the best-rated model for that profile,
+    and fall back to the next on a provider failure or a failed fix
+    attempt. `models: [a, b, ...]` limits the candidates; without it, every
+    active model is one."""
+
+    name = "auto"
+    description = "a model picked per task from the task profiles, with fallbacks"
+
+    def parse(self, arm, catalog, where):
+        reject_unknown_keys(arm, {"models"}, where)
+        if "models" not in arm:
+            active = [name for name, entry in catalog.items() if entry.activated]
+            if not active:
+                raise BenchConfigError(f"{where}: models.yaml has no active model to choose from.")
+            return {"models": None, "candidates": active}
+        names = arm["models"]
+        if not isinstance(names, list) or not names:
+            raise BenchConfigError(
+                f"{where}: 'models' must list the models from models.yaml to choose from (or "
+                "leave it out to choose from every active model)."
+            )
+        if len(set(names)) != len(names):
+            raise BenchConfigError(f"{where}: 'models' lists a model twice.")
+        for name in names:
+            model_name({"models": name}, "models", catalog, where)
+        return {"models": list(names)}
+
+    def models(self, params):
+        return params["models"] if params["models"] is not None else params["candidates"]
+
+    def run(self, ctx, params):
+        catalog = auto_catalog(ctx.model_catalog, self.models(params))
+        # The run's own settings; the models come from the catalog.
+        cfg = replace(arm_config(catalog.models[0], ctx, params), model_selection="auto")
+        outcome = ctx.stream(ctx.task_text, cfg=cfg, model_catalog=catalog)
+        decisions = getattr(outcome, "model_decisions", ())
+        used = tuple(dict.fromkeys(d.chosen_name for d in decisions if d.chosen_name))
+        used = used or (catalog.models[0].name,)
+        return AttemptResult(
+            verification_state=outcome.verification_state,
+            retries_used=outcome.retries_used,
+            run_summary=outcome.run_summary,
+            models_used=used,
+            independent_tests=getattr(outcome, "independent_tests", None),
+            task_profile=decisions[0].task_profile if decisions else None,
+        )
+
+
 # The registry. A new strategy is one more entry.
-STRATEGIES: dict[str, Strategy] = {s.name: s for s in (SingleStrategy(), EscalateStrategy())}
+STRATEGIES: dict[str, Strategy] = {
+    s.name: s for s in (SingleStrategy(), EscalateStrategy(), AutoStrategy())
+}

@@ -192,6 +192,14 @@ def _arm_models(meta: dict[str, Any], arm: dict[str, Any], records: list[dict[st
     def named(names: list[str]) -> str:
         return ", ".join(f"{n} (`{models.get(n, '?')}`)" for n in names)
 
+    if arm["strategy"] == "auto":
+        started: dict[str, int] = {}
+        for r in records:
+            if r.get("models"):
+                first = r["models"][0]["name"]
+                started[first] = started.get(first, 0) + 1
+        picks = ", ".join(f"{n} {c}×" for n, c in started.items()) or "none yet"
+        return f"auto from {named(meta['config']['arm_models'][arm['name']])}; started on: {picks}"
     derived = arm["strategy"] == "escalate" and arm.get("models") is None
     if not derived:
         return named(meta["config"]["arm_models"][arm["name"]])

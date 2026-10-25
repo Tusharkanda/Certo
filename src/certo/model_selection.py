@@ -45,6 +45,9 @@ class ModelDecisionRecord:
     # candidates by score; an escalation ladder lists rungs by capability.
     list_title: str = "Ranked candidates"
     score_label: str = "score"
+    # The chosen model's plain catalog name (`chosen` is its label, with
+    # the effort), for code that looks the model up (the benchmark).
+    chosen_name: str = ""
 
 
 # Given the ranked candidates, the recommended index (usually 0, or the
@@ -109,6 +112,7 @@ class ModelChain:
                 ranked=self._scored_ranking(),
                 chosen=_label(self.current),
                 reason=reason,
+                chosen_name=self.current.name,
             )
         )
 
