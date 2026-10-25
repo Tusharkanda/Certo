@@ -14,10 +14,6 @@ first item is the suggested next one.
 
 ## Before the next release
 
-- **A small `certo bench` run of the Haiku → Sonnet ladder**, so the
-  README can drop one "not benchmarked yet"
-  ([#24](https://github.com/alessioricco/certo/issues/24), open for
-  contributors).
 - **A longer time budget from `certo init` for Ollama?** The mazeman
   sample took 41 minutes on `qwen3.8:27b` (2026-10-22), past the default
   30-minute `CERTO_MAX_TASK_SECONDS`; it ended `verified` only because the
@@ -34,7 +30,9 @@ first item is the suggested next one.
   `qwen3.8` from the cloud models (7 of 12 on the four larger tasks,
   against 4 of 4 each) but not the cloud models from each other: all
   three passed 13 of 13 (`docs/benchmark/baseline-0.1.23.md`). Harder
-  tasks would. Contributed tasks in the current format help:
+  tasks would. They are also what a cloud ladder needs to show its
+  worth: in the 0.1.25 Haiku → Sonnet run Haiku solved all 13, so the
+  ladder never climbed (`docs/benchmark/ladder-haiku-sonnet-0.1.25.md`). Contributed tasks in the current format help:
   [#3](https://github.com/alessioricco/certo/issues/3).
 - **Escalation after a `failed` rung is unmeasured.** The 0.1.17
   escalation run climbed 10 times, all past a model that did no work.

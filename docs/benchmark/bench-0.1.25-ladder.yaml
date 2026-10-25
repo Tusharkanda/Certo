@@ -1,0 +1,15 @@
+# Issue #24 (Certo 0.1.25, task set version 2): the cheap-cloud-first
+# ladder against each of its models alone, three times on all 13 tasks.
+# Every rung uses the default fix attempts: a bench arm can't set
+# `retries` per model, unlike the README's cheap-first ladder.
+# Results: ladder-haiku-sonnet-0.1.25.md (stopped after 1 repeat: no arm
+# failed a task, so more repeats would add nothing).
+# Run it with: certo bench --config bench-0.1.25-ladder.yaml --parallel 3 --max-cost 20
+# Every model below must be enabled in your models.yaml; see
+# docs/guides/write-a-benchmark-file.md.
+tasks: all
+repeats: 3
+arms:
+  - {name: haiku, strategy: single, model: claude-haiku-5-5}
+  - {name: sonnet, strategy: single, model: claude-sonnet-5-5}
+  - {name: haiku-then-sonnet, strategy: escalate, models: [claude-haiku-5-5, claude-sonnet-5-5]}

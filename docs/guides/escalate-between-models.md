@@ -375,6 +375,10 @@ rejected on purpose) and the next model finishes the task is
 One where the local model's checks keep failing and the next model
 finishes its half-done work is
 [Escalation past failing tests](../benchmark/escalation-handoff-0.1.23.md).
+A cloud ladder, Haiku then Sonnet, against each model alone on the 13
+bundled tasks is [The Haiku → Sonnet ladder in 0.1.25](../benchmark/ladder-haiku-sonnet-0.1.25.md):
+Haiku solved every task, so the ladder never climbed and cost what Haiku
+costs.
 
 ## Related
 

@@ -97,7 +97,7 @@ escalation:
 certo "Fix the failing test in payments.py" --escalate cheap-first
 ```
 
-This ladder hasn't been benchmarked yet.
+On Certo's 13 benchmark tasks, Haiku alone solved all 13, so this ladder never climbed: it cost what Haiku costs, about a tenth of Sonnet alone, for the same results ([the run](https://github.com/alessioricco/certo/blob/main/docs/benchmark/ladder-haiku-sonnet-0.1.25.md)). Where it pays off, on tasks Haiku fails, hasn't been measured yet.
 
 ### Another provider when one is down
 
