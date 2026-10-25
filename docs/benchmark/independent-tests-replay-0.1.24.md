@@ -75,14 +75,55 @@ still catches 7 of the 8 runs that fooled Certo. The one it misses is a
 `duration-parser` run that only one set caught. The cost is three
 writers instead of one: about $0.01 to $0.07 per task with this model.
 
+## A local writer: qwen3.8
+
+The same replay, with `ollama/qwen3.8:27b` (run locally through Ollama)
+writing the tests, on the same 379 projects. **Run:** 2026-10-24 22:39
+to 2026-10-25 03:11 UTC. Writing the 39 sets took about 4 hours 20
+minutes, one at a time, and cost nothing.
+
+- **2 of the 39 writes produced no tests,** both for `ledger-transfers`,
+  the largest task.
+- **One set of `todo-deps` tests was broken:** all 15 of its tests
+  failed on every project, the reference solution included.
+
+One set of tests at a time, next to Haiku's:
+
+| Projects | Should | qwen3.8 | Haiku |
+|---|---|---|---|
+| Fooled Certo | fail | 11 of 24 | 22 of 24 |
+| All wrong projects | fail | 189 of 210 | 210 of 216 |
+| Untouched starters | fail | 37 of 37 | 39 of 39 |
+| Right projects | pass | 835 of 913 | 723 of 921 |
+| Reference solutions | pass | 32 of 37 | 34 of 39 |
+
+With the 2-of-3 vote:
+
+| Writer | Fooled caught | Wrong caught | Right projects flagged | Reference flagged |
+|---|---|---|---|---|
+| qwen3.8 | 2 of 8 | 61 of 72 | 5 of 307 | 1 of 13 |
+| Haiku | 7 of 8 | 69 of 72 | 24 of 307 | 0 of 13 |
+
+- **qwen3.8's tests are milder.** They raise fewer false alarms, but
+  they miss more wrong work: with the vote, they catch only 2 of the 8
+  runs that fooled Certo.
+- **They found none of the real bugs** Haiku's tests found (`ÄBCDE`,
+  `NaN`, `1.0.0+01`). Every failure on right work came from a wrong
+  test: each one also failed the reference solution.
+- **The 5 right projects flagged** are all `todo-deps`: the broken set
+  plus a set with wrong tests.
+
+So with this model, independent tests add little. They are more useful
+written by a stronger model than the one doing the build.
+
 ## Limits
 
 - **Old projects, small tasks.** All 8 fooled runs are on small tasks
   (`slugify`, `semver-order`, `duration-parser`, `inventory-fix`), from
   Certo 0.1.13 to 0.1.22. The four larger tasks had no fooled runs to
   test, and `library-loans` and `room-bookings` had no wrong projects.
-- **One writer model.** A local model writing the tests may do better or
-  worse; not measured yet.
+- **Two writer models.** One cloud model and one local one, one replay
+  each.
 - **The writer judged other models' work.** In a real run the same model
   writes the tests and builds, which this replay doesn't show.
 - **Writers can share a misreading.** In a live run afterwards

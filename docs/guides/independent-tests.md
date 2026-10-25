@@ -107,6 +107,9 @@ Measured on 379 projects from earlier benchmark runs, with
   caught.
 - The vote doesn't help when most writers misread the task the same
   way, as in the run above.
+- With the local `qwen3.8:27b` writing, the tests were milder: fewer
+  false alarms, but with the vote they caught only 2 of the 8, and none
+  of the real bugs. A weaker model writes weaker tests.
 
 So read a failing independent test before you trust it either way.
 

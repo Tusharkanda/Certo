@@ -25,7 +25,9 @@ Report only: the verdict and the exit code don't change, because
 independent tests can be wrong too. In the run above all three were,
 misreading the same rule of the task. Measured on 379 saved benchmark
 projects, three sets with a 2-of-3 vote caught 7 of the 8 runs that had
-fooled Certo, and failed none of the reference solutions:
+fooled Certo, and failed none of the reference solutions, with
+`claude-haiku-5-5` writing them. Written by the local `qwen3.8:27b`,
+they caught only 2 of the 8:
 [Independent tests on saved projects](../benchmark/independent-tests-replay-0.1.24.md).
 Local runs, not on `--resume`, not in server mode yet. See
 [Independent tests](../guides/independent-tests.md).

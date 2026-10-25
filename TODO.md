@@ -71,10 +71,11 @@ first item is the suggested next one.
   `--resume`/`STATUS.md`. The main step from "small task" to "app".
 - **Independent tests: the rest** (0.1.24: `--independent-tests`, three
   sets by default with a 2-of-3 vote, report only; replay in
-  `docs/benchmark/independent-tests-replay-0.1.24.md`). Left: (1) the
-  replay with a local writer (`qwen3.8`), per agreement 2 (running
-  2026-10-24 night into `bench-results/independent-replay-qwen3.8`);
-  (2) writers share misreadings the task's wording invites: on
+  `docs/benchmark/independent-tests-replay-0.1.24.md`). Left: (1) an
+  option for a different writer model than the build's: the `qwen3.8`
+  replay (2026-10-25) caught only 2 of 8 fooled runs with the vote
+  (Haiku: 7 of 8) and none of the real bugs, so local users gain little
+  from their own model as writer; (2) writers share misreadings the task's wording invites: on
   `ledger-transfers` most sets read "the outgoing amount is negative" as
   a role given by name, not by sign (live 2026-10-24: 3 of 3 sets failed
   right work; a rewrite: 2 of 3 failed the reference). Try a writer rule
@@ -82,7 +83,7 @@ first item is the suggested next one.
   unclear case") and re-run the replay ($0.32 with Haiku) before
   claiming it helps; or fix the task text, which is the benchmark's own
   ambiguity; (3) then decide whether a 2-of-3 failure changes the
-  verdict; (4) an option for another writer model; (5) server mode.
+  verdict; (4) server mode.
 - **Protect verification files from silent agent changes.** The agent can
   weaken or delete tests, build scripts or lint config before Certo
   verifies; only prompts discourage it (golden rule 6 gap). Record those
