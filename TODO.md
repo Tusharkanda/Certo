@@ -166,11 +166,6 @@ first item is the suggested next one.
   ~124k in the baseline). Use the per-model average from earlier
   `cost.json` files in the same parent folder; guess only for models with
   no history. Starter issue: [#10](https://github.com/alessioricco/certo/issues/10).
-- **A cost ceiling for single-model runs.** `CERTO_MAX_TASK_COST`
-  applies to escalation only (checked before each rung), and bench has
-  `--max-cost`; a plain run is bounded by time and iterations, not money.
-  The conversation's metrics carry the running cost, so it could be
-  checked between retries, ending in a new verdict.
 - **Bench strategy `best_of`**: N attempts, the verifier picks. Next entry
   in `bench_strategies.STRATEGIES`. Benchmark on local and cloud before
   release.

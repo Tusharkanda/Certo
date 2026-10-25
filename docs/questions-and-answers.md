@@ -92,8 +92,8 @@ handled with limits you set:
   the task moves on.
 - **The whole task.** `CERTO_MAX_TASK_SECONDS` and `CERTO_MAX_TASK_COST`
   cover every model together. When one runs out, Certo stops with
-  `budget_exhausted` instead of moving on: these are your limits, not a
-  sign that the model was too weak.
+  `budget_exhausted` or `cost_exhausted` instead of moving on: these are
+  your limits, not a sign that the model was too weak.
 - **Steps.** A model that uses all its steps (`CERTO_MAX_ITERATIONS`) is
   checked like one that finished: passing checks give `verified`, failing
   checks get the fix attempts.

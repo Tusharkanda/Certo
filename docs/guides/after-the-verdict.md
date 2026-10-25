@@ -169,6 +169,19 @@ verdict is `verified`.) The work so far is in the folder.
   see [Every step is very slow](../troubleshooting.md#every-step-is-very-slow).
 - If the task is simply big, split it, or raise `CERTO_MAX_TASK_SECONDS`.
 
+## `cost_exhausted`
+
+The task reached its cost limit (`CERTO_MAX_TASK_COST`), and the work so
+far couldn't be shown to pass. Certo stopped the agent at its next step,
+then ran the checks once. The work so far is in the folder.
+
+- Look at the run summary's `Total cost` and at `.certo/STATUS.md` to
+  see how far it got.
+- `certo --resume` continues with a fresh limit, perhaps with a hint so it
+  needs fewer steps.
+- If the task is simply big, split it, raise the limit, or use a cheaper
+  `--model` for it.
+
 ## `stuck`
 
 The agent's run ended stuck (the agent repeated itself) or in an error,

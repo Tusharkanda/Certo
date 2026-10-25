@@ -43,8 +43,8 @@ from .model_catalog import (
 from .run_summary import RunSummary, effort_label, format_duration
 
 # Final verdicts that mean "this model couldn't finish the job": the next
-# rung gets the task. Never `budget_exhausted` or `confirmation_required`
-# (the user's own limits). `acceptance_failed` only when the ladder opts in.
+# rung gets the task. Never `budget_exhausted`, `cost_exhausted` or
+# `confirmation_required` (the user's own limits). `acceptance_failed` only when the ladder opts in.
 # `inconclusive` climbs too (0.1.22): a model that wrote code but no tests
 # leaves the next one something to finish, and the handoff asks it for the
 # missing checks. Two rungs in a row that did no work, or that both ended

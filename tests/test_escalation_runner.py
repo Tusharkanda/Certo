@@ -312,6 +312,27 @@ def test_the_cost_cap_stops_the_climb(tmp_path, fake_run):
     assert "the cost so far, $0.5000, has reached CERTO_MAX_TASK_COST=0.4" in progress[-1]
 
 
+def test_a_rung_that_reaches_the_cost_limit_ends_the_climb(tmp_path, fake_run):
+    # The limit stopped the first rung's agent (cost_limit.py): spending more
+    # on a stronger model is exactly what the limit is there to prevent.
+    fake_run.script[:] = [("cost_exhausted", 0.5, {}), ("verified", 0.0, {})]
+    outcome, _ = _run(tmp_path, _ladder(tmp_path), cfg=_cfg(tmp_path, max_task_cost=0.4))
+
+    assert outcome.verification_state == "cost_exhausted"
+    assert len(outcome.rungs) == 1
+
+
+def test_each_rung_starts_with_what_earlier_rungs_spent(tmp_path, fake_run, monkeypatch):
+    limits = []
+    monkeypatch.setattr(runner, "set_cost_limit", lambda conv, *a: limits.append(a))
+    fake_run.script[:] = [("no_progress", 0.25, {}), ("verified", 0.0, {})]
+    ladder = _ladder(tmp_path, models=["mid", "strong"])
+
+    _run(tmp_path, ladder, cfg=_cfg(tmp_path, max_task_cost=1.0))
+
+    assert limits == [(1.0, 0.0), (1.0, 0.25)]
+
+
 def test_unknown_prices_count_as_zero_for_the_cost_cap(tmp_path, fake_run):
     # A cloud model reports tokens but no cost: unknown, counted as 0.
     fake_run.script[:] = [("no_progress", 0.0, {}), ("verified", 0.0, {})]

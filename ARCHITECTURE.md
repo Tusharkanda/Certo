@@ -465,6 +465,12 @@ given design was chosen.
   adds `changes_note()` to the contract's limitations, plus
   `TaskOutcome.check_file_changes`. Pre-existing files only; report only.
 - **`deadline.py`** — `stop_at_deadline()`, see `runner.py` above.
+- **`cost_limit.py`** — `CERTO_MAX_TASK_COST` during a run: a per-conversation
+  limit (`set_cost_limit`, counting what was spent before), and
+  `pause_at_cost_limit()`, a watcher that reads the SDK's
+  `usage_to_metrics[*].accumulated_cost` every 2 s and pauses the
+  conversation. `runner._budget_spent` turns it into `cost_exhausted` at
+  the same points as the time budget.
 - **`plugins.py`** — `foreign_plugins(workspace, projects_dir)`: the
   OpenHands plugins the SDK would load into a local run that don't belong
   to it (every user plugin; a project plugin from outside a generated

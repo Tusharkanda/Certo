@@ -227,9 +227,10 @@ class Config:
     # from models_list.yaml to climb; blank: `default`, else a derived one
     # (see escalation.py).
     escalation_ladder: str = ""
-    # CERTO_MAX_TASK_COST: a USD cap on an escalation run. Before a rung
-    # starts, the cost recorded so far is compared with it; unknown prices
-    # count as 0. None (unset) means no cap.
+    # CERTO_MAX_TASK_COST: a USD cap on a task, every rung and the
+    # independent tests included. The agent is stopped once the cost
+    # reaches it (cost_limit.py), and no escalation rung starts past it;
+    # unknown prices count as 0. None (unset) means no cap.
     max_task_cost: float | None = None
 
     # Opt-in per-run artifacts directory (see artifacts.py): metadata, the

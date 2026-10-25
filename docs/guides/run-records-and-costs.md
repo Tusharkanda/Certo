@@ -35,6 +35,31 @@ Run summary:
   in the totals. It says how many times, for example
   `Older steps summarized: once (the context window was nearly full)`.
 
+## Limit what a task can spend
+
+Set `CERTO_MAX_TASK_COST` to a number of US dollars:
+
+```bash
+CERTO_MAX_TASK_COST=0.50 certo "Add a --json flag to report.py"
+```
+
+The limit covers the whole task: every model call, the fix attempts,
+escalation rungs and independent tests. The banner shows it on the
+`Limits` line. Certo reads the cost every few seconds and stops the agent
+at its next step once the cost reaches the limit, with this note:
+
+```text
+Certo: the task has cost $0.0065, reaching its limit (CERTO_MAX_TASK_COST=0.004). The agent was stopped.
+```
+
+The model calls made since the last reading are paid for, so the total
+can end a little over the limit, as here: on a very small limit like
+this one, the overshoot is large in proportion. The checks then run once, since they cost
+nothing: work that passes is `verified`, anything else ends
+[`cost_exhausted`](after-the-verdict.md#cost_exhausted). A model with no
+known price counts as 0, so the limit can't stop it. `--resume` starts
+with a fresh limit.
+
 ## Keep a record of every run
 
 Set `CERTO_ARTIFACTS_DIR` to a folder:

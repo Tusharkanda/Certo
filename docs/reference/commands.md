@@ -63,7 +63,7 @@ chosen, or the ladder), the project folder, where the commands run
 (`this computer` or Docker and its image), the checks (`on`, with
 `CERTO_MAX_VERIFY_RETRIES`, or `off`) and the limits
 (`CERTO_MAX_TASK_SECONDS`, `CERTO_MAX_ITERATIONS`, and
-`CERTO_MAX_TASK_COST` with `--escalate`). A `Mode` line appears with
+`CERTO_MAX_TASK_COST` when set). A `Mode` line appears with
 `--interactive` or `CERTO_CONFIRM_MODE=always`. For a local server, the
 model line shows its host and port; the API key is never shown. A run
 refused because of a wrong flag or setting prints only the error, no

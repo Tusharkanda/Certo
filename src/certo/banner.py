@@ -54,8 +54,10 @@ def format_banner(
     else:
         checks = f"on, up to {cfg.max_verify_retries} fix attempts"
     limits = [_duration(cfg.max_task_seconds), f"{cfg.max_iterations} steps"]
-    if ladder is not None and cfg.max_task_cost is not None:
-        limits.append(f"${cfg.max_task_cost:.2f}")
+    if cfg.max_task_cost is not None:
+        cost = cfg.max_task_cost
+        # Cents, unless that would hide part of the limit ($0.004).
+        limits.append(f"${cost:.2f}" if round(cost, 2) == cost else f"${cost:g}")
     lines = [
         title + "─" * max(0, _RULE_WIDTH - len(title)),
         f"  Model    {_model_line(cfg, ladder)}",

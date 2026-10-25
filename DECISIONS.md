@@ -1208,3 +1208,15 @@ considered and live-verification detail: `docs/ROADMAP.txt`.
   Jest's or Vitest's `No tests found, exiting with code 0`. Output it
   doesn't recognise returns -1, so the exit code decides as before: a
   custom script is never turned into "no tests" by a guess.
+- **`CERTO_MAX_TASK_COST` limits every run, during the run, ending
+  `cost_exhausted`** (2026-10-25). The Author chose to reuse the
+  escalation setting (one limit, not two near-duplicates), a new verdict
+  (a script can tell money from time; escalation doesn't climb on it) and
+  a watcher during the run rather than a check between retries (one long
+  agent run could otherwise spend without bound). `cost_limit.py` reads
+  the conversation's SDK metrics every 2 s and calls `pause()`, like
+  `deadline.py`; the call under way is paid, so it is let finish (overshoot:
+  the calls since the last reading; live, $0.0065 on a $0.004 limit). The limit counts the independent tests and earlier
+  rungs; a resume starts from the conversation's own spent cost, so it
+  gets a fresh limit, like the time budget. Checks still run once after
+  it, as after the time budget: they cost nothing.

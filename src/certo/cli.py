@@ -416,6 +416,7 @@ _FAILING_STATES = (
     "incomplete",
     "confirmation_required",
     "budget_exhausted",
+    "cost_exhausted",
     "acceptance_failed",
     "independent_failed",
     "stuck",

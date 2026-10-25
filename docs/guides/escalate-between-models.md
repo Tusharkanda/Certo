@@ -155,7 +155,7 @@ model), write an explicit ladder.
 | `acceptance_failed` | Stop, unless the ladder sets `escalate_on_acceptance_failed: true`. |
 | `inconclusive` | Climb, unless the rung before also ended `inconclusive`, or both changed no file: then stop. |
 | `unchanged` | Climb, unless the rung before also changed no file: then stop. |
-| `budget_exhausted`, `confirmation_required` | Stop: these are your own limits. |
+| `budget_exhausted`, `cost_exhausted`, `confirmation_required` | Stop: these are your own limits. |
 | `independent_failed` | Never seen by the ladder: with `--independent-tests-strict`, the tests run once, after the last rung, and can turn its `verified` into `independent_failed`. |
 | A provider failure (outage, rate limit, rejected key) | Climb, recorded as a provider failure rather than a quality failure. |
 
@@ -234,6 +234,8 @@ rung, leaving out caches, environments (`.venv`, `node_modules`) and
 - **Cost.** Set `CERTO_MAX_TASK_COST` (US dollars) to cap a run. Before
   each rung starts, Certo adds up the cost recorded so far; once it reaches
   the cap, the climb stops with the verdict it has, and a note says so.
+  A rung whose agent reaches the cap is stopped too, and ends
+  `cost_exhausted` unless its work passes the checks; that doesn't climb.
   A local model costs nothing. A cloud model with no known price (newer
   than your LiteLLM) counts as 0, and the note names it.
 

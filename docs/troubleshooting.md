@@ -635,6 +635,20 @@ reached CERTO_MAX_TASK_COST=...` or `... the task's time budget
 the cheaper rungs fewer fix attempts (`retries` in the ladder) so they hand
 over sooner. Models with no known price count as 0 toward the cost cap.
 
+### The run stops with `cost_exhausted`
+
+**You see:** `Certo: the task has cost $..., reaching its limit
+(CERTO_MAX_TASK_COST=...). The agent was stopped.`, then the verdict
+`cost_exhausted`.
+
+**Cause:** the task reached the cost limit you set, and its work didn't
+pass the checks. The total can be a little over the limit: the model calls
+made since Certo last read the cost are paid for.
+
+**Fix:** `certo --resume` continues with a fresh limit. Or raise
+`CERTO_MAX_TASK_COST`, split the task, or use a cheaper model. See
+[`cost_exhausted`](guides/after-the-verdict.md#cost_exhausted).
+
 **You see:** `Certo: ... changed no file either, after ...: two models in
 a row did no work on this task, so escalation stops.`
 

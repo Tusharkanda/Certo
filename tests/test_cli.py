@@ -848,6 +848,18 @@ def test_exits_nonzero_when_task_budget_is_exhausted(monkeypatch, capsys):
     assert "CERTO_MAX_TASK_SECONDS" in out
 
 
+def test_cost_exhausted_exits_nonzero(monkeypatch, capsys):
+    monkeypatch.setattr(cli, "load_config", lambda: _cfg())
+    monkeypatch.setattr(
+        cli,
+        "run_task",
+        lambda *_a, **_k: _fake_result([_FakeMessage("done")], verification_state="cost_exhausted"),
+    )
+
+    assert cli.main(["do something"]) == 1
+    assert "Verification: cost_exhausted" in capsys.readouterr().out
+
+
 def test_independent_tests_strict_flag_turns_them_on_and_exits_nonzero(monkeypatch, capsys):
     from certo.independent_tests import IndependentTestsResult
 

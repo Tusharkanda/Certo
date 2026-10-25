@@ -56,7 +56,7 @@ from .model_pricing import (
 
 DEFAULT_RESULTS_DIR = "bench-results"
 # Verdicts where the agent didn't finish on its own, so it made no claim.
-_NO_CLAIM_VERDICTS = ("stuck", "budget_exhausted", "confirmation_required")
+_NO_CLAIM_VERDICTS = ("stuck", "budget_exhausted", "cost_exhausted", "confirmation_required")
 _SNAPSHOT_IGNORE = shutil.ignore_patterns(
     ".venv", "venv", "node_modules", "__pycache__", ".pytest_cache", ".ruff_cache"
 )

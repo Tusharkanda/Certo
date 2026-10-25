@@ -97,6 +97,16 @@ model, so a local result can be traced to how the model was served
 ([#5](https://github.com/alessioricco/certo/issues/5)). See
 [Read the results](../guides/benchmark.md#read-the-results).
 
+## New: a cost limit for every run
+
+`CERTO_MAX_TASK_COST` used to limit only escalation, between rungs. Now
+it limits every task: Certo reads the cost every few seconds and stops
+the agent once the task has cost that much, fix attempts and independent
+tests included. The checks still run once, so passing work is
+`verified`; anything else ends with the new verdict `cost_exhausted`
+(exit 1), which doesn't climb under escalation. The banner shows the
+limit. See [Limit what a task can spend](../guides/run-records-and-costs.md#limit-what-a-task-can-spend).
+
 ## Fixed: a Node project with no tests is no longer `verified`
 
 `node --test` exits successfully when it finds no test files, so a

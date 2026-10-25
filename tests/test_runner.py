@@ -796,6 +796,155 @@ def test_enforce_task_tracker_completion_reports_budget_exhausted_mid_retry(monk
     assert conversation.run_calls == 0
 
 
+# --- CERTO_MAX_TASK_COST (cost_limit.py) ------------------------------------
+
+
+class _SpendingConversation(_FakeConversation):
+    """A _FakeConversation whose model costs `per_run` USD each `.run()`."""
+
+    def __init__(self, *, per_run: float = 0.0, spent: float = 0.0, **kwargs) -> None:
+        super().__init__(**kwargs)
+        self.metrics = SimpleNamespace(accumulated_cost=spent)
+        self.conversation_stats = SimpleNamespace(usage_to_metrics={"certo": self.metrics})
+        self.per_run = per_run
+        self.paused = False
+
+    def run(self) -> None:
+        super().run()
+        self.metrics.accumulated_cost += self.per_run
+
+    def pause(self) -> None:
+        self.paused = True
+
+
+def _over_the_limit(**kwargs) -> _SpendingConversation:
+    conversation = _SpendingConversation(**kwargs)
+    runner.set_cost_limit(conversation, 1.0, spent_before=1.0)
+    return conversation
+
+
+def test_no_run_starts_once_the_cost_limit_is_reached():
+    conversation = _over_the_limit()
+
+    result = runner._run_with_confirmation(
+        conversation, _cfg(max_task_cost=1.0), lambda _m: None, on_confirm=None
+    )
+
+    assert result == "cost_exhausted"
+    assert conversation.run_calls == 0
+
+
+def test_a_run_that_reaches_the_cost_limit_says_so_once():
+    conversation = _SpendingConversation(per_run=0.6)
+    runner.set_cost_limit(conversation, 1.0)
+    cfg = _cfg(max_task_cost=1.0)
+    notices: list = []
+
+    for _ in range(3):
+        runner._run_conversation_once(conversation, cfg, notices.append, None)
+
+    texts = [str(n) for n in notices]
+    assert len(texts) == 1
+    assert "has cost $1.2000, reaching its limit (CERTO_MAX_TASK_COST=1)" in texts[0]
+
+
+def test_work_that_passes_after_the_cost_limit_is_verified(monkeypatch):
+    monkeypatch.setattr(runner, "_run_verification", lambda _dir, *_a: _run(_check()))
+    conversation = _over_the_limit()
+    notices: list = []
+
+    outcome = runner._verify_and_report(
+        conversation, _cfg(verify_tests="always", max_task_cost=1.0), notices.append, "task"
+    )
+
+    assert outcome.verification_state == "verified"
+    assert any("cost limit was reached" in str(n) for n in notices)
+    assert any(
+        "The cost limit was reached before the agent finished" in n
+        for n in outcome.completion_contract.limitations
+    )
+    assert conversation.run_calls == 0
+
+
+def test_failing_work_after_the_cost_limit_is_cost_exhausted_with_no_fix_attempt(monkeypatch):
+    monkeypatch.setattr(
+        runner,
+        "_run_verification",
+        lambda _dir, *_a: _run(_check(status="failed", exit_code=1, summary="1 failed")),
+    )
+    conversation = _over_the_limit()
+
+    outcome = runner._verify_and_report(
+        conversation,
+        _cfg(verify_tests="always", max_verify_retries=5, max_task_cost=1.0),
+        lambda _m: None,
+        "task",
+    )
+
+    assert outcome.verification_state == "cost_exhausted"
+    assert [c.status for c in outcome.checks] == ["failed"]
+    assert "CERTO_MAX_TASK_COST=1" in outcome.completion_contract.limitations[0]
+    assert conversation.run_calls == 0
+
+
+def test_a_fix_attempt_past_the_cost_limit_is_not_started(monkeypatch):
+    failures = iter(range(10))
+    monkeypatch.setattr(
+        runner,
+        "_run_verification",
+        lambda _dir, *_a: _run(
+            _check(status="failed", exit_code=1, output=f"failure {next(failures)}")
+        ),
+    )
+    # Under the limit when the checks run; the first fix attempt then
+    # reaches it, so a second one never starts.
+    conversation = _SpendingConversation(per_run=1.0)
+    runner.set_cost_limit(conversation, 1.0)
+
+    outcome = runner._verify_and_report(
+        conversation,
+        _cfg(verify_tests="always", max_verify_retries=5, max_task_cost=1.0),
+        lambda _m: None,
+        "task",
+    )
+
+    assert outcome.verification_state == "cost_exhausted"
+    assert conversation.run_calls == 1
+
+
+def test_open_task_items_after_the_cost_limit_are_cost_exhausted():
+    conversation = _over_the_limit(
+        initial_events=[_task_list_event({"title": "B", "status": "todo"})]
+    )
+
+    outcome = runner._enforce_task_tracker_completion(
+        conversation, _cfg(max_task_cost=1.0), lambda _m: None, "task"
+    )
+
+    assert outcome is not None and outcome.verification_state == "cost_exhausted"
+    assert conversation.run_calls == 0
+
+
+def test_stream_task_gives_the_conversation_the_cost_limit(monkeypatch, tmp_path):
+    captured: dict = {}
+    _stub_for_env_tests(monkeypatch, captured)
+    limits: list = []
+    monkeypatch.setattr(runner, "set_cost_limit", lambda conv, *a: limits.append(a))
+
+    runner.stream_task("do the thing", cfg=_cfg(workspace=str(tmp_path), max_task_cost=2.5))
+
+    assert limits == [(2.5, 0.0)]
+
+
+def test_the_independent_tests_cost_counts_toward_the_limit():
+    written = SimpleNamespace(
+        metrics={"a": {"accumulated_cost": 0.25}, "b": {"accumulated_cost": None}}
+    )
+
+    assert runner._metrics_cost(written) == 0.25
+    assert runner._metrics_cost(None) == 0.0
+
+
 def test_stream_task_short_circuits_when_task_budget_already_exhausted(monkeypatch):
     # time.monotonic() calls, in order: stream_task's run-summary start time;
     # `deadline = now + max_task_seconds`; _run_with_confirmation's own

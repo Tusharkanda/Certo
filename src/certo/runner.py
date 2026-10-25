@@ -49,6 +49,7 @@ from .check_files import (
 from .config import Config, load_config, override_llm
 from .console import quiet_sdk_logs, visualizer_for
 from .checkpoints import safe_snapshot
+from .cost_limit import cost_limit, cost_limit_reached, pause_at_cost_limit, set_cost_limit
 from .deadline import stop_at_deadline
 from .independent_tests import (
     IndependentTestsResult,
@@ -174,6 +175,7 @@ VERIFICATION_STATES = (
     "incomplete",
     "confirmation_required",
     "budget_exhausted",
+    "cost_exhausted",
     "acceptance_failed",
     "independent_failed",
     "stuck",
@@ -567,6 +569,21 @@ def _budget_exhausted_contract(task: str, cfg: Config) -> CompletionContract:
     )
 
 
+def _cost_exhausted_contract(task: str, cfg: Config) -> CompletionContract:
+    return CompletionContract(
+        goal=task,
+        acceptance_criteria=["The task described in the original request is implemented."],
+        verification_checks=[],
+        limitations=[
+            (
+                f"The task's cost limit (CERTO_MAX_TASK_COST={cfg.max_task_cost:g}) was "
+                "reached before the task reached a normal finish, so its own completion "
+                "claim, if any, was not verified."
+            )
+        ],
+    )
+
+
 # _run_with_confirmation's outcome for one call: "ok" means the run reached
 # a normal terminal status (finished, stuck, error — anything but an
 # unanswered confirmation or an exhausted budget); the other two values are
@@ -574,6 +591,33 @@ def _budget_exhausted_contract(task: str, cfg: Config) -> CompletionContract:
 _RUN_OK = "ok"
 _RUN_CONFIRMATION_REQUIRED = "confirmation_required"
 _RUN_BUDGET_EXHAUSTED = "budget_exhausted"
+_RUN_COST_EXHAUSTED = "cost_exhausted"
+
+
+def _budget_spent(conversation: Conversation, deadline: float) -> str:
+    """Which of the task's budgets is spent, as the verdict it gives:
+    `budget_exhausted` (time), `cost_exhausted` (CERTO_MAX_TASK_COST), or
+    "" while both last."""
+    if time.monotonic() >= deadline:
+        return _RUN_BUDGET_EXHAUSTED
+    if cost_limit_reached(conversation):
+        return _RUN_COST_EXHAUSTED
+    return ""
+
+
+def _exhausted_contract(state: str, task: str, cfg: Config) -> CompletionContract:
+    if state == _RUN_COST_EXHAUSTED:
+        return _cost_exhausted_contract(task, cfg)
+    return _budget_exhausted_contract(task, cfg)
+
+
+def _cost_limit_notice(conversation: Conversation, cfg: Config) -> str:
+    found = cost_limit(conversation)
+    spent = f"${found.spent(conversation):.4f}" if found is not None else "the cost so far"
+    return (
+        f"Certo: the task has cost {spent}, reaching its limit "
+        f"(CERTO_MAX_TASK_COST={cfg.max_task_cost:g}). The agent was stopped."
+    )
 
 
 def _outcome_for_run_result(
@@ -585,7 +629,8 @@ def _outcome_for_run_result(
     retries_used: int = 0,
 ) -> TaskOutcome | None:
     """Build the terminal `TaskOutcome` for a non-`"ok"` `_run_with_confirmation`
-    result (`"confirmation_required"` or `"budget_exhausted"`), or `None` if
+    result (`"confirmation_required"`, `"budget_exhausted"` or
+    `"cost_exhausted"`), or `None` if
     `result == "ok"` — the caller's signal to proceed normally instead of
     returning early. Shared by all three call sites so each doesn't repeat
     its own contract-selection branch.
@@ -595,7 +640,7 @@ def _outcome_for_run_result(
     contract = (
         _confirmation_required_contract(task)
         if result == _RUN_CONFIRMATION_REQUIRED
-        else _budget_exhausted_contract(task, cfg)
+        else _exhausted_contract(result, task, cfg)
     )
     return TaskOutcome(
         verification_state=result,
@@ -650,9 +695,14 @@ def _run_conversation_once(
     """
     while True:
         try:
-            # The run can't outlast `deadline`: see deadline.py.
-            with stop_at_deadline(conversation, deadline):
+            # The run can't outlast `deadline` or the cost limit: see
+            # deadline.py and cost_limit.py.
+            with stop_at_deadline(conversation, deadline), pause_at_cost_limit(conversation):
                 conversation.run()
+            found = cost_limit(conversation)
+            if found is not None and not found.announced and found.reached(conversation):
+                found.announced = True
+                _emit_notice(emit, _cost_limit_notice(conversation, cfg))
             return
         except ConversationRunError as exc:
             if time.monotonic() >= deadline and isinstance(exc.original_exception, LLMError):
@@ -712,7 +762,8 @@ def _run_with_confirmation(
     confirmation and no `on_confirm` callback was available to answer it.
     Returns `"budget_exhausted"` only when `deadline` (an absolute
     `time.monotonic()` timestamp — see `stream_task`) had already passed
-    before a `.run()` call was allowed to start. Either non-`"ok"` value
+    before a `.run()` call was allowed to start, and `"cost_exhausted"`
+    when the cost limit (cost_limit.py) had been reached. Any non-`"ok"` value
     means the caller must treat it as its own terminal outcome rather than
     proceeding to task_tracker/project verification against a run that
     never actually continued (or never started another retry). Never
@@ -733,8 +784,9 @@ def _run_with_confirmation(
     call this function makes — including each confirm/reject round-trip —
     means a long approve/reject back-and-forth can't exceed it either.
     """
-    if time.monotonic() >= deadline:
-        return _RUN_BUDGET_EXHAUSTED
+    spent = _budget_spent(conversation, deadline)
+    if spent:
+        return spent
     _run_conversation_once(conversation, cfg, emit, model_chain, deadline)
     if cfg.confirm_mode != "always":
         return _RUN_OK
@@ -754,14 +806,16 @@ def _run_with_confirmation(
                 "Certo confirm-mode: no approval handler available; rejected automatically."
             )
             return _RUN_CONFIRMATION_REQUIRED
-        if time.monotonic() >= deadline:
+        spent = _budget_spent(conversation, deadline)
+        if spent == _RUN_BUDGET_EXHAUSTED:
             _emit_notice(
                 emit,
                 "Certo: the task's shared wall-clock budget "
                 f"(CERTO_MAX_TASK_SECONDS={cfg.max_task_seconds}) ran out while "
                 "waiting on a confirm-mode approval. Stopping.",
             )
-            return _RUN_BUDGET_EXHAUSTED
+        if spent:
+            return spent
         if on_confirm(pending):
             _run_conversation_once(conversation, cfg, emit, model_chain, deadline)
         else:
@@ -777,6 +831,7 @@ def _verify_after_budget(
     task: str,
     runner: CommandRunner | None,
     on_verification: Callable[[VerificationRun], None] | None,
+    state: str = _RUN_BUDGET_EXHAUSTED,
 ) -> TaskOutcome:
     """The time budget ran out while the agent's last run was still going
     (it is checked only between runs). The checks need no model, so they
@@ -784,10 +839,12 @@ def _verify_after_budget(
     else stays `budget_exhausted`, now with the check results. Found by the
     0.1.15 local benchmark: three slow runs passed the hidden tests but
     were reported `budget_exhausted` unchecked. A run that ended in an
-    error, or with checks turned off, stays `budget_exhausted` as before."""
+    error, or with checks turned off, stays `budget_exhausted` as before.
+    The same when the cost limit stopped the agent (`state` is then
+    `cost_exhausted`): checks cost nothing."""
     exhausted = TaskOutcome(
-        verification_state="budget_exhausted",
-        completion_contract=_budget_exhausted_contract(task, cfg),
+        verification_state=state,
+        completion_contract=_exhausted_contract(state, task, cfg),
     )
     status = conversation.state.execution_status
     if cfg.verify_tests != "always" or (
@@ -802,18 +859,21 @@ def _verify_after_budget(
         on_verification(run)
     if run.state != "verified":
         return replace(exhausted, checks=tuple(run.checks))
+    if state == _RUN_COST_EXHAUSTED:
+        budget, setting = "cost limit was reached", f"CERTO_MAX_TASK_COST={cfg.max_task_cost:g}"
+    else:
+        budget, setting = "time budget ran out", f"CERTO_MAX_TASK_SECONDS={cfg.max_task_seconds}"
     _emit_notice(
         emit,
-        "Certo: the time budget "
-        f"(CERTO_MAX_TASK_SECONDS={cfg.max_task_seconds}) ran out during the agent's "
-        "last step, but the project's checks pass, so the work is verified.",
+        f"Certo: the {budget} ({setting}) during the agent's last step, but the "
+        "project's checks pass, so the work is verified.",
     )
     contract = _build_completion_contract(task, run, skipped=False, aborted=False)
     limitations = [
         *contract.limitations,
         (
-            "The time budget ran out before the agent finished its last step; the "
-            "checks ran once afterwards, with no time left for a fix attempt."
+            f"The {budget} before the agent finished its last step; the checks ran "
+            "once afterwards, with no fix attempt."
         ),
     ]
     return TaskOutcome(
@@ -845,8 +905,9 @@ def _verify_and_report(
     `cfg.max_verify_retries` so a project whose checks are simply wrong, or a
     bug the model can't fix, doesn't loop forever.
     """
-    if time.monotonic() >= deadline:
-        return _verify_after_budget(conversation, cfg, emit, task, runner, on_verification)
+    spent = _budget_spent(conversation, deadline)
+    if spent:
+        return _verify_after_budget(conversation, cfg, emit, task, runner, on_verification, spent)
 
     status = conversation.state.execution_status
     step_limited = status in _ABORTED_STATUSES and _hit_step_limit(conversation)
@@ -1097,7 +1158,8 @@ def _enforce_task_tracker_completion(
     answers for test failures, not a second, near-duplicate config knob
     for this closely related concern.
     """
-    if time.monotonic() >= deadline:
+    spent = _budget_spent(conversation, deadline)
+    if spent:
         # The budget is checked only between runs, so the agent's last run
         # can end after it. The list needs no model: unfinished items can't
         # be followed up any more, but a finished list leaves the verdict to
@@ -1111,8 +1173,8 @@ def _enforce_task_tracker_completion(
         snapshot = None if aborted else _task_tracker_snapshot(conversation)
         if aborted or (snapshot is not None and _pending_task_items(snapshot)):
             return TaskOutcome(
-                verification_state="budget_exhausted",
-                completion_contract=_budget_exhausted_contract(task, cfg),
+                verification_state=spent,
+                completion_contract=_exhausted_contract(spent, task, cfg),
             )
         return None
 
@@ -1583,6 +1645,9 @@ def stream_task(
             # see DECISIONS.md. AlwaysConfirm pauses before every tool call;
             # _run_with_confirmation resolves each pause via on_confirm.
             conversation.set_confirmation_policy(AlwaysConfirm())
+        # CERTO_MAX_TASK_COST covers the whole task, the tests written
+        # before the build included (cost_limit.py).
+        set_cost_limit(conversation, cfg.max_task_cost, _metrics_cost(written))
         # A shared, task-level wall-clock budget spanning every phase below —
         # CERTO_MAX_ITERATIONS alone only bounds a single conversation.run()
         # call, and runner.py can call that up to three times per task (this
@@ -1849,6 +1914,14 @@ def _usage_efforts(
         for entry in model_chain.candidates:
             efforts[f"certo:{entry.name}"] = config_for_entry(cfg, entry).reasoning_effort
     return efforts
+
+
+def _metrics_cost(written: Any) -> float:
+    """What writing the independent tests cost, in USD (0 without them)."""
+    if written is None:
+        return 0.0
+    costs = (m.get("accumulated_cost") for m in written.metrics.values())
+    return sum(float(c) for c in costs if isinstance(c, int | float))
 
 
 def _per_model_metrics(conversation: Conversation) -> dict[str, dict]:
@@ -2318,6 +2391,12 @@ def _stream_escalation(
                     conversation = new_conversation()
                 if cfg.confirm_mode == "always":
                     conversation.set_confirmation_policy(AlwaysConfirm())
+                # One cost limit for every rung together (cost_limit.py).
+                set_cost_limit(
+                    conversation,
+                    cfg.max_task_cost,
+                    _metrics_cost(written) + sum(r.cost for r in rungs),
+                )
 
                 first_message = (
                     None if number == 1 else handoff_message(task, rungs, failing_output)

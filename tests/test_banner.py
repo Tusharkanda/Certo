@@ -64,6 +64,14 @@ def test_escalation_shows_the_ladder_and_the_cost_cap():
     assert "Limits   30 min · 100 steps · $0.50" in text
 
 
+def test_a_single_model_run_shows_its_cost_limit():
+    text = "\n".join(format_banner(_cfg(max_task_cost=2)))
+    small = "\n".join(format_banner(_cfg(max_task_cost=0.004)))
+
+    assert "Limits   30 min · 100 steps · $2.00" in text
+    assert "Limits   30 min · 100 steps · $0.004" in small
+
+
 def test_auto_model_docker_no_checks_and_modes():
     text = "\n".join(
         format_banner(
