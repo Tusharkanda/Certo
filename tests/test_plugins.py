@@ -4,6 +4,7 @@ the user plugin folders point at a temporary one (conftest.py)."""
 
 from __future__ import annotations
 
+import os
 from pathlib import Path
 
 import pytest
@@ -89,7 +90,13 @@ def test_the_refusal_names_each_plugin_and_where_it_is_from(tmp_path, user_plugi
 
     text = refusal(foreign_plugins(project, projects))
 
-    assert f"mine: {path} (from your user folder)" in text
+    # The SDK may spell the folder differently on Windows (case, short
+    # names), so the shown path is compared as a folder, not as text.
+    lines = [line for line in text.splitlines() if line.startswith("  - mine: ")]
+    assert len(lines) == 1, text
+    assert lines[0].endswith(" (from your user folder)"), text
+    shown = lines[0].removeprefix("  - mine: ").removesuffix(" (from your user folder)")
+    assert os.path.samefile(shown, path), text
     assert "repo-plugin:" in text and "(from a repository above the project)" in text
     assert "certo skills add" in text
 

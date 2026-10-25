@@ -47,7 +47,8 @@ def test_other_files(path):
 def _write(root, path, text):
     full = root / path
     full.parent.mkdir(parents=True, exist_ok=True)
-    full.write_text(text)
+    # Bytes, so the file has "\n" line endings on Windows too.
+    full.write_bytes(text.encode())
 
 
 def test_changed_and_deleted_check_files_are_found(tmp_path):
