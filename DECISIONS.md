@@ -1133,3 +1133,12 @@ considered and live-verification detail: `docs/ROADMAP.txt`.
   fits the use (a baseline in nightly slices with `--resume`) better
   than a duration or a run count, and killing the run in progress
   would waste it.
+- **Phase 1's live measurement is one cloud arm; local arms run at night**
+  (2026-10-25, the Author). The catch rate of independent tests rests on
+  the replay over saved projects (7 of 8 fooled runs, from five models).
+  A new `qwen3.8` arm would add almost nothing: 2 fooled in 154 saved
+  runs, 0 of 39 on task set v2, and it would write its own tests, which
+  is high-effort work it's kept off. `qwen3-coder` is dropped. The live
+  run is Haiku with independent tests on, 13 tasks × 3, for extra time,
+  cost and false alarms on live builds. Local models are slow: their
+  runs go into night slots (`--stop-at`, `--resume`), never the day.
