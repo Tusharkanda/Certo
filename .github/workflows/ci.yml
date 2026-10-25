@@ -16,7 +16,7 @@ concurrency:
   group: ci-${{ github.ref }}
   cancel-in-progress: true
 
-# Runs on ubuntu-latest, like the release workflow, so a runner image
+# The main jobs run on ubuntu-latest, like the release workflow, so a runner image
 # change shows up here before a release.
 
 jobs:
@@ -35,6 +35,22 @@ jobs:
         run: |
           uv run ruff check .
           uv run ruff format --check .
+      - name: Test (no API key)
+        run: uv run pytest -q
+
+  # The suite on Windows (#8 and #29 made it pass there); lint and the
+  # release check are the same on every system, so they run once above.
+  test-windows:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - uses: astral-sh/setup-uv@v10.3.0
+        with:
+          python-version: "3.12"
+      - name: Install
+        run: uv sync --locked --extra dev --extra server
       - name: Test (no API key)
         run: uv run pytest -q
 

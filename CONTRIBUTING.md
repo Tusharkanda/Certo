@@ -72,6 +72,7 @@ uv run ruff format --check .
   Directory-containment tests also run against real Windows junctions, which
   do not require that privilege. Unix permission checks run on macOS and Linux;
   Windows inherits folder ACLs instead of enforcing Unix mode `600`.
+  CI runs the suite on `ubuntu-latest` and `windows-latest`.
 - `tests/test_bench_tasks.py` checks every bundled benchmark task: its
   reference solution passes its hidden tests and its starter alone fails
   them. Adding a task: see `docs/guides/benchmark.md` ("Add a task").
