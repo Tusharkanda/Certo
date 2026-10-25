@@ -194,6 +194,9 @@ class Config:
     # tests failed (most sets) ends `independent_failed` instead. Turns the
     # tests on.
     independent_tests_strict: bool = False
+    # CERTO_CHECKPOINTS: snapshots of the project in .certo/checkpoints/
+    # during a run, for `certo rollback` (checkpoints.py).
+    checkpoints: bool = True
 
     # The full SDK console output: the system prompt, the whole task with
     # its skills, the SDK's INFO logs. Off by default (console.py shows a
@@ -660,6 +663,7 @@ def load_config(
         _parse_bool(env, "INDEPENDENT_TESTS", default=False) or independent_tests_strict
     )
     independent_tests_sets = _parse_positive_int(env, "INDEPENDENT_TESTS_SETS", default=3)
+    checkpoints = _parse_bool(env, "CHECKPOINTS", default=True)
     if independent_tests_sets > MAX_INDEPENDENT_TESTS_SETS:
         raise ConfigError(
             f"CERTO_INDEPENDENT_TESTS_SETS must be at most {MAX_INDEPENDENT_TESTS_SETS}, "
@@ -719,6 +723,7 @@ def load_config(
         independent_tests=independent_tests,
         independent_tests_sets=independent_tests_sets,
         independent_tests_strict=independent_tests_strict,
+        checkpoints=checkpoints,
         verbose=verbose,
         model_selection=model_selection,
         models_file=models_file,

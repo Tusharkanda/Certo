@@ -482,7 +482,8 @@ def verify_main(argv: list[str]) -> int:
 
 def main(argv: list[str] | None = None) -> int:
     argv = sys.argv[1:] if argv is None else list(argv)
-    # `verify`, `init`, `check`, `models`, `skills` and `bench` are
+    # `verify`, `init`, `check`, `models`, `skills`, `bench`, `checkpoints`
+    # and `rollback` are
     # subcommands only as the exact, whole first argument. A task is always
     # one argument (quoted), so "verify the login flow" or "init a repo" can
     # never match, and `certo -- verify` still runs the one-word task.
@@ -504,6 +505,14 @@ def main(argv: list[str] | None = None) -> int:
         from .bench import bench_main
 
         return bench_main(argv[1:])
+    if argv and argv[0] == "checkpoints":
+        from .checkpoints_cmd import checkpoints_main
+
+        return checkpoints_main(argv[1:])
+    if argv and argv[0] == "rollback":
+        from .checkpoints_cmd import rollback_main
+
+        return rollback_main(argv[1:])
     parser = _build_parser()
     args = parser.parse_args(argv)
     if args.task is None and args.escalate and not args.resume:
@@ -808,7 +817,32 @@ def main(argv: list[str] | None = None) -> int:
             # Windows cannot make a relative path between different drives.
             pass
         print(f"\nWhere it stopped: {status}. Continue with: {resume_hint}")
+    if save_state and cfg.checkpoints:
+        hint = _checkpoints_hint(cfg.workspace)
+        if hint:
+            print(hint)
     return 1 if failing else 0
+
+
+def _checkpoints_hint(workspace: str) -> str | None:
+    """One line naming the project's checkpoints (checkpoints.py)."""
+    from .checkpoints import git_available, list_checkpoints
+
+    try:
+        count = len(list_checkpoints(workspace)) if git_available() else 0
+    except Exception:  # noqa: BLE001 - a hint, never the run's outcome
+        return None
+    if not count:
+        return None
+    try:
+        where = os.path.relpath(workspace)
+    except ValueError:
+        where = workspace
+    path = "" if where == "." else f" {shlex.quote(where)}"
+    return (
+        f"Checkpoints: {count} (list them: certo checkpoints{path}; "
+        f"go back to one: certo rollback N{path})"
+    )
 
 
 def _models_that_ran(cfg, outcome) -> list[str]:

@@ -4,8 +4,9 @@ Every command, subcommand and flag Certo installs. It is for looking
 things up; for a walk-through, see [Getting started](../getting-started.md).
 
 Certo installs three commands: `certo`, `certo-server` and `certo-admin`.
-`certo` also has four subcommands: `certo verify`, `certo init`,
-`certo check` and `certo bench`. Every command and subcommand accepts `-h` / `--help`.
+`certo` also has these subcommands: `certo verify`, `certo init`,
+`certo check`, `certo models`, `certo skills`, `certo bench`,
+`certo checkpoints` and `certo rollback`. Every command and subcommand accepts `-h` / `--help`.
 
 All three commands hide the OpenHands SDK's start-up banner. Set
 `OPENHANDS_SUPPRESS_BANNER=0` to see it.
@@ -526,6 +527,47 @@ prints a summary per arm and the real total cost next to the estimate. Guide: [B
 **Exit code.** 0 when the benchmark ran, whatever the models scored (also
 when stopped by `--max-cost` or `--stop-at`); 1 for a configuration error, or when the
 plan wasn't confirmed; 130 when interrupted (finished runs are kept).
+
+## `certo checkpoints`
+
+List the checkpoints (snapshots of the project's files) Certo took during
+its runs.
+
+```text
+certo checkpoints [PATH]
+```
+
+| Argument | Default | Effect |
+|---|---|---|
+| `PATH` | `.` | The project folder. |
+
+One line per checkpoint: its number, when it was taken, and the step
+(`before the agent`, `checks 2: failed`, `finished: verified`, ...).
+Needs git, no settings and no model. Exit code: 0, or 1 if `PATH` is not
+a folder or git isn't installed. Guide:
+[Go back to an earlier point](../guides/checkpoints.md).
+
+## `certo rollback`
+
+Put the project's files back as they were at one checkpoint.
+
+```text
+certo rollback N [PATH] [--yes]
+```
+
+| Argument or flag | Default | Effect |
+|---|---|---|
+| `N` | | The checkpoint's number, from `certo checkpoints`. |
+| `PATH` | `.` | The project folder. |
+| `--yes` | off | Don't ask before changing files. Needed when there is no terminal. |
+
+It lists each file it would restore, delete or add back, and asks. Your
+files as they are become a checkpoint first, so the rollback can be
+undone with another `certo rollback`. Files a checkpoint leaves out
+(ignored by `.gitignore`, environments, caches, files over 10 MB) are
+never touched. Your own git repository is never touched either. Exit
+code: 0 when done or when nothing needed changing; 1 when declined, for a
+number that doesn't exist, or without `--yes` and no terminal.
 
 ## `certo-server`
 

@@ -48,6 +48,7 @@ from .check_files import (
 )
 from .config import Config, load_config, override_llm
 from .console import quiet_sdk_logs, visualizer_for
+from .checkpoints import safe_snapshot
 from .deadline import stop_at_deadline
 from .independent_tests import (
     IndependentTestsResult,
@@ -1439,6 +1440,10 @@ def stream_task(
     emit = on_message or (lambda _msg: None)
     checkpoint_buffer: list[Message] = []
     all_messages: list[Message] = []
+    if not (save_state or resume_from is not None):
+        # Checkpoints live in `.certo/` too: a run that keeps no state
+        # there (the library default, the benchmark) takes none.
+        cfg = replace(cfg, checkpoints=False)
 
     def on_event(event: Event) -> None:
         if isinstance(event, LLMConvertibleEvent):
@@ -1521,6 +1526,7 @@ def stream_task(
 
     # Before the build: the writer sees the project as it is now.
     written = _write_independent_tests(task, agent_cfg, cfg, emit, resuming=resume_from is not None)
+    _checkpoint(cfg, "before the resumed run" if resume_from is not None else "before the agent")
 
     with build_workspace(cfg) as workspace:
         runner = _command_runner(cfg, workspace)
@@ -1597,7 +1603,7 @@ def stream_task(
                 checkpoint_buffer,
                 runner,
                 first_message,
-                state_writer.on_verification if state_writer is not None else None,
+                _on_verification(cfg, state_writer),
                 check_changes=resume_from is None,
             )
             outcome = _apply_independent_tests(
@@ -1662,7 +1668,31 @@ def stream_task(
             outcome = replace(outcome, model_decisions=tuple(model_chain.decisions))
         if state_writer is not None:
             state_writer.finish(outcome)
+        _checkpoint(cfg, f"finished: {outcome.verification_state}")
         return replace(outcome, run_summary=run_summary)
+
+
+def _checkpoint(cfg: Config, label: str) -> None:
+    """CERTO_CHECKPOINTS: snapshot the project (checkpoints.py), best effort."""
+    if cfg.checkpoints:
+        safe_snapshot(cfg.workspace, label)
+
+
+def _on_verification(
+    cfg: Config, state_writer: _ProjectStateWriter | None, prefix: str = ""
+) -> Callable[[VerificationRun], None]:
+    """After every check run: `.certo/` state, and a checkpoint labelled
+    with the check run's number and result (`prefix` names the rung)."""
+    count = 0
+
+    def on_verification(run: VerificationRun) -> None:
+        nonlocal count
+        count += 1
+        if state_writer is not None:
+            state_writer.on_verification(run)
+        _checkpoint(cfg, f"{prefix}checks {count}: {run.state}")
+
+    return on_verification
 
 
 class _ProjectStateWriter:
@@ -2225,6 +2255,7 @@ def _stream_escalation(
     # final result, whichever rung produced it.
     first_cfg = _rung_config(cfg, ladder.rungs[0])
     written = _write_independent_tests(task, first_cfg, cfg, io.emit)
+    _checkpoint(cfg, "before the agent")
     if written is not None:
         per_model_metrics.update(written.metrics)
         efforts.update(dict.fromkeys(written.usage_ids, first_cfg.reasoning_effort))
@@ -2296,7 +2327,7 @@ def _stream_escalation(
                         io.checkpoint_buffer,
                         runner,
                         first_message,
-                        state_writer.on_verification if state_writer is not None else None,
+                        _on_verification(cfg, state_writer, f"rung {number} ({rung.name}), "),
                     )
                     outcome = _apply_acceptance_checks(outcome, cfg, io.emit, acceptance_checks)
                 except ConversationRunError as exc:
@@ -2421,6 +2452,8 @@ def _stream_escalation(
             if strict is not final_outcome and state_writer is not None:
                 state_writer.finish(strict)  # STATUS.md says the final verdict
             final_outcome = strict
+        if final_outcome is not None:
+            _checkpoint(cfg, f"finished: {final_outcome.verification_state}")
     except BaseException as exc:
         captured_error = exc
         raise

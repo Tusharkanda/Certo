@@ -60,6 +60,8 @@ The stories behind each of these checks are in
 - Keep a record of each run: the full transcript, tokens and cost.
 - Resume a task that was interrupted or failed, with the agent's earlier
   conversation: `certo --resume`.
+- Go back to an earlier point of a run, before the agent or after any fix
+  attempt: `certo rollback`.
 - Benchmark models on bundled tasks graded by hidden tests: `certo bench`.
 
 ## Where to go next
@@ -89,6 +91,7 @@ takes you from install to your first verified project.
 | Call Certo over HTTP | [Run as a server](guides/run-as-a-server.md) |
 | See what a run did and what it cost | [Run records and costs](guides/run-records-and-costs.md) |
 | Continue a task after an interruption or a failed verdict | [Resume an interrupted run](guides/resume-a-run.md) |
+| Undo what the agent did, back to an earlier point | [Go back to an earlier point](guides/checkpoints.md) |
 | Teach the agent my conventions, for every project or one | [Manage skills](guides/manage-skills.md) |
 | Give the agent a new action, in Python | [Add custom tools](guides/add-custom-tools.md) |
 | Try the same task on several models, side by side | [Compare models on one task](guides/compare-models-on-a-task.md) |

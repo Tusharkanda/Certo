@@ -430,6 +430,20 @@ given design was chosen.
   checks: single path after `_apply_acceptance_checks`, escalation after
   the final rung (it calls `state_writer.finish` again so STATUS.md has
   the final verdict; the rung record keeps the rung's own verdict).
+- **`checkpoints.py`** — stdlib only. A git repository at
+  `.certo/checkpoints/` (`GIT_DIR`) with the project as work tree, its
+  own `GIT_INDEX_FILE`, `GIT_CONFIG_GLOBAL=/dev/null` and
+  `GIT_CONFIG_NOSYSTEM` (no user hooks or signing). `snapshot()` rewrites
+  `info/exclude` (`SKIP_DIRS`, files over `MAX_FILE_BYTES`), `add --all`,
+  commits unless the index matches HEAD. `rollback()` snapshots, then
+  `read-tree --reset -u <commit>` (tracked files missing from the target
+  are deleted; excluded files untouched), then commits the result.
+  Numbers are positions in `git log --reverse`. The runner calls
+  `safe_snapshot` through `_checkpoint` (before the agent, after
+  `_write_independent_tests`; `_on_verification` per check run, prefixed
+  with the rung under escalation; `finished:` at the end); `stream_task`
+  turns `cfg.checkpoints` off when it keeps no state. Commands in
+  `checkpoints_cmd.py`.
 - **`check_files.py`** — stdlib only. `snapshot_check_files()` copies
   test files and check settings (`is_check_file`, by path) before the
   run; `runner._run_stream_task_phases` compares after a `verified`

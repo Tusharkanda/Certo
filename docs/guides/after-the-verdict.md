@@ -7,7 +7,7 @@ messages and their fixes are in [Troubleshooting](../troubleshooting.md).
 
 ## Your tools
 
-Five moves cover almost every case:
+Six moves cover almost every case:
 
 | Move | Command | When |
 |---|---|---|
@@ -16,6 +16,7 @@ Five moves cover almost every case:
 | Continue with a hint | `certo --resume "..."` | The agent was close, and you can say what it missed. It keeps its earlier conversation. |
 | Continue with a stronger model | `certo --resume --model MODEL` | The model is the problem. The new model reads everything the first one did. |
 | Start smaller | a new, smaller task in the same folder | The task was too big for one run. |
+| Go back | `certo checkpoints`, then `certo rollback N` | A fix attempt or a model made things worse. See [Go back to an earlier point](checkpoints.md). |
 
 Add `--project NAME` to `--resume` and `verify` if the task used it. See
 [Resume an interrupted run](resume-a-run.md).

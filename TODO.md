@@ -98,11 +98,14 @@ first item is the suggested next one.
 - **Context management for long runs.** The SDK's own condensing
   (verify-first), plus a warning when a local model's context window is
   too small for the task (qwen3.8 at 32K).
-- **Checkpoints and rollback.** A git snapshot per fix attempt and per
-  escalation rung, so a bad attempt can be undone.
-- **Escalation "restart" mode.** Copy the original files back before the
-  next rung, instead of continuing in the same files.
-  `_stream_escalation` already lists the workspace before each rung.
+- **Escalation "restart" mode.** Start the next rung from the original
+  files instead of the previous rung's. Checkpoints (0.1.25) already hold
+  them: `checkpoints.rollback` to `before the agent` before the rung.
+  Measure on the benchmark before making it a ladder option.
+- **Automatic use of checkpoints.** Undo a fix attempt that left more
+  checks failing than before. Changes agent behaviour, so benchmark it
+  on a local and a cloud model first (the Author chose manual rollback
+  only for 0.1.25).
 
 ## 3. Languages and verification
 

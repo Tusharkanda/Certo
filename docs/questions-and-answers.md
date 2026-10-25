@@ -138,6 +138,10 @@ to look at the files first, keep what works and finish the task. The
 file lists in the note come from comparing the folder before and after
 the previous model's turn; they are a list of files, not a full diff.
 
+You can still go back yourself: Certo takes a checkpoint at every check
+run, for every model, and `certo rollback N` puts the files back as they
+were at one. See [Go back to an earlier point](guides/checkpoints.md).
+
 A recorded run where a local model leaves the task half done (45 of 46
 tests passing) and a cloud model finishes it, keeping the local model's
 fixes: [Escalation past failing tests](benchmark/escalation-handoff-0.1.23.md).

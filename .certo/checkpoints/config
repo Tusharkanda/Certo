@@ -1,0 +1,15 @@
+[core]
+	repositoryformatversion = 0
+	filemode = true
+	bare = false
+	logallrefupdates = true
+	worktree = /Users/alessioricco/Documents/GitHub/certo
+	ignorecase = true
+	precomposeunicode = true
+	autocrlf = false
+	hooksPath = /dev/null
+[user]
+	name = Certo
+	email = certo@localhost
+[commit]
+	gpgsign = false

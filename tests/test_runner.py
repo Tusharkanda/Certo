@@ -2633,6 +2633,52 @@ def test_stream_task_saves_the_conversation_and_the_final_verdict(monkeypatch, t
     assert "verdict `retry_exhausted`" in (tmp_path / ".certo" / "STATUS.md").read_text()
 
 
+def _checkpoint_run(monkeypatch, tmp_path, **kwargs):
+    from certo import checkpoints
+
+    if not checkpoints.git_available():
+        pytest.skip("git isn't installed")
+    _stub_for_state_tests(monkeypatch)
+    (tmp_path / "a.py").write_text("a = 1\n")
+
+    def fake_phases(conversation, cfg, emit, task, *args, **_kwargs):
+        (tmp_path / "a.py").write_text("a = 2\n")
+        args[7](SimpleNamespace(state="failed", checks=[]))
+        (tmp_path / "a.py").write_text("a = 3\n")
+        args[7](SimpleNamespace(state="verified", checks=[]))
+        return _verified_outcome()
+
+    monkeypatch.setattr(runner, "_run_stream_task_phases", fake_phases)
+    runner.stream_task("do it", cfg=_cfg(workspace=str(tmp_path)), **kwargs)
+    return [c.label for c in checkpoints.list_checkpoints(str(tmp_path))]
+
+
+def test_a_run_that_saves_state_takes_checkpoints(monkeypatch, tmp_path):
+    labels = _checkpoint_run(monkeypatch, tmp_path, save_state=True)
+
+    # The last check run already holds the final files: no extra snapshot.
+    assert labels == ["before the agent", "checks 1: failed", "checks 2: verified"]
+
+
+def test_no_checkpoints_without_saved_state_or_when_turned_off(monkeypatch, tmp_path):
+    assert _checkpoint_run(monkeypatch, tmp_path) == []
+    assert not (tmp_path / ".certo").exists()
+
+
+def test_checkpoints_can_be_turned_off(monkeypatch, tmp_path):
+    from certo import checkpoints
+
+    if not checkpoints.git_available():
+        pytest.skip("git isn't installed")
+    _stub_for_state_tests(monkeypatch)
+
+    runner.stream_task(
+        "do it", cfg=_cfg(workspace=str(tmp_path), checkpoints=False), save_state=True
+    )
+
+    assert checkpoints.list_checkpoints(str(tmp_path)) == []
+
+
 @pytest.mark.parametrize(
     ("error", "status"), [(KeyboardInterrupt(), "interrupted"), (RuntimeError("boom"), "error")]
 )

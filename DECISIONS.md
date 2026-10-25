@@ -1165,3 +1165,17 @@ considered and live-verification detail: `docs/ROADMAP.txt`.
   a provider failure: it ends the run without a model switch, and the
   work is still checked once (`verified` or `budget_exhausted`, never
   `stuck`). A bug fix, no version bump.
+- **Checkpoints: Certo's own git repository in `.certo/checkpoints/`,
+  rollback by hand only** (the Author, 2026-10-25; Phase 2.3). A
+  repository whose work tree is the project, with its own index and no
+  global or system git config, works in any folder and never touches the
+  user's repository (no commit, branch, stash or index change), which a
+  ref inside the user's repository couldn't promise. Snapshots before the
+  agent, at every check run (the `on_verification` hook, so every fix
+  attempt and rung) and at the end, skipped when nothing changed; the
+  project's `.gitignore`, environments, caches and files over 10 MB are
+  left out, so a snapshot stays small. Only when the run keeps state
+  (CLI), like the rest of `.certo/`. `certo rollback N` snapshots the
+  current files first, so it can be undone. No automatic rollback and
+  no restart mode yet: both change agent behaviour and need benchmark
+  numbers first.

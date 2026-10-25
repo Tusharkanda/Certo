@@ -25,6 +25,31 @@ where a false `verified` costs more than a second look. See
 [Make them change the verdict](../guides/independent-tests.md#make-them-change-the-verdict)
 and [`independent_failed`](../guides/after-the-verdict.md#independent_failed).
 
+## New: checkpoints, and `certo rollback`
+
+During a run Certo now takes a snapshot of the project's files before
+the agent starts, each time it runs the checks (after the first try and
+after every fix attempt, for every model with `--escalate`) and at the
+end. `certo checkpoints` lists them, and `certo rollback N` puts the
+files back as they were at one, after showing what it would change and
+asking:
+
+```text
+Rolling back /tmp/calc to checkpoint 1 (before the agent):
+  deleted: README.md
+  restored: calc.py
+  deleted: pytest.ini
+  deleted: tests/test_calc.py
+Done: the files are as they were at checkpoint 1.
+Your files before the rollback are checkpoint 2: `certo rollback 2` undoes it.
+```
+
+They live in `.certo/checkpoints/`, a git repository Certo keeps for
+itself: it works in any folder, and your own git repository is never
+touched. Ignored files, environments and files over 10 MB are left out.
+Certo never rolls back on its own. `CERTO_CHECKPOINTS=no` turns them
+off. See [Go back to an earlier point](../guides/checkpoints.md).
+
 ## Fixed: the run record holds the final verdict
 
 With `CERTO_ARTIFACTS_DIR` set and one model, a run whose acceptance

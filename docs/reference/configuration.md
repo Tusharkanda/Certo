@@ -62,6 +62,7 @@ enough for a local model that needs no key.
 | `CERTO_WORKSPACE` | `.` | The folder the agent works in when `--project` is not given. |
 | `CERTO_PROJECTS_DIR` | `./projects` | The parent folder for `--project NAME`, which becomes `CERTO_PROJECTS_DIR/NAME`. |
 | `CERTO_NO_WORKTREE_WARNING` | `false` | `true` turns off the warning printed before the agent edits a folder with uncommitted changes, or a folder outside git. |
+| `CERTO_CHECKPOINTS` | `true` | During a run, snapshot the project's files into `.certo/checkpoints/` (before the agent, at every check run, at the end), for `certo checkpoints` and `certo rollback`. Needs git; never touches the project's own git repository. Only when the run keeps state (`CERTO_SAVE_STATE`). See [Go back to an earlier point](../guides/checkpoints.md). |
 | `CERTO_SAVE_STATE` | `true` | The `certo` command keeps the last run's state in the project's `.certo/` folder, for `certo --resume`, and adds the run to `.certo/RUNS.md`. `false` turns both off (`--resume` still saves). Server mode and `certo bench` never write it. See [Resume an interrupted run](../guides/resume-a-run.md). |
 
 ## Limits and verification

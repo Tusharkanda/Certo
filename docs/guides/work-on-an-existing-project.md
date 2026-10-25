@@ -24,7 +24,9 @@ folder if needed. Use it for new projects, not for an existing repository.
 
 ## Commit first: the warning about uncommitted changes
 
-The agent edits files in place, and there is no undo inside Certo. Before
+The agent edits files in place. Certo keeps
+[checkpoints](checkpoints.md) you can go back to, but they leave out
+ignored and large files, so your own git history is the safer undo. Before
 the task starts, Certo checks the folder and prints one line to the error
 output if you could lose work:
 
