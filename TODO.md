@@ -30,12 +30,6 @@ first item is the suggested next one.
   badge. 0.1.13, 0.1.15, 0.1.18 (local only), 0.1.22 and 0.1.23 (the
   first on task set v2) exist; no badge yet. A `qwen2.5-coder:7b` arm would replace "unmeasured" for the
   small-machine suggestion ([#18](https://github.com/alessioricco/certo/issues/18) asks contributors for local runs).
-- **`certo bench --stop-at`, for a baseline run over several nights**
-  (2026-10-24). Slices work today by interrupting in the morning and
-  continuing with `--resume`, but the run in progress is lost. A flag
-  like `--max-cost` (stop starting new runs after a time, or after N
-  runs) would end each night cleanly. Done when a slice stops on its own
-  and `--resume` continues it.
 - **Bench tasks that separate cloud models.** Task set v2 separates
   `qwen3.8` from the cloud models (7 of 12 on the four larger tasks,
   against 4 of 4 each) but not the cloud models from each other: all

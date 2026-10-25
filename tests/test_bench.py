@@ -211,6 +211,53 @@ def test_max_cost_stops_cleanly_and_keeps_results(tmp_path, project_venv, capsys
     assert "Stopped: the recorded cost reached --max-cost $1.50." in capsys.readouterr().out
 
 
+def test_stop_at_stops_starting_runs_and_resume_continues(
+    tmp_path, project_venv, capsys, monkeypatch
+):
+    from datetime import datetime
+
+    # Read when parsing --stop-at, then before each run.
+    clock = iter(
+        [
+            datetime(2026, 10, 25, 23, 0),
+            datetime(2026, 10, 25, 23, 30),
+            datetime(2026, 10, 26, 7, 10),
+        ]
+    )
+    monkeypatch.setattr(bench, "_local_now", lambda: next(clock))
+    path = _bench_file(tmp_path, TWO_ARMS, repeats=2)
+    out = tmp_path / "out"
+    assert _run(path, out, FakeModel(project_venv), "--stop-at", "07:00") == 0
+    printed = capsys.readouterr().out
+    assert "No new run starts after 2026-10-26 07:00." in printed
+    assert "Stopped: it is past --stop-at 07:00." in printed
+    assert "3 run(s) not done. Continue with: certo bench --resume" in printed
+    assert [r["run_id"] for r in _records(out)] == ["a__temperature-table__r1"]
+
+    model = FakeModel(project_venv)
+    assert _run(path, out, model, "--resume") == 0
+    assert len(model.calls) == 3
+    assert len(_records(out)) == 4
+
+
+@pytest.mark.parametrize(
+    ("value", "wanted"),
+    [("07:00", "2026-10-26 07:00"), ("23:30", "2026-10-25 23:30"), ("22:00", "2026-10-26 22:00")],
+)
+def test_stop_at_is_the_next_such_time(value, wanted):
+    from datetime import datetime
+
+    when = bench.parse_stop_at(value, datetime(2026, 10, 25, 22, 0))
+    assert f"{when:%Y-%m-%d %H:%M}" == wanted
+
+
+@pytest.mark.parametrize("value", ["7", "25:00", "7pm", "07:00:00"])
+def test_a_bad_stop_at_is_refused(tmp_path, project_venv, capsys, value):
+    path = _bench_file(tmp_path, ONE_ARM)
+    assert _run(path, tmp_path / "out", FakeModel(project_venv), "--stop-at", value) == 1
+    assert "--stop-at must be a 24-hour time like 07:00" in capsys.readouterr().err
+
+
 def test_interrupt_keeps_finished_runs_and_resume_continues(tmp_path, project_venv):
     path = _bench_file(tmp_path, TWO_ARMS, repeats=2)
     out = tmp_path / "out"

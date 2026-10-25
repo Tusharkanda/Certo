@@ -1127,3 +1127,9 @@ considered and live-verification detail: `docs/ROADMAP.txt`.
   check file. 30 `inventory-fix` runs showed "1 line removed" only
   because they extended the test file's import, so a line rewritten in
   place is now "changed", and "removed" means lines really gone.
+- **`certo bench --stop-at` takes a local clock time** (2026-10-25).
+  `--stop-at HH:MM` (24-hour; tomorrow if already past today) stops
+  starting new runs, and the run in progress finishes. A clock time
+  fits the use (a baseline in nightly slices with `--resume`) better
+  than a duration or a run count, and killing the run in progress
+  would waste it.

@@ -497,7 +497,8 @@ Compare models and strategies on tasks graded by hidden tests.
 
 ```text
 certo bench [--config FILE] [--out DIR] [--resume] [--parallel N]
-            [--max-cost USD] [--yes] [--list-tasks] [--check-tasks]
+            [--max-cost USD] [--stop-at HH:MM] [--yes] [--list-tasks]
+            [--check-tasks]
 ```
 
 | Flag | Default | Effect |
@@ -507,6 +508,7 @@ certo bench [--config FILE] [--out DIR] [--resume] [--parallel N]
 | `--resume` | off | Continue an interrupted benchmark in `--out` (default: the latest folder in `./bench-results`), skipping runs already recorded. Refused if the tasks, arms, repeats, models or task set changed. |
 | `--parallel N` | `1` | Run N at a time. Refused when any arm uses a local model (Ollama, or a server on this machine or network). |
 | `--max-cost USD` | none | Stop starting new runs once the recorded cost (all runs in the folder) reaches USD. Runs already started finish; results are kept. Models with no known price count as 0. |
+| `--stop-at HH:MM` | none | Stop starting new runs at this local time (24-hour: `07:00`, `23:30`). Today if that time is still ahead, else tomorrow. Runs already started finish, so the benchmark can end a little later; results are kept. Continue with `--resume`. |
 | `--yes`, `-y` | off | Start without asking. Needed when there is no terminal. |
 | `--list-tasks` | | List the tasks and exit. Needs no models. |
 | `--check-tasks` | | Check every task with no model: its reference solution must pass its hidden tests, and its starter alone must fail them. Exit 1 if any task is broken. |
@@ -520,7 +522,7 @@ At the end it writes `results.md`, `results.csv` and `cost.json`, and
 prints a summary per arm and the real total cost next to the estimate. Guide: [Benchmark models and strategies](../guides/benchmark.md).
 
 **Exit code.** 0 when the benchmark ran, whatever the models scored (also
-when stopped by `--max-cost`); 1 for a configuration error, or when the
+when stopped by `--max-cost` or `--stop-at`); 1 for a configuration error, or when the
 plan wasn't confirmed; 130 when interrupted (finished runs are kept).
 
 ## `certo-server`

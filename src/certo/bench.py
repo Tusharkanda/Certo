@@ -27,7 +27,7 @@ import time
 from collections.abc import Callable
 from concurrent.futures import ThreadPoolExecutor
 from dataclasses import dataclass
-from datetime import UTC, datetime
+from datetime import UTC, datetime, timedelta
 from pathlib import Path
 from typing import Any
 
@@ -511,20 +511,27 @@ def run_benchmark(
     total: int,
     parallel: int = 1,
     max_cost: float | None = None,
+    stop_at: datetime | None = None,
     stream: Callable[..., Any] = _default_stream,
-) -> tuple[list[dict[str, Any]], bool]:
-    """Run `todo`; return (new records, stopped by --max-cost)."""
+) -> tuple[list[dict[str, Any]], str | None]:
+    """Run `todo`; return (new records, why it stopped early: "max-cost",
+    "stop-at" or None)."""
     lock = threading.Lock()
     spent = sum(r["cost"] for r in load_records(out_dir))
     done = total - len(todo)
     records: list[dict[str, Any]] = []
-    stopped = False
+    stopped: str | None = None
 
     def one(planned: PlannedRun) -> None:
         nonlocal spent, done, stopped
         with lock:
+            if stopped:
+                return
             if max_cost is not None and spent >= max_cost:
-                stopped = True
+                stopped = "max-cost"
+                return
+            if stop_at is not None and _local_now() >= stop_at:
+                stopped = "stop-at"
                 return
         record = execute_run(planned, cfg, out_dir, stream)
         with lock:
@@ -553,6 +560,23 @@ def run_benchmark(
                     future.cancel()
                 raise
     return records, stopped
+
+
+def _local_now() -> datetime:
+    return datetime.now()
+
+
+def parse_stop_at(value: str, now: datetime) -> datetime:
+    """The next local time `value` (HH:MM, 24-hour) after `now`: today if
+    it is still ahead, else tomorrow."""
+    try:
+        wanted = datetime.strptime(value, "%H:%M").time()
+    except ValueError:
+        raise BenchConfigError(
+            f"--stop-at must be a 24-hour time like 07:00, not {value!r}."
+        ) from None
+    when = datetime.combine(now.date(), wanted)
+    return when if when > now else when + timedelta(days=1)
 
 
 def build_bench_parser() -> argparse.ArgumentParser:
@@ -593,6 +617,13 @@ def build_bench_parser() -> argparse.ArgumentParser:
         default=None,
         metavar="USD",
         help="Stop starting new runs once the recorded cost reaches USD; results so far are kept.",
+    )
+    parser.add_argument(
+        "--stop-at",
+        default=None,
+        metavar="HH:MM",
+        help="Stop starting new runs at this local time (24-hour; tomorrow if already past "
+        "today). Runs in progress finish; continue later with --resume.",
     )
     parser.add_argument(
         "--yes", "-y", action="store_true", help="Start without asking to confirm the plan."
@@ -680,6 +711,7 @@ def bench_main(
             raise BenchConfigError("--parallel must be at least 1.")
         if args.max_cost is not None and args.max_cost <= 0:
             raise BenchConfigError("--max-cost must be greater than 0.")
+        stop_at = parse_stop_at(args.stop_at, _local_now()) if args.stop_at else None
         cfg = load_bench_config(args.config)
         local = sorted({n for a in cfg.arms for n in a.models if is_local(cfg.catalog[n])})
         if args.parallel > 1 and local:
@@ -709,8 +741,11 @@ def bench_main(
     elif not _confirm(args.yes, on_terminal):
         return 1
     _init_out_dir(cfg, out_dir, estimate)
+    if stop_at is not None and todo:
+        print(f"No new run starts after {stop_at:%Y-%m-%d %H:%M}.")
 
-    interrupted = stopped = False
+    interrupted = False
+    stopped: str | None = None
     try:
         _, stopped = run_benchmark(
             cfg,
@@ -719,14 +754,17 @@ def bench_main(
             total=len(planned),
             parallel=args.parallel,
             max_cost=args.max_cost,
+            stop_at=stop_at,
             stream=stream,
         )
     except KeyboardInterrupt:
         interrupted = True
     records = load_records(out_dir)
     finish_report(cfg, out_dir, records)
-    if stopped:
+    if stopped == "max-cost":
         print(f"Stopped: the recorded cost reached --max-cost ${args.max_cost:.2f}.")
+    elif stopped == "stop-at":
+        print(f"Stopped: it is past --stop-at {stop_at:%H:%M}.")
     if interrupted:
         print(
             "Interrupted. Finished runs are kept; continue with: certo bench --resume "

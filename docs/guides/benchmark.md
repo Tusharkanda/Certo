@@ -164,6 +164,21 @@ certo bench --resume --out bench-results/20261016-101500
 `--resume` refuses a folder made with different tasks, arms, repeats or
 models.
 
+**Over several nights.** A long benchmark, like a full baseline on a
+local model, can run in slices: one each night. Give each night an end
+time with `--stop-at`, and Certo stops starting new runs then. The run
+in progress finishes and is saved, so nothing is lost:
+
+```bash
+certo bench --out bench-results/baseline --stop-at 07:00            # first night
+certo bench --resume --out bench-results/baseline --stop-at 07:00   # the next nights
+```
+
+The time is local and 24-hour; started at 23:00, `--stop-at 07:00`
+means 07:00 the next morning. A run already started can go past it: a
+run's time limit is 30 minutes by default, and a slow local model can
+end a little after that. Leave room if the machine is needed at 07:00. At the end Certo prints how many runs are left.
+
 ### What each run does
 
 1. A fresh temporary folder gets only the task's starter files. The task

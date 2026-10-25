@@ -60,6 +60,14 @@ The verdict stays `verified`, since the task may have asked for the
 change (this one did). See
 [Changed check files](../reference/verdicts.md#changed-check-files).
 
+## New: `certo bench --stop-at`, for a benchmark over several nights
+
+`--stop-at 07:00` stops starting new runs at that local time (tomorrow
+if it's already past today). The run in progress finishes and is saved,
+so a long benchmark can run one slice per night and continue with
+`--resume`, without stopping it by hand and losing a run. See
+[Benchmark models and strategies](../guides/benchmark.md#run-it).
+
 ## Fixed: the time budget now stops a run in progress
 
 `CERTO_MAX_TASK_SECONDS` was checked only between runs, so one terminal
