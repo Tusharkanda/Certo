@@ -281,13 +281,19 @@ empty, Certo sends no reasoning setting to Ollama models. Versions up to
 ### Context window below the minimum
 
 **You see:** `context window of 8,192 tokens, which is below the minimum
-of 16,384`, before any work starts. `certo-admin check-llm` reports it as
-a `setup` failure.
+of 16,384`, or, for an Ollama model, `ollama/qwen3.8:27b has a context
+window of 4,096 tokens (the Ollama server's setting), below the 16,384 an
+agent needs`, before any work starts. `certo-admin check-llm` reports it
+as a `setup` failure.
 
-**Cause:** the agent framework refuses models whose context window, as
-LiteLLM reports it, is under 16,384 tokens.
+**Cause:** the model's context window is under 16,384 tokens: as LiteLLM
+reports it, as the Ollama server gave it to the model, or as
+`CERTO_LLM_CONTEXT_TOKENS` sets it. Ollama's default on smaller machines
+is 4,096.
 
-**Fix:** choose a model with a larger window, such as a coder model.
+**Fix:** for Ollama, set `CERTO_LLM_CONTEXT_TOKENS=32768` (Certo asks the
+server for it), or start Ollama with `OLLAMA_CONTEXT_LENGTH=32768`.
+Otherwise choose a model with a larger window, such as a coder model.
 Common with older models such as `ollama/llama3`.
 
 ### The agent behaves erratically with Ollama

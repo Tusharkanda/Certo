@@ -1,0 +1,104 @@
+"""How much a model can see at once, and how much of it the conversation
+may fill before the SDK's condenser summarizes older steps (agent.py).
+
+The SDK learns a context window from LiteLLM, which knows cloud models but
+returns nothing for an Ollama model. An Ollama server also cuts a prompt
+longer than its window without an error, so the model silently loses the
+start of the task. So for an Ollama model Certo asks the server: it loads
+the model (the run would load it anyway) and reads the window it got from
+`/api/ps`. `CERTO_LLM_CONTEXT_TOKENS` (or `context_tokens` in models.yaml)
+sets the window instead; for Ollama, Certo then asks the server for that
+size (`num_ctx`, llm.py).
+
+Stdlib only, no SDK import.
+"""
+
+from __future__ import annotations
+
+import json
+import logging
+import threading
+import time
+import urllib.error
+import urllib.request
+
+logger = logging.getLogger(__name__)
+
+# The SDK refuses a smaller window (its MIN_CONTEXT_WINDOW_TOKENS).
+MIN_CONTEXT_TOKENS = 16384
+# Room kept for the model's answer: Ollama's window holds both.
+_MIN_OUTPUT_RESERVE = 4096
+_DEFAULT_OLLAMA_URL = "http://localhost:11434"
+_OLLAMA_PREFIXES = ("ollama/", "ollama_chat/")
+# A server's window only changes when it restarts.
+_CACHE_SECONDS = 600
+
+_cache: dict[tuple[str, str], tuple[float, int | None]] = {}
+_lock = threading.Lock()
+
+
+def is_ollama(model: str) -> bool:
+    return model.startswith(_OLLAMA_PREFIXES)
+
+
+def input_limit(context_tokens: int) -> int:
+    """How many tokens the conversation may hold before it is condensed:
+    the window less a reserve for the answer (a quarter, at least 4,096),
+    never under the SDK's minimum."""
+    reserve = max(_MIN_OUTPUT_RESERVE, context_tokens // 4)
+    return max(MIN_CONTEXT_TOKENS, context_tokens - reserve)
+
+
+def _post(url: str, body: dict, timeout: float) -> dict:
+    request = urllib.request.Request(
+        url, data=json.dumps(body).encode(), headers={"Content-Type": "application/json"}
+    )
+    with urllib.request.urlopen(request, timeout=timeout) as response:
+        return json.load(response)
+
+
+def _get(url: str, timeout: float) -> dict:
+    with urllib.request.urlopen(url, timeout=timeout) as response:
+        return json.load(response)
+
+
+def ollama_context_tokens(model: str, base_url: str | None, timeout: float) -> int | None:
+    """The window an Ollama server gives `model` (a LiteLLM name such as
+    `ollama/qwen3.8:27b`), or None when it can't be learned. Loads the
+    model first: `/api/ps` lists only loaded models."""
+    name = model.split("/", 1)[1]
+    base = (base_url or _DEFAULT_OLLAMA_URL).rstrip("/")
+    key = (base, name)
+    with _lock:
+        cached = _cache.get(key)
+        if cached is not None and time.monotonic() - cached[0] < _CACHE_SECONDS:
+            return cached[1]
+    tokens = None
+    try:
+        # An empty request loads the model and returns once it is ready.
+        _post(f"{base}/api/generate", {"model": name}, timeout)
+        for loaded in _get(f"{base}/api/ps", 10).get("models", []):
+            if loaded.get("name") == name or loaded.get("model") == name:
+                value = loaded.get("context_length")
+                tokens = value if isinstance(value, int) and value > 0 else None
+                break
+    except (OSError, ValueError, urllib.error.URLError):
+        logger.warning("Could not read the context window of %s from Ollama", model, exc_info=True)
+    with _lock:
+        _cache[key] = (time.monotonic(), tokens)
+    return tokens
+
+
+def too_small_message(model: str, context_tokens: int, configured: bool) -> str:
+    where = "CERTO_LLM_CONTEXT_TOKENS" if configured else "the Ollama server's setting"
+    fix = (
+        "Set CERTO_LLM_CONTEXT_TOKENS=32768 (Certo then asks Ollama for that size), or start "
+        "Ollama with OLLAMA_CONTEXT_LENGTH=32768."
+        if is_ollama(model)
+        else "Choose a model with a larger window, or set CERTO_LLM_CONTEXT_TOKENS."
+    )
+    return (
+        f"{model} has a context window of {context_tokens:,} tokens ({where}), below the "
+        f"{MIN_CONTEXT_TOKENS:,} an agent needs: the model would lose the start of the task. "
+        f"{fix}"
+    )

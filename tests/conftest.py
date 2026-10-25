@@ -31,6 +31,16 @@ def user_plugins_dir(tmp_path_factory, monkeypatch):
     return root / "agents"
 
 
+@pytest.fixture(autouse=True)
+def no_ollama_server(monkeypatch):
+    """No test asks a real Ollama server for its context window
+    (context_window.py); a test that needs it patches its own."""
+    from certo import context_window
+
+    monkeypatch.setattr(context_window, "ollama_context_tokens", lambda *a, **k: None)
+    monkeypatch.setattr("certo.llm.ollama_context_tokens", lambda *a, **k: None)
+
+
 def make_project_venv(project_dir) -> str:
     """Give `project_dir` a `.venv` that can already import pytest and ruff,
     without the network: a pip-less venv from the test interpreter, with a

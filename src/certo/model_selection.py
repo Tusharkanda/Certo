@@ -153,6 +153,7 @@ def config_for_entry(cfg: Config, entry: ModelCatalogEntry) -> Config:
         base_url=entry.base_url or "",
         reasoning_effort=entry.reasoning_effort or "",
         timeout_seconds=entry.timeout_seconds,
+        context_tokens=entry.context_tokens,
     )
 
 

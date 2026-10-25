@@ -68,3 +68,14 @@ can't wait longer than the time left, and isn't retried once the budget
 is gone, so a task ends within seconds of its budget. The work so far is
 still checked once, as before. See
 [`budget_exhausted`](../troubleshooting.md#budget_exhausted).
+
+## New: Certo knows a local model's context window
+
+The agent framework under Certo learned a model's context window from
+LiteLLM, which knows nothing about Ollama models, and Ollama cuts a
+prompt that is too long without an error: the model silently lost the
+start of the task. Now Certo asks the Ollama server which window the
+model got, and refuses one under 16,384 tokens with the fix. And
+`CERTO_LLM_CONTEXT_TOKENS=32768` (or `context_tokens` in `models.yaml`)
+asks Ollama for that size with every request, without restarting it.
+See [Give the model a large enough context window](../guides/ollama-and-local-models.md#give-the-model-a-large-enough-context-window).

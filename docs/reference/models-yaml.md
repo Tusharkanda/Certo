@@ -85,6 +85,7 @@ models:          # required, a non-empty list
 | `model` | yes | The LiteLLM model id, as in `CERTO_LLM_MODEL`. |
 | `reasoning_effort` | no | As `CERTO_LLM_REASONING_EFFORT`. Empty means the default. |
 | `timeout_seconds` | no | As `CERTO_LLM_TIMEOUT_SECONDS`: how long one call to this model may take, a whole number of seconds. Default `300`; `0` means no limit. |
+| `context_tokens` | no | As `CERTO_LLM_CONTEXT_TOKENS`: the model's context window, in tokens. Default `0`: what the provider reports, or for Ollama what the server gives the model. For Ollama, a set value is asked from the server. |
 | `description` | no | Shown when `--interactive` asks you to pick a model. |
 | `ratings` | no | A map of axis name to number, usually 1 to 5. |
 
@@ -112,7 +113,7 @@ models:          # required, a non-empty list
 | `base_url` | no | As `CERTO_LLM_BASE_URL`, for Ollama and other local or self-hosted servers. Empty means the provider's default. Can use `${NAME}` too. |
 | `activated` | no | `true` (default) or `false`. A `false` entry stays in the file but is never used. |
 | `ratings` | no | Overrides, axis by axis: `{code: 4}` changes only `code`; the other axes keep the list's values. |
-| `reasoning_effort`, `timeout_seconds`, `description` | no | Overrides of the list's values. |
+| `reasoning_effort`, `timeout_seconds`, `context_tokens`, `description` | no | Overrides of the list's values. |
 
 **Only the models listed here, and not `activated: false`, are ever
 used**: not in `--auto-model`, not in an escalation ladder, and not in

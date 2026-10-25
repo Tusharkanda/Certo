@@ -178,3 +178,42 @@ def test_build_llm_uses_the_configured_timeout():
 
 def test_build_llm_timeout_zero_means_no_limit():
     assert build_llm(load_config(_base_env(CERTO_LLM_TIMEOUT_SECONDS="0"))).timeout is None
+
+
+# --- The context window (context_window.py) ------------------------------
+
+
+def test_a_set_context_window_reaches_the_sdk_and_ollama():
+    cfg = load_config(
+        _base_env(CERTO_LLM_MODEL="ollama/qwen3.8:27b", CERTO_LLM_CONTEXT_TOKENS="32768")
+    )
+
+    llm = build_llm(cfg)
+
+    assert llm.max_input_tokens == 24576
+    assert llm.litellm_extra_body == {"options": {"num_ctx": 32768}}
+
+
+def test_a_cloud_model_with_a_set_window_sends_no_num_ctx():
+    llm = build_llm(load_config(_base_env(CERTO_LLM_CONTEXT_TOKENS="65536")))
+
+    assert llm.max_input_tokens == 49152
+    assert not llm.litellm_extra_body
+
+
+def test_ollamas_own_window_is_used_when_none_is_set(monkeypatch):
+    monkeypatch.setattr("certo.llm.ollama_context_tokens", lambda *a, **k: 131072)
+
+    llm = build_llm(load_config(_base_env(CERTO_LLM_MODEL="ollama/qwen3.8:27b")))
+
+    assert llm.max_input_tokens == 98304
+    assert not llm.litellm_extra_body  # the server's own size, nothing to ask for
+
+
+def test_a_window_below_the_minimum_is_refused_with_the_fix(monkeypatch):
+    from openhands.sdk.llm.exceptions import LLMContextWindowTooSmallError
+
+    monkeypatch.setattr("certo.llm.ollama_context_tokens", lambda *a, **k: 4096)
+
+    with pytest.raises(LLMContextWindowTooSmallError, match="CERTO_LLM_CONTEXT_TOKENS=32768"):
+        build_llm(load_config(_base_env(CERTO_LLM_MODEL="ollama/qwen3.8:27b")))

@@ -57,17 +57,28 @@ window is 4096 tokens. That is too short for an agent. The model loses the
 start of the task and starts to wander: it repeats steps, forgets what it
 was asked, or stops with half the work done.
 
-Start Ollama with a larger window:
+Ask for a larger window in Certo's settings:
+
+```bash
+CERTO_LLM_CONTEXT_TOKENS=32768
+```
+
+Certo then asks Ollama for that size with every request, so you don't
+need to restart Ollama. For one model in `models.yaml`, use
+`context_tokens: 32768` instead. Or start Ollama with a larger window for
+every program that uses it:
 
 ```bash
 OLLAMA_CONTEXT_LENGTH=32768 ollama serve
 ```
 
-In the Ollama desktop app, move the context length slider in the settings
-instead. `ollama ps` shows the context a loaded model got.
+(In the Ollama desktop app, move the context length slider in the
+settings.) `ollama ps` shows the context a loaded model got.
 
-Certo also refuses a model whose context window is under 16,384 tokens, as
-reported by LiteLLM, before any request is sent. See
+Without the setting, Certo asks Ollama which window the model got, after
+loading it, so the agent framework knows the real size. A window under
+16,384 tokens stops the run before the agent starts, with the fix in the
+message. See
 [Troubleshooting](../troubleshooting.md#context-window-below-the-minimum).
 
 ## Make sure the model fits in memory

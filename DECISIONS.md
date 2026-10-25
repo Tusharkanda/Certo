@@ -1179,3 +1179,16 @@ considered and live-verification detail: `docs/ROADMAP.txt`.
   current files first, so it can be undone. No automatic rollback and
   no restart mode yet: both change agent behaviour and need benchmark
   numbers first.
+- **Certo learns the context window, from Ollama itself when needed**
+  (2026-10-25, Phase 2.4). LiteLLM reports no window for an Ollama model
+  (verified: `None` for `ollama/qwen3.8:27b`, though `/api/show` says
+  262,144), and Ollama cuts an overlong prompt silently, so neither the
+  SDK's 16K check nor its token-based condensing could work locally.
+  Certo loads the model with an empty `/api/generate` and reads
+  `context_length` from `/api/ps` (the window the server really gives,
+  131,072 on the benchmark machine), cached 10 minutes.
+  `CERTO_LLM_CONTEXT_TOKENS` / `context_tokens` set it instead; for
+  Ollama it is sent as `litellm_extra_body={"options": {"num_ctx": N}}`
+  (verified live: the server loaded the model at that size), so a user
+  needn't restart Ollama. The SDK gets `max_input_tokens` = the window
+  less a quarter (at least 4,096) for the answer, never under 16,384.

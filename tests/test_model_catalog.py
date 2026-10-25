@@ -914,3 +914,22 @@ def test_the_shipped_models_example_names_its_cloud_keys_as_variables():
     ).read_text()
     assert 'api_key: "${OPENAI_API_KEY}"' in text
     assert 'api_key: ""' not in text
+
+
+def test_context_tokens_is_read_from_both_files_and_checked(tmp_path):
+    from certo.model_catalog import ModelCatalogError, load_model_catalog
+
+    listed = tmp_path / "models_list.yaml"
+    listed.write_text(
+        "models:\n  - name: q\n    model: ollama/q\n    context_tokens: 32768\n"
+        "  - name: r\n    model: ollama/r\n"
+    )
+    mine = tmp_path / "models.yaml"
+    mine.write_text("models:\n  - name: q\n  - name: r\n    context_tokens: 65536\n")
+
+    catalog = load_model_catalog(str(listed), str(mine))
+
+    assert {e.name: e.context_tokens for e in catalog.models} == {"q": 32768, "r": 65536}
+    mine.write_text("models:\n  - name: q\n    context_tokens: lots\n")
+    with pytest.raises(ModelCatalogError, match="'context_tokens' must be"):
+        load_model_catalog(str(listed), str(mine))

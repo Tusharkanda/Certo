@@ -430,6 +430,15 @@ given design was chosen.
   checks: single path after `_apply_acceptance_checks`, escalation after
   the final rung (it calls `state_writer.finish` again so STATUS.md has
   the final verdict; the rung record keeps the rung's own verdict).
+- **`context_window.py`** — stdlib only. `ollama_context_tokens()`
+  (empty `/api/generate` to load, then `/api/ps` `context_length`; cached
+  per server and model, 10 minutes; `None` on any error) and
+  `input_limit()`. `llm._context_kwargs` turns `cfg.llm_context_tokens`
+  or the detected window into the SDK's `max_input_tokens` (read by the
+  condenser's token trigger and the SDK's 16K check), sends a set window
+  to Ollama as `litellm_extra_body.options.num_ctx`, and raises the SDK's
+  `LLMContextWindowTooSmallError` with Certo's message under 16,384.
+  Tests: `conftest.no_ollama_server` stubs the detection.
 - **`checkpoints.py`** — stdlib only. A git repository at
   `.certo/checkpoints/` (`GIT_DIR`) with the project as work tree, its
   own `GIT_INDEX_FILE`, `GIT_CONFIG_GLOBAL=/dev/null` and

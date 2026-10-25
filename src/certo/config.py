@@ -144,6 +144,10 @@ class Config:
     # fails (passed to the SDK's `LLM.timeout`; 0 = no limit). Slow local
     # models can need more than the 300-second default.
     llm_timeout_seconds: int = DEFAULT_LLM_TIMEOUT_SECONDS
+    # CERTO_LLM_CONTEXT_TOKENS: the model's context window; 0 = what the
+    # provider reports (asked from the server for Ollama). For Ollama, a set
+    # value is also requested from the server (context_window.py, llm.py).
+    llm_context_tokens: int = 0
 
     # Server-mode task registry persistence (see task_store.py). Default
     # ("memory", no TTL) is byte-for-byte the pre-existing behavior — this
@@ -552,6 +556,7 @@ def load_config(
     llm_timeout_seconds = _parse_nonnegative_int(
         env, "LLM_TIMEOUT_SECONDS", default=DEFAULT_LLM_TIMEOUT_SECONDS
     )
+    llm_context_tokens = _parse_nonnegative_int(env, "LLM_CONTEXT_TOKENS", default=0)
 
     workspace = _get(env, "WORKSPACE") or DEFAULT_WORKSPACE
     max_iterations = _parse_positive_int(
@@ -701,6 +706,7 @@ def load_config(
         max_task_seconds=max_task_seconds,
         reasoning_effort=reasoning_effort,
         llm_timeout_seconds=llm_timeout_seconds,
+        llm_context_tokens=llm_context_tokens,
         task_store=task_store,
         task_ttl_seconds=task_ttl_seconds,
         task_store_sqlite_path=task_store_sqlite_path,
@@ -767,10 +773,11 @@ def override_llm(
     base_url: str | None = None,
     reasoning_effort: str | None = None,
     timeout_seconds: int | None = None,
+    context_tokens: int | None = None,
 ) -> Config:
     """Return a copy of `cfg` with CERTO_LLM_MODEL/CERTO_LLM_API_KEY/
-    CERTO_LLM_BASE_URL/CERTO_LLM_REASONING_EFFORT/CERTO_LLM_TIMEOUT_SECONDS
-    overridden.
+    CERTO_LLM_BASE_URL/CERTO_LLM_REASONING_EFFORT/CERTO_LLM_TIMEOUT_SECONDS/
+    CERTO_LLM_CONTEXT_TOKENS overridden.
 
     Lets a single call (CLI flag or a server request field) swap provider/model
     (or just the reasoning effort, independent of provider) for one run without
@@ -796,6 +803,10 @@ def override_llm(
         if timeout_seconds < 0:
             raise ConfigError(f"LLM timeout must be zero or more seconds, got {timeout_seconds}.")
         updates["llm_timeout_seconds"] = timeout_seconds
+    if context_tokens is not None:
+        if context_tokens < 0:
+            raise ConfigError(f"Context window must be zero or more tokens, got {context_tokens}.")
+        updates["llm_context_tokens"] = context_tokens
     return replace(cfg, **updates) if updates else cfg
 
 

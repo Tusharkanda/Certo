@@ -58,6 +58,9 @@ class ModelCatalogEntry:
     # How long one call to this model may take; 0 = no limit. Not inherited
     # from CERTO_LLM_TIMEOUT_SECONDS: an entry is a complete model spec.
     timeout_seconds: int = DEFAULT_LLM_TIMEOUT_SECONDS
+    # The model's context window, in tokens; 0 = what the provider reports
+    # (context_window.py). Not inherited from CERTO_LLM_CONTEXT_TOKENS.
+    context_tokens: int = 0
     description: str = ""
     ratings: dict[str, float] = field(default_factory=dict)
     activated: bool = True
@@ -177,6 +180,18 @@ def _parse_timeout(data: dict, *, context: str) -> int:
     return value
 
 
+def _parse_context_tokens(data: dict, *, context: str) -> int:
+    value = data.get("context_tokens")
+    if value is None:
+        return 0
+    if isinstance(value, bool) or not isinstance(value, int) or value < 0:
+        raise ModelCatalogError(
+            f"{context}: 'context_tokens' must be zero or a positive whole number of tokens, "
+            f"got {value!r}."
+        )
+    return value
+
+
 def _parse_activated(data: dict, *, context: str) -> bool:
     if "activated" not in data:
         return True
@@ -199,6 +214,7 @@ def _parse_model_entry(data: Any) -> ModelCatalogEntry:
         base_url=_optional_str(data, "base_url"),
         reasoning_effort=_optional_str(data, "reasoning_effort"),
         timeout_seconds=_parse_timeout(data, context=context),
+        context_tokens=_parse_context_tokens(data, context=context),
         description=(_optional_str(data, "description") or ""),
         ratings=_parse_ratings(data, context=context),
         activated=_parse_activated(data, context=context),
@@ -338,6 +354,7 @@ _PERSONAL_KEYS = {
     "ratings",
     "reasoning_effort",
     "timeout_seconds",
+    "context_tokens",
     "description",
 }
 
@@ -456,6 +473,8 @@ def _parse_personal(path: str) -> list[dict]:
             entry["reasoning_effort"] = _optional_str(data, "reasoning_effort")
         if data.get("timeout_seconds") is not None:
             entry["timeout_seconds"] = _parse_timeout(data, context=context)
+        if data.get("context_tokens") is not None:
+            entry["context_tokens"] = _parse_context_tokens(data, context=context)
         if _optional_str(data, "description") is not None:
             entry["description"] = _optional_str(data, "description")
         parsed.append(entry)
@@ -475,6 +494,7 @@ def _merge(listed: ModelCatalogEntry, personal: dict | None) -> ModelCatalogEntr
         ratings={**listed.ratings, **personal.get("ratings", {})},
         reasoning_effort=personal.get("reasoning_effort", listed.reasoning_effort),
         timeout_seconds=personal.get("timeout_seconds", listed.timeout_seconds),
+        context_tokens=personal.get("context_tokens", listed.context_tokens),
         description=personal.get("description", listed.description),
     )
 

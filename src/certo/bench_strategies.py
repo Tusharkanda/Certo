@@ -103,6 +103,7 @@ def run_config(entry: ModelCatalogEntry, workspace: str, isolation_dir: str) -> 
         base_url=entry.base_url or "",
         reasoning_effort=entry.reasoning_effort or "",
         timeout_seconds=entry.timeout_seconds,
+        context_tokens=entry.context_tokens,
     )
 
 

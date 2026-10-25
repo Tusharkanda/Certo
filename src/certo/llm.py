@@ -13,6 +13,13 @@ from openhands.sdk import LLM
 from pydantic import SecretStr
 
 from .config import Config
+from .context_window import (
+    MIN_CONTEXT_TOKENS,
+    input_limit,
+    is_ollama,
+    ollama_context_tokens,
+    too_small_message,
+)
 
 # LiteLLM prefixes that route to an Ollama server.
 _OLLAMA_PREFIXES = {"ollama", "ollama_chat"}
@@ -46,6 +53,30 @@ def _reasoning_effort_kwargs(cfg: Config) -> dict[str, str | None]:
     return {}
 
 
+def _context_kwargs(cfg: Config) -> dict[str, object]:
+    """The SDK's `max_input_tokens` (when the condenser summarizes older
+    steps) from the model's context window, and for Ollama a set window
+    requested as `num_ctx` (verified live: the server loads the model with
+    it). Ollama's own window is asked from the server when nothing is set;
+    other providers keep what LiteLLM reports. See context_window.py."""
+    from openhands.sdk.llm.exceptions import LLMContextWindowTooSmallError
+
+    configured = cfg.llm_context_tokens
+    tokens = configured
+    if not tokens and is_ollama(cfg.model):
+        tokens = ollama_context_tokens(cfg.model, cfg.base_url, cfg.llm_timeout_seconds or 600)
+    if not tokens:
+        return {}
+    if tokens < MIN_CONTEXT_TOKENS:
+        raise LLMContextWindowTooSmallError(
+            tokens, MIN_CONTEXT_TOKENS, too_small_message(cfg.model, tokens, bool(configured))
+        )
+    kwargs: dict[str, object] = {"max_input_tokens": input_limit(tokens)}
+    if configured and is_ollama(cfg.model):
+        kwargs["litellm_extra_body"] = {"options": {"num_ctx": configured}}
+    return kwargs
+
+
 def build_llm(cfg: Config, *, usage_id: str = "certo") -> LLM:
     return LLM(
         usage_id=usage_id,
@@ -55,4 +86,5 @@ def build_llm(cfg: Config, *, usage_id: str = "certo") -> LLM:
         # 0 means no limit, which the SDK spells None.
         timeout=cfg.llm_timeout_seconds or None,
         **_reasoning_effort_kwargs(cfg),
+        **_context_kwargs(cfg),
     )
