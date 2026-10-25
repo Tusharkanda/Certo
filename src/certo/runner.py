@@ -41,6 +41,7 @@ from .artifacts import resolve_run_artifacts_dir, write_run_artifacts
 from .catalog_check import load_checked_catalog
 from .config import Config, load_config, override_llm
 from .console import quiet_sdk_logs, visualizer_for
+from .deadline import stop_at_deadline
 from .independent_tests import (
     IndependentTestsResult,
     TestSets,
@@ -590,6 +591,7 @@ def _run_conversation_once(
     cfg: Config,
     emit: Callable[[Message], None],
     model_chain: ModelChain | None,
+    deadline: float = float("inf"),
 ) -> None:
     """One `conversation.run()` call, transparently falling back through
     `model_chain` on a provider/API-level failure (auth error, rate limit,
@@ -629,7 +631,9 @@ def _run_conversation_once(
     """
     while True:
         try:
-            conversation.run()
+            # The run can't outlast `deadline`: see deadline.py.
+            with stop_at_deadline(conversation, deadline):
+                conversation.run()
             return
         except ConversationRunError as exc:
             if (
@@ -706,7 +710,7 @@ def _run_with_confirmation(
     """
     if time.monotonic() >= deadline:
         return _RUN_BUDGET_EXHAUSTED
-    _run_conversation_once(conversation, cfg, emit, model_chain)
+    _run_conversation_once(conversation, cfg, emit, model_chain, deadline)
     if cfg.confirm_mode != "always":
         return _RUN_OK
     while conversation.state.execution_status == _WAITING_FOR_CONFIRMATION:
@@ -734,10 +738,10 @@ def _run_with_confirmation(
             )
             return _RUN_BUDGET_EXHAUSTED
         if on_confirm(pending):
-            _run_conversation_once(conversation, cfg, emit, model_chain)
+            _run_conversation_once(conversation, cfg, emit, model_chain, deadline)
         else:
             conversation.reject_pending_actions("Rejected by the user via Certo confirm-mode.")
-            _run_conversation_once(conversation, cfg, emit, model_chain)
+            _run_conversation_once(conversation, cfg, emit, model_chain, deadline)
     return _RUN_OK
 
 

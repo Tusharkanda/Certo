@@ -1105,3 +1105,11 @@ considered and live-verification detail: `docs/ROADMAP.txt`.
   name. The rule is unchanged, so the task set stays version 2; its hash
   changes, so runs from before this aren't compared with later ones
   automatically.
+- **The budget stops a run in progress** (2026-10-25, from the 0.1.23
+  baseline's 2h53m run). A watcher thread pauses the conversation at the
+  deadline and sets the SDK's own foreground terminal cap
+  (`OH_RUNTIME_IDLE_TIMEOUT_SECONDS`) to the time left, instead of
+  wrapping the terminal tool: no copy of SDK code, and the SDK already
+  tells the agent how to work under the cap. A bug fix, so no version
+  bump; the cap is process-wide, so concurrent server runs share the
+  nearest deadline (stricter, never looser).

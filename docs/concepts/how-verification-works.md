@@ -36,7 +36,8 @@ one verdict that the agent can't influence.
 ```
 
 Around all of this, a time budget (`CERTO_MAX_TASK_SECONDS`, 30 minutes by
-default) is checked before every agent run. Acceptance checks, if you gave
+default) is checked before every agent run, and stops a run that reaches
+it. Acceptance checks, if you gave
 any, run at the very end. The exact order is in
 [Verdicts](../reference/verdicts.md#the-order-of-the-checks).
 

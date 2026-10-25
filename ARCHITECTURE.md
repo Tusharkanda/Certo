@@ -69,7 +69,17 @@ given design was chosen.
   and returning `"ok"`/`"confirmation_required"`/`"budget_exhausted"`; no
   `on_confirm` handler (server mode) rejects the pending action once and
   stops rather than auto-approving or hanging. `CERTO_MAX_TASK_SECONDS` is
-  checked before every `.run()` call across all three call sites. `CERTO_INTERACTIVE`
+  checked before every `.run()` call across all three call sites, and
+  `deadline.stop_at_deadline` keeps each `.run()` inside it: a watcher
+  thread calls `conversation.pause()` at the deadline (takes effect
+  between steps; a model call in flight still finishes) and keeps the
+  SDK's foreground terminal cap at the time left. That cap is the SDK's
+  `OH_RUNTIME_IDLE_TIMEOUT_SECONDS` (cap = 90% of it), read from
+  `os.environ` on every terminal command (`terminal_session.execute`,
+  v1.47.0); a longer `timeout` is refused with an SDK message about
+  "idle cleanup", which the agent follows anyway (live 2026-10-25). It's
+  process-wide, so concurrent runs share the nearest deadline, and it
+  doesn't reach a Docker terminal. `CERTO_INTERACTIVE`
   wires an `OnAwaitingInput` checkpoint around the *initial* run only (`cli.py`
   supplies a terminal handler, `server.py` doesn't); the deadline is paused,
   not spent, while waiting on a human reply. The runner

@@ -43,3 +43,13 @@ Certo hasn't checked. Now Certo looks before a run, and before
 and its folder. A project's own plugins, and a repository's plugins when
 you run Certo on an existing folder, are still fine. See
 [OpenHands plugins](../guides/manage-skills.md#openhands-plugins).
+
+## Fixed: the time budget now stops a run in progress
+
+`CERTO_MAX_TASK_SECONDS` was checked only between runs, so one terminal
+command could wait for hours: a run in the 0.1.23 baseline waited 10,000
+seconds. Now the agent is stopped after its current step when the
+budget runs out, and a terminal command can't ask to wait longer than
+the time left; the agent is told to use a shorter timeout. A model call
+already under way still finishes. See
+[`budget_exhausted`](../troubleshooting.md#budget_exhausted).

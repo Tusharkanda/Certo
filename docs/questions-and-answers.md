@@ -103,8 +103,9 @@ A stuck model is caught in two ways. The agent SDK under Certo
 `stuck`. And `no_progress` catches a model whose fix attempts change
 nothing in the check output, even when what it writes sounds sensible.
 
-One limit: the time budget is checked between runs, not during one, so
-a very slow local model can end well past it. The SDK's loop detection
+One limit: when the time budget runs out, the agent stops after its
+current step, so a model call already under way still finishes, and a
+very slow local model can end past the budget. The SDK's loop detection
 only catches exact repetition; a model that writes new but useless text
 is caught at the next check, or by the step and time limits.
 

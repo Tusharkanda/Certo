@@ -597,6 +597,8 @@ def test_run_with_confirmation_reports_budget_exhausted_mid_confirm_loop(monkeyp
     conversation = _ConfirmConversation([ConversationExecutionStatus.WAITING_FOR_CONFIRMATION])
     clock = iter([0.0, 100.0])
     monkeypatch.setattr(runner.time, "monotonic", lambda: next(clock))
+    # The deadline guard reads the clock too (tested in test_deadline.py).
+    monkeypatch.setattr(runner, "stop_at_deadline", lambda *_a: nullcontext())
 
     result = runner._run_with_confirmation(
         conversation,
