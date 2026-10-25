@@ -78,12 +78,6 @@ first item is the suggested next one.
   (2026-10-25) caught 2 of 8 fooled runs with the vote (Haiku: 7 of 8),
   and the Author keeps qwen away from high-effort work, so its own tests
   aren't the answer for local users.
-- **The run record keeps the verdict from before the last steps.** With
-  one model, `runner.stream_task` writes the `CERTO_ARTIFACTS_DIR` record
-  before the acceptance checks and `--independent-tests-strict` run, so a
-  run that ends `acceptance_failed` or `independent_failed` is recorded
-  as `verified` there (escalation records the final verdict). Found
-  2026-10-25. Done when the record holds the verdict the CLI prints.
 - **`room-bookings` hidden test is stricter than the task** (2026-10-25,
   live Haiku arm). A `204` sent with `Content-Type: application/json`
   and no body fails the hidden tests (they parse any JSON-marked

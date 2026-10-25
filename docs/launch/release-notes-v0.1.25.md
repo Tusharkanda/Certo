@@ -24,3 +24,11 @@ live ones, with a wrong test. So strict is for scripts and pipelines
 where a false `verified` costs more than a second look. See
 [Make them change the verdict](../guides/independent-tests.md#make-them-change-the-verdict)
 and [`independent_failed`](../guides/after-the-verdict.md#independent_failed).
+
+## Fixed: the run record holds the final verdict
+
+With `CERTO_ARTIFACTS_DIR` set and one model, a run whose acceptance
+checks failed was recorded as `verified` in its `metadata.json`, though
+Certo printed `acceptance_failed`: the record was written before the
+acceptance checks ran. Now it is written after them (and after
+`--independent-tests-strict`).

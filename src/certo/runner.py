@@ -1589,6 +1589,10 @@ def stream_task(
                 if cfg.artifacts_dir and run_id
                 else None,
             )
+            # The last steps that can change the verdict, inside the `try`
+            # so the run record below holds the verdict the caller gets.
+            outcome = _apply_acceptance_checks(outcome, cfg, emit, acceptance_checks)
+            outcome = _apply_strict_independent_tests(outcome, cfg, emit)
         except BaseException as exc:  # recorded for artifacts.py, then always re-raised as-is
             captured_error = exc
             raise
@@ -1635,8 +1639,6 @@ def stream_task(
                     per_model_metrics=per_model_metrics,
                     run_summary=run_summary.to_dict(),
                 )
-        outcome = _apply_acceptance_checks(outcome, cfg, emit, acceptance_checks)
-        outcome = _apply_strict_independent_tests(outcome, cfg, emit)
         if model_chain is not None:
             outcome = replace(outcome, model_decisions=tuple(model_chain.decisions))
         if state_writer is not None:

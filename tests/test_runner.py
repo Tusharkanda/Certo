@@ -2371,6 +2371,25 @@ def test_artifacts_dir_set_writes_metadata_transcript_and_metrics(monkeypatch, t
     assert "certo" in metrics["per_model"]
 
 
+def test_the_run_record_holds_the_verdict_after_the_acceptance_checks(monkeypatch, tmp_path):
+    conversation = _SwitchableConversation([])
+    _stub_stream_task_dependencies(monkeypatch, conversation, tmp_path)
+    _mock_task_tracker_and_verify(monkeypatch, verification_state="verified")
+    artifacts_dir = tmp_path / "artifacts"
+
+    outcome = runner.stream_task(
+        "do the thing",
+        cfg=_cfg(workspace=str(tmp_path), artifacts_dir=str(artifacts_dir)),
+        project="my-project",
+        acceptance_checks=[AcceptanceCheck(kind="file_exists", path="MISSING.txt")],
+    )
+
+    (run_dir,) = (artifacts_dir / "my-project").iterdir()
+    metadata = json.loads((run_dir / "metadata.json").read_text())
+    assert outcome.verification_state == "acceptance_failed"
+    assert metadata["verification_state"] == "acceptance_failed"
+
+
 def test_artifacts_dir_uses_unscoped_bucket_with_no_project(monkeypatch, tmp_path):
     conversation = _SwitchableConversation([])
     _stub_stream_task_dependencies(monkeypatch, conversation, tmp_path)
