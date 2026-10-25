@@ -1155,3 +1155,13 @@ considered and live-verification detail: `docs/ROADMAP.txt`.
   builder the tests, and a wrong test would push it to break right work.
   With `--escalate` it doesn't climb (the tests run once, after the last
   rung).
+- **The model call is capped at the time left** (2026-10-25; finishes
+  "The budget stops a run in progress"). The SDK reads `LLM.timeout` on
+  every attempt, so the deadline watcher lowers it to the time left
+  (plus one second) and, past the deadline, sets a `retry_listener` that
+  re-raises, ending the SDK's retries. Mutating the conversation's own
+  LLM (restored after) instead of wrapping its calls: no copy of SDK
+  code. A call cut this way past the deadline is the budget's doing, not
+  a provider failure: it ends the run without a model switch, and the
+  work is still checked once (`verified` or `budget_exhausted`, never
+  `stuck`). A bug fix, no version bump.

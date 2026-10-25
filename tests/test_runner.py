@@ -681,6 +681,40 @@ def test_verify_and_report_skips_the_checks_after_the_budget_for_an_error_or_che
     assert outcome.checks == ()
 
 
+def test_a_model_call_cut_at_the_deadline_ends_the_run_and_its_work_is_checked(monkeypatch):
+    from openhands.sdk.conversation.exceptions import ConversationRunError
+    from openhands.sdk.llm.exceptions.types import LLMTimeoutError
+
+    monkeypatch.setattr(
+        runner, "_run_verification", lambda _dir, *_a: _run(_check(summary="3 passed"))
+    )
+    conversation = _SwitchableConversation(
+        [ConversationRunError("c", LLMTimeoutError("timed out"))],
+        initial_status=ConversationExecutionStatus.ERROR,
+    )
+    conversation.pause = lambda: None  # deadline.py pauses it at once
+
+    runner._run_conversation_once(conversation, _cfg(), lambda _m: None, None, deadline=-1.0)
+    outcome = runner._verify_and_report(
+        conversation, _cfg(verify_tests="always"), lambda _m: None, "do", deadline=-1.0
+    )
+
+    assert outcome.verification_state == "verified"  # checked, not stuck or unchecked
+
+
+def test_a_model_error_before_the_deadline_still_raises():
+    from openhands.sdk.conversation.exceptions import ConversationRunError
+    from openhands.sdk.llm.exceptions.types import LLMTimeoutError
+
+    conversation = _SwitchableConversation(
+        [ConversationRunError("c", LLMTimeoutError("timed out"))]
+    )
+
+    with pytest.raises(ConversationRunError):
+        runner._run_conversation_once(conversation, _cfg(), lambda _m: None, None)
+    assert conversation not in runner._CUT_AT_DEADLINE
+
+
 def test_verify_and_report_reports_budget_exhausted_mid_retry(monkeypatch):
     # deadline is still valid at entry (the first time.monotonic() call
     # returns a value below it) but exhausted by the time the retry loop's

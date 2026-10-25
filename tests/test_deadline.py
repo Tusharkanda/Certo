@@ -77,3 +77,67 @@ def test_no_deadline_changes_nothing():
     with dl.stop_at_deadline(conversation, float("inf")):
         assert get_max_foreground_timeout_seconds() is None
     assert not conversation.paused.is_set()
+
+
+# --- The model's per-call timeout -----------------------------------------
+
+
+class ModelConversation(FakeConversation):
+    """A fake conversation with a real SDK LLM (no call is made)."""
+
+    def __init__(self, timeout=1200) -> None:
+        from types import SimpleNamespace
+
+        from openhands.sdk import LLM
+
+        super().__init__()
+        self.agent = SimpleNamespace(llm=LLM(usage_id="t", model="openai/gpt-4o", timeout=timeout))
+
+
+def test_the_model_timeout_is_capped_at_time_left_then_restored():
+    conversation = ModelConversation(timeout=1200)
+    llm = conversation.agent.llm
+    with dl.stop_at_deadline(conversation, time.monotonic() + 600):
+        assert 600 <= llm.timeout <= 602
+    assert llm.timeout == 1200
+
+
+@pytest.mark.parametrize(("own", "expected"), [(60, 60), (None, 602)])
+def test_a_shorter_model_timeout_is_kept_and_none_is_capped(own, expected):
+    conversation = ModelConversation(timeout=own)
+    with dl.stop_at_deadline(conversation, time.monotonic() + 600):
+        assert conversation.agent.llm.timeout <= expected
+        assert conversation.agent.llm.timeout >= min(expected, 600)
+    assert conversation.agent.llm.timeout == own
+
+
+def test_the_model_cap_follows_the_time_left(monkeypatch):
+    monkeypatch.setattr(dl, "REFRESH_SECONDS", 0.05)
+    conversation = ModelConversation()
+    with dl.stop_at_deadline(conversation, time.monotonic() + 30):
+        first = conversation.agent.llm.timeout
+        time.sleep(1.2)
+        assert conversation.agent.llm.timeout < first
+
+
+def test_retries_stop_after_the_deadline():
+    from litellm.exceptions import Timeout
+
+    conversation = ModelConversation()
+    llm = conversation.agent.llm
+    attempts = []
+
+    @llm._make_retry_decorator()
+    def call():
+        attempts.append(1)
+        raise Timeout("timed out", model="gpt-4o", llm_provider="openai")
+
+    with dl.stop_at_deadline(conversation, time.monotonic() + 0.1):
+        assert conversation.paused.wait(5)
+        assert llm.timeout == 1
+        started = time.monotonic()
+        with pytest.raises(Timeout):
+            call()
+    assert attempts == [1]  # no retry, so no 8-second wait either
+    assert time.monotonic() - started < 5
+    assert llm.timeout == 1200 and llm.retry_listener is None

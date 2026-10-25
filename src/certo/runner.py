@@ -13,6 +13,7 @@ import shutil
 import tempfile
 import time
 import uuid
+import weakref
 from collections.abc import Callable, Sequence
 from dataclasses import dataclass, replace
 from datetime import UTC, datetime
@@ -210,6 +211,12 @@ def _hit_step_limit(conversation: Conversation) -> bool:
     except Exception:  # noqa: BLE001 - unknown means "not the step limit"
         return False
     return False
+
+
+# Conversations whose last run ended because a model call was cut short at
+# the deadline (`_run_conversation_once`). Their ERROR status is the
+# budget's doing, so `_verify_after_budget` checks their work.
+_CUT_AT_DEADLINE: weakref.WeakSet[Any] = weakref.WeakSet()
 
 
 def _step_limit_notice(cfg: Config) -> str:
@@ -647,6 +654,12 @@ def _run_conversation_once(
                 conversation.run()
             return
         except ConversationRunError as exc:
+            if time.monotonic() >= deadline and isinstance(exc.original_exception, LLMError):
+                # A model call cut short by the deadline (deadline.py caps its
+                # timeout and stops its retries): the budget ran out, the
+                # model didn't fail. The work so far is still checked.
+                _CUT_AT_DEADLINE.add(conversation)
+                return
             if (
                 model_chain is None
                 or cfg.execution != "local"
@@ -777,7 +790,9 @@ def _verify_after_budget(
     )
     status = conversation.state.execution_status
     if cfg.verify_tests != "always" or (
-        status in _ABORTED_STATUSES and not _hit_step_limit(conversation)
+        status in _ABORTED_STATUSES
+        and not _hit_step_limit(conversation)
+        and conversation not in _CUT_AT_DEADLINE
     ):
         return exhausted
     run = _run_verification(os.path.abspath(cfg.workspace), runner)
@@ -1087,7 +1102,11 @@ def _enforce_task_tracker_completion(
         # be followed up any more, but a finished list leaves the verdict to
         # the project's checks (see _verify_after_budget).
         status = conversation.state.execution_status
-        aborted = status in _ABORTED_STATUSES and not _hit_step_limit(conversation)
+        aborted = (
+            status in _ABORTED_STATUSES
+            and not _hit_step_limit(conversation)
+            and conversation not in _CUT_AT_DEADLINE
+        )
         snapshot = None if aborted else _task_tracker_snapshot(conversation)
         if aborted or (snapshot is not None and _pending_task_items(snapshot)):
             return TaskOutcome(

@@ -463,11 +463,11 @@ failed after the allowed attempts.
 **You see:** `Verification: budget_exhausted`.
 
 **Cause:** the whole task took longer than `CERTO_MAX_TASK_SECONDS` (30
-minutes by default). Certo stops the agent after the step it is on, so a
-task can end past the budget: one model call can wait up to
-`CERTO_LLM_TIMEOUT_SECONDS` and be tried again up to 5 times. A terminal
-command can't ask for a longer timeout than the time left; the agent is
-told to use a shorter one. When the
+minutes by default). Certo stops the agent after the step it is on. On
+local runs a call to the model can't wait longer than the time left, and
+isn't tried again once the budget is gone; a terminal command can't ask
+for a longer timeout than the time left (the agent is told to use a
+shorter one). When the
 agent's last run ends after the budget, Certo still runs the project's
 checks once: if they pass, the verdict is `verified`, not this one. So
 `budget_exhausted` means the checks failed or couldn't run, or the time

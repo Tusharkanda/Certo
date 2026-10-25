@@ -169,14 +169,7 @@ first item is the suggested next one.
   in the 0.1.15 local benchmark passed the hidden tests but ended
   `budget_exhausted`. Since 0.1.22 the checks run once when the last run
   ends after the budget, so passing work is `verified`. Left:
-  - **A model call in flight outlasts the budget.** Since 2026-10-25 a
-    run is paused at the deadline and terminal timeouts are capped at the
-    time left, but the pause waits for the current step: one model call
-    can take `CERTO_LLM_TIMEOUT_SECONDS` × 6 attempts (the SDK retries
-    timeouts 5 times; `devstral` `token-bucket` r3 spent ~50 minutes on 4
-    calls). Cap the per-call timeout at the time left (verify how the
-    SDK's LLM takes a new timeout mid-conversation).
-  Also consider a per-arm budget in `bench.yaml`.
+  Consider a per-arm budget in `bench.yaml`.
 - **Bench estimates from recorded cost.** The plan prices every run at a
   fixed ~500k input / ~20k output tokens (far too high: a cloud run used
   ~124k in the baseline). Use the per-model average from earlier

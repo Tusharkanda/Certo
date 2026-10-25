@@ -32,3 +32,14 @@ checks failed was recorded as `verified` in its `metadata.json`, though
 Certo printed `acceptance_failed`: the record was written before the
 acceptance checks ran. Now it is written after them (and after
 `--independent-tests-strict`).
+
+## Fixed: a model call can't outlast the time budget
+
+0.1.24 stopped a run at `CERTO_MAX_TASK_SECONDS`, but a call to the
+model already under way still finished, and could be retried: up to
+`CERTO_LLM_TIMEOUT_SECONDS` six times (a benchmark run with a local
+model spent about 50 minutes on four calls). Now, on local runs, a call
+can't wait longer than the time left, and isn't retried once the budget
+is gone, so a task ends within seconds of its budget. The work so far is
+still checked once, as before. See
+[`budget_exhausted`](../troubleshooting.md#budget_exhausted).

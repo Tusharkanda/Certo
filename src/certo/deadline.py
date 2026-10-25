@@ -8,6 +8,12 @@ after the deadline: one terminal command may ask for any timeout (a
   SDK's own foreground-timeout cap (`OH_RUNTIME_IDLE_TIMEOUT_SECONDS`,
   read from the environment on every command; a longer timeout is
   refused with a message telling the agent to use a shorter one);
+- caps the model's per-call timeout at the time left (the SDK's `LLM`
+  reads `timeout` on every attempt), so a call can't wait much past the
+  deadline, and after the deadline stops the SDK's retries of a failed
+  call (its `retry_listener` runs before each retry; raising there ends
+  them). The call already under way ends with an error, which the runner
+  treats as the budget running out (runner.py);
 - pauses the conversation at the deadline (`conversation.pause()`, which
   takes effect between agent steps).
 
@@ -17,6 +23,7 @@ follows the run closest to its deadline.
 
 from __future__ import annotations
 
+import math
 import os
 import threading
 import time
@@ -62,11 +69,57 @@ def _refresh_cap() -> None:
         os.environ[RUNTIME_IDLE_TIMEOUT_SECONDS_ENV] = setting
 
 
+class _ModelCap:
+    """Caps the conversation's model at the time left, and puts its own
+    settings back afterwards. The model is read again on every refresh:
+    `--auto-model` can switch it during a run."""
+
+    def __init__(self, conversation: Any) -> None:
+        self.conversation = conversation
+        self.saved: dict[int, tuple[Any, Any, Any]] = {}
+
+    def _llm(self) -> Any:
+        try:
+            llm = self.conversation.agent.llm
+        except Exception:  # noqa: BLE001 - a fake or remote conversation: nothing to cap
+            return None
+        if id(llm) not in self.saved:
+            self.saved[id(llm)] = (llm, llm.timeout, llm.retry_listener)
+        return llm
+
+    def refresh(self, seconds_left: float) -> None:
+        llm = self._llm()
+        if llm is None:
+            return
+        # One second over, so a call cut short ends after the deadline.
+        cap = math.ceil(max(seconds_left, 0)) + 1
+        own = self.saved[id(llm)][1]
+        llm.timeout = cap if own is None else min(own, cap)
+
+    def stop_retries(self) -> None:
+        llm = self._llm()
+        if llm is None:
+            return
+        llm.timeout = 1
+
+        def no_retry(_attempt: int, _retries: int, error: BaseException | None) -> None:
+            if error is not None:
+                raise error
+
+        llm.retry_listener = no_retry
+
+    def restore(self) -> None:
+        for llm, timeout, listener in self.saved.values():
+            llm.timeout = timeout
+            llm.retry_listener = listener
+
+
 @contextmanager
 def stop_at_deadline(conversation: Any, deadline: float) -> Iterator[None]:
-    """While the block runs: terminal timeouts are capped at the time left
-    before `deadline` (a `time.monotonic()` timestamp), and `conversation`
-    is paused when it passes. No-op for an infinite deadline."""
+    """While the block runs: terminal timeouts and the model's per-call
+    timeout are capped at the time left before `deadline` (a
+    `time.monotonic()` timestamp), and when it passes `conversation` is
+    paused and the model's retries stop. No-op for an infinite deadline."""
     global _user_setting
     if deadline == float("inf"):
         yield
@@ -76,17 +129,21 @@ def stop_at_deadline(conversation: Any, deadline: float) -> Iterator[None]:
             _user_setting = os.environ.get(RUNTIME_IDLE_TIMEOUT_SECONDS_ENV)
         _deadlines.append(deadline)
     _refresh_cap()
+    model = _ModelCap(conversation)
+    model.refresh(deadline - time.monotonic())
     stop = threading.Event()
 
     def watch() -> None:
         while True:
             left = deadline - time.monotonic()
             if left <= 0:
+                model.stop_retries()
                 conversation.pause()
                 return
             if stop.wait(min(REFRESH_SECONDS, left)):
                 return
             _refresh_cap()
+            model.refresh(deadline - time.monotonic())
 
     watcher = threading.Thread(target=watch, name="certo-deadline", daemon=True)
     watcher.start()
@@ -95,6 +152,7 @@ def stop_at_deadline(conversation: Any, deadline: float) -> Iterator[None]:
     finally:
         stop.set()
         watcher.join()
+        model.restore()
         with _lock:
             _deadlines.remove(deadline)
         _refresh_cap()

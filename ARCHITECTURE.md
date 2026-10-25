@@ -72,8 +72,17 @@ given design was chosen.
   checked before every `.run()` call across all three call sites, and
   `deadline.stop_at_deadline` keeps each `.run()` inside it: a watcher
   thread calls `conversation.pause()` at the deadline (takes effect
-  between steps; a model call in flight still finishes) and keeps the
-  SDK's foreground terminal cap at the time left. That cap is the SDK's
+  between steps) and keeps the SDK's foreground terminal cap and the
+  model's per-call timeout at the time left. The model cap sets
+  `conversation.agent.llm.timeout` (read on every attempt, v1.47.0; one
+  second over the time left, so a cut call ends after the deadline) and
+  after the deadline a `retry_listener` that re-raises, which stops the
+  SDK's tenacity retries (`before_sleep` runs it); both are put back
+  when the run ends. The cut call's `ConversationRunError(LLMError)` past
+  the deadline is swallowed in `_run_conversation_once` and the
+  conversation added to `_CUT_AT_DEADLINE`, so its ERROR status doesn't
+  stop the checks after the budget. Docker runs call the model in the
+  agent server, so only local runs are capped. That cap is the SDK's
   `OH_RUNTIME_IDLE_TIMEOUT_SECONDS` (cap = 90% of it), read from
   `os.environ` on every terminal command (`terminal_session.execute`,
   v1.47.0); a longer `timeout` is refused with an SDK message about
