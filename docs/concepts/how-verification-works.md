@@ -129,9 +129,10 @@ Be clear about the limits:
   [independent tests](../guides/independent-tests.md), written before the
   build, are a second opinion (report only, unless you turn on
   `--independent-tests-strict`).
-- **It goes by the check's exit code.** A test runner that exits
-  successfully when it finds no tests (such as `node --test`) makes a
-  project with no tests `verified`. See
+- **It goes by the check's exit code**, plus a count of the tests run
+  where the output gives one (pytest, `node --test`, Jest, Vitest, Go,
+  Cargo): none ran is `inconclusive`. A test runner Certo doesn't
+  recognise that exits successfully with no tests still passes. See
   [Verification by language](../reference/verification-by-language.md#node-in-detail).
 - **It can't drive interactive programs.** The Python start-up run has no
   input, so menus and prompts aren't exercised.

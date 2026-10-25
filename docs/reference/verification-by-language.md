@@ -109,11 +109,22 @@ the scripts as they are; it doesn't read jest or vitest settings.
 If `package.json` has neither a `build` nor a real `test` script, the main
 check is `unavailable` and the verdict is `inconclusive`.
 
-**Known gap:** Certo goes by the script's exit code. Some test runners,
-including `node --test`, exit successfully when they find no test files,
-so a project with `"test": "node --test"` and no tests at all is
-`verified`. Ask the agent for tests, or check that `npm test` really runs
-some.
+**No tests.** `node --test` exits successfully when it finds no test
+files. Certo reads how many tests `npm test` ran from its summary
+(`# tests 0`, or `ℹ tests 0` with the spec reporter, and Jest's or
+Vitest's `No tests found, exiting with code 0`): none makes the check
+`skipped` and the verdict `inconclusive`, not `verified`. From a real
+`certo verify` on a project whose `package.json` has
+`"test": "node --test"` and no test file (the path to `npm` is
+shortened):
+
+```text
+  skipped     npm test  (npm test)
+Verification: inconclusive
+```
+
+A test runner whose output Certo doesn't recognise is judged by its exit
+code alone, as before.
 
 ## Missing tools
 

@@ -871,7 +871,14 @@ def _node_plan(root: str, runner: CommandRunner) -> list[CheckSpec]:
         # subprocess calls. `build` isn't a watch-mode command, so it's
         # left out of this.
         env = {"CI": "true"} if use_ci_env else None
-        return CheckSpec(name=name, primary=primary, command=command, cwd=root, env=env)
+        return CheckSpec(
+            name=name,
+            primary=primary,
+            command=command,
+            cwd=root,
+            env=env,
+            count_tests=_node_tests_run if key == "test" else None,
+        )
 
     specs = [spec_for(primary_key, primary=True, use_ci_env=primary_key != "build")]
     if primary_key != "test" and test:
@@ -881,6 +888,26 @@ def _node_plan(root: str, runner: CommandRunner) -> list[CheckSpec]:
     if typecheck:
         specs.append(spec_for(typecheck_key, primary=False, use_ci_env=True))
     return specs
+
+
+# `node --test`'s summary: `# tests 3` (TAP, its default without a
+# terminal) or `ℹ tests 3` (the spec reporter).
+_NODE_TEST_COUNT = re.compile(r"^\s*(?:#|ℹ)\s*tests (\d+)\s*$", re.MULTILINE)
+# Jest and Vitest with --passWithNoTests.
+_NODE_NO_TESTS_FOUND = re.compile(r"No test(?: file)?s found, exiting with code 0")
+
+
+def _node_tests_run(output: str) -> int:
+    """Tests that `npm test` ran, when its output says: 0 only when it
+    plainly ran none (`node --test` exits 0 with no test files, #23).
+    Output Certo doesn't recognise counts as tests run (-1), so the
+    script's own exit code decides, as before."""
+    counts = [int(n) for n in _NODE_TEST_COUNT.findall(output)]
+    if counts:
+        return sum(counts)
+    if _NODE_NO_TESTS_FOUND.search(output):
+        return 0
+    return -1
 
 
 def _go_packages_tested(output: str) -> int:

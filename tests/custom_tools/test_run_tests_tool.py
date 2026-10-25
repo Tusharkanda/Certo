@@ -27,6 +27,7 @@ from certo.verification import (
     _entrypoint_ordering_spec,
     _find_python_entrypoints,
     _go_packages_tested,
+    _node_tests_run,
     _go_plan,
     _mypy_configured,
     _npm_test_script,
@@ -888,6 +889,42 @@ _CARGO_SOME_TESTS = (
 )
 def test_counting_the_tests_go_and_cargo_ran(count, output, ran):
     assert count(output) == ran
+
+
+# Real `node --test` output (Node 22, no terminal), and Jest/Vitest lines.
+_NODE_NO_TESTS = "TAP version 13\n1..0\n# tests 0\n# suites 0\n# pass 0\n# fail 0\n"
+_NODE_TWO_TESTS = "TAP version 13\nok 1 - one\nok 2 - two\n1..2\n# tests 2\n# pass 2\n"
+
+
+@pytest.mark.parametrize(
+    ("output", "ran"),
+    [
+        (_NODE_NO_TESTS, 0),
+        (_NODE_TWO_TESTS, 2),
+        ("\u2139 tests 3\n\u2139 pass 3\n", 3),  # the spec reporter
+        ("No tests found, exiting with code 0\n", 0),  # jest --passWithNoTests
+        ("No test files found, exiting with code 0\n", 0),  # vitest
+        (" Tests  4 passed (4)\n", -1),  # not recognised: the exit code decides
+        ("ok\n", -1),
+    ],
+)
+def test_counting_the_tests_npm_test_ran(output, ran):
+    assert _node_tests_run(output) == ran
+
+
+@_requires_npm
+def test_a_node_project_whose_tests_run_none_is_not_verified(tmp_path):
+    _write_package_json(tmp_path, {"test": "node --test"})
+
+    run = run_full_verification(str(tmp_path))
+
+    (check,) = run.checks
+    assert check.status == "skipped"
+    assert run.state == "inconclusive"
+    (tmp_path / "a.test.js").write_text(
+        "const test = require('node:test');\ntest('one', () => {});\n"
+    )
+    assert run_full_verification(str(tmp_path)).state == "verified"
 
 
 def _printing(text: str, code: int = 0) -> list[str]:

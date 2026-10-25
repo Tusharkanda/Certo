@@ -177,9 +177,9 @@ limitation below.
   if the task mentions Python (or a Python tool such as pytest). Otherwise
   packages the agent installs may land outside the project's environment,
   and imports can fail during verification until they are installed again.
-- **A Node project whose `test` script finds no test files counts as
-  verified.** `node --test` and some other runners exit successfully when
-  there is nothing to run. See
+- **A test runner Certo doesn't recognise counts "no tests" as a pass**
+  when it exits successfully. `node --test`, Jest, Vitest, pytest, Go and
+  Cargo are recognised. See
   [Verification by language](reference/verification-by-language.md#node-in-detail).
 - **Escalation climbs only on a verification signal or a provider
   failure.** In a project with nothing to check, each rung ends

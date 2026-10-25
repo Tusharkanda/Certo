@@ -90,3 +90,14 @@ In `certo bench`, an arm can set `context_tokens` (a smaller window for
 a local model, without restarting Ollama) and `condense: false`, and each
 run's record counts its condensations. See
 [the benchmark file](../reference/bench-yaml.md#arms).
+
+## Fixed: a Node project with no tests is no longer `verified`
+
+`node --test` exits successfully when it finds no test files, so a
+project whose `npm test` ran nothing was `verified`. Now Certo reads how
+many tests ran from the summary (`node --test`, and Jest's or Vitest's
+"no tests found"): none makes the verdict `inconclusive`, as it already
+was for Python, Go and Rust
+([#23](https://github.com/alessioricco/certo/issues/23)). See
+[Verification by language](../reference/verification-by-language.md#node-in-detail).
+

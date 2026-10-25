@@ -1202,3 +1202,9 @@ considered and live-verification detail: `docs/ROADMAP.txt`.
   The SDK allows a changed condenser on resume (only removed tools
   break it). Each condensation is announced and counted in the run
   summary and the bench record. `CERTO_CONDENSE=no` turns it off.
+- **`npm test` that ran no tests is `skipped`, read from its summary**
+  (2026-10-25, #23). The same `count_tests` hook as Go and Cargo:
+  `# tests N` / `ℹ tests N` (`node --test`, TAP and spec reporters) and
+  Jest's or Vitest's `No tests found, exiting with code 0`. Output it
+  doesn't recognise returns -1, so the exit code decides as before: a
+  custom script is never turned into "no tests" by a guess.

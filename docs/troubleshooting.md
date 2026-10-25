@@ -887,13 +887,14 @@ installed.
 **You see:** a run with verdict `verified` and failed hidden tests, often
 on a Node task where the agent wrote no tests.
 
-**Cause:** a known gap in Certo: `node --test` exits successfully when it
-finds no test files, so Certo counts "no tests" as a pass. See
-[Verification by language](reference/verification-by-language.md#node-in-detail).
+**Cause:** before 0.1.25, `node --test` exiting successfully with no
+test files counted as a pass. Now a run of no tests is `inconclusive`
+(see [Verification by language](reference/verification-by-language.md#node-in-detail)),
+so a fooled Node run means the agent's own tests passed but missed what
+the hidden tests check.
 
 **Fix:** nothing to fix in the benchmark: counting these runs is what
-"fooled" is for. In your own projects, check that `npm test` really runs
-tests.
+"fooled" is for.
 
 ### `certo bench`: a traceback after the results
 
