@@ -66,8 +66,7 @@ first item is the suggested next one.
 - **Independent tests: the rest** (0.1.24: `--independent-tests`, three
   sets by default with a 2-of-3 vote, report only; replay in
   `docs/benchmark/independent-tests-replay-0.1.24.md`). Left: (1) a
-  bench arm setting to turn them on, then a live Haiku arm with them on
-  (13 tasks × 3) for extra time, cost and false alarms (DECISIONS
+  live Haiku arm with them on (`independent_tests: true`, 13 tasks × 3) for extra time, cost and false alarms (DECISIONS
   2026-10-25: no local arm, the catch rate rests on the replay); (2)
   from those numbers, decide whether a 2-of-3 failure changes the
   verdict; (3) server mode; (4) maybe an option for a

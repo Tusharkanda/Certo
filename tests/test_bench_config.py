@@ -430,3 +430,51 @@ def test_a_bench_run_never_gets_the_users_global_skills(tmp_path, monkeypatch):
 
     assert run.global_skills_dir == str(tmp_path / "iso" / "global_skills")
     assert "my-style" not in {s.name for s in lib.collect(run, run.workspace).skills}
+
+
+INDEPENDENT = """
+tasks: all
+arms:
+  - {name: with, strategy: single, model: cloud, independent_tests: true}
+  - {name: without, strategy: single, model: cloud, independent_tests: false}
+  - {name: ladder, strategy: escalate, models: [local-coder, cloud], independent_tests: true}
+"""
+
+
+def test_independent_tests_is_an_option_of_every_arm(tmp_path):
+    with_, without, ladder = load_bench_config(_write(tmp_path, INDEPENDENT)).arms
+    assert with_.params == {"model": "cloud", "independent_tests": True}
+    # Off is left out, so a results folder from before the option still
+    # matches on --resume.
+    assert without.params == {"model": "cloud"}
+    assert ladder.params == {"models": ["local-coder", "cloud"], "independent_tests": True}
+
+
+def test_independent_tests_must_be_true_or_false(tmp_path):
+    bench = "arms:\n  - {name: a, strategy: single, model: cloud, independent_tests: 'yes'}\n"
+    with pytest.raises(BenchConfigError, match="'independent_tests' must be true or false"):
+        load_bench_config(_write(tmp_path, bench))
+
+
+def test_an_independent_tests_arm_turns_them_on_in_the_run(tmp_path):
+    cfg = load_bench_config(_write(tmp_path, INDEPENDENT))
+    seen = []
+    result_of_tests = SimpleNamespace(status="failed")
+
+    def fake_stream(task, *, cfg, ladder=None):
+        seen.append(cfg.independent_tests)
+        return SimpleNamespace(
+            verification_state="verified",
+            retries_used=0,
+            run_summary=None,
+            independent_tests=result_of_tests,
+            rungs=(),
+            final_rung=None,
+        )
+
+    ctx = RunContext("do it", "/ws", cfg.catalog, "/iso", fake_stream, cfg.model_catalog)
+    with_, without, ladder = cfg.arms
+    assert STRATEGIES["single"].run(ctx, with_.params).independent_tests is result_of_tests
+    STRATEGIES["single"].run(ctx, without.params)
+    STRATEGIES["escalate"].run(ctx, ladder.params)
+    assert seen == [True, False, True]

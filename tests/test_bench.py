@@ -59,8 +59,18 @@ class FakeModel:
     """Stands in for runner.stream_task. `solve` copies the task's reference
     solution into the workspace; `verdicts` is consumed one per run."""
 
-    def __init__(self, make_venv, *, solve=True, verdicts=("verified",), cost=0.25, raise_on=()):
+    def __init__(
+        self,
+        make_venv,
+        *,
+        solve=True,
+        verdicts=("verified",),
+        cost=0.25,
+        raise_on=(),
+        independent=None,
+    ):
         self.make_venv = make_venv
+        self.independent = independent
         self.solve = solve
         self.verdicts = list(verdicts)
         self.cost = cost
@@ -83,7 +93,10 @@ class FakeModel:
             self.make_venv(workspace)
         verdict = self.verdicts[(call - 1) % len(self.verdicts)]
         return SimpleNamespace(
-            verification_state=verdict, retries_used=1, run_summary=_summary(self.cost)
+            verification_state=verdict,
+            retries_used=1,
+            run_summary=_summary(self.cost),
+            independent_tests=self.independent if cfg.independent_tests else None,
         )
 
 
@@ -209,6 +222,39 @@ def test_max_cost_stops_cleanly_and_keeps_results(tmp_path, project_venv, capsys
     assert _run(path, tmp_path / "out", model, "--max-cost", "1.5") == 0
     assert len(_records(tmp_path / "out")) == 2
     assert "Stopped: the recorded cost reached --max-cost $1.50." in capsys.readouterr().out
+
+
+def test_an_independent_tests_arm_records_and_reports_them(tmp_path, project_venv, capsys):
+    from certo.independent_tests import IndependentTestsResult
+
+    one = IndependentTestsResult("failed", "1 failed", "m")
+    result = IndependentTestsResult(
+        "failed", "2 of 3 sets failed", "anthropic/test-model-a", sets=(one, one, one)
+    )
+    arms = (
+        "  - {name: a, strategy: single, model: cloud-a, independent_tests: true}\n"
+        "  - {name: b, strategy: single, model: cloud-b}\n"
+    )
+    out = tmp_path / "out"
+    model = FakeModel(project_venv, independent=result)
+    assert _run(_bench_file(tmp_path, arms), out, model) == 0
+    assert "1 run(s) (independent tests on; their writing isn't in the estimate)" in (
+        capsys.readouterr().out
+    )
+    assert [c.cfg.independent_tests for c in model.calls] == [True, False]
+    with_, without = _records(out)
+    assert with_["independent_tests"] == {
+        "status": "failed",
+        "summary": "2 of 3 sets failed",
+        "model": "anthropic/test-model-a",
+        "sets": ["failed", "failed", "failed"],
+    }
+    assert without["independent_tests"] is None
+    report = (out / "results.md").read_text()
+    assert "| Independent tests failed | ...hidden passed | ...fooled |" in report
+    assert "| 1/1 (100%) | 1 of 1 | 0 of 0 |" in report
+    assert "| - | - | - |" in report
+    assert "failed" in (out / "results.csv").read_text().splitlines()[1]
 
 
 def test_stop_at_stops_starting_runs_and_resume_continues(

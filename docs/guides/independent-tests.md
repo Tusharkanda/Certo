@@ -113,6 +113,20 @@ Measured on 379 projects from earlier benchmark runs, with
 
 So read a failing independent test before you trust it either way.
 
+## In the benchmark
+
+To measure them on your own models, add `independent_tests: true` to an
+arm in the [benchmark file](../reference/bench-yaml.md#arms):
+
+```yaml
+arms:
+  - {name: haiku-independent, strategy: single, model: claude-haiku-5-5, independent_tests: true}
+```
+
+Each run then writes the tests before the build, and `results.md` shows
+how often they failed, on right work and on runs that fooled Certo. See
+[Read the results](benchmark.md#read-the-results).
+
 ## Keep the tests
 
 With [`CERTO_ARTIFACTS_DIR`](../reference/configuration.md) set, the

@@ -19,7 +19,7 @@ from __future__ import annotations
 
 import os
 from collections.abc import Callable, Mapping
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from typing import Any, Protocol
 
 from .config import DEFAULT_MAX_ITERATIONS, Config, override_llm
@@ -62,6 +62,8 @@ class AttemptResult:
     # verdict this is.
     rungs: tuple[dict[str, Any], ...] = ()
     final_rung: int | None = None
+    # independent_tests.IndependentTestsResult, when the arm turns them on.
+    independent_tests: Any = None
 
 
 class Strategy(Protocol):
@@ -104,6 +106,12 @@ def run_config(entry: ModelCatalogEntry, workspace: str, isolation_dir: str) -> 
     )
 
 
+def arm_config(entry: ModelCatalogEntry, ctx: RunContext, params: Mapping[str, Any]) -> Config:
+    """run_config, plus the arm's own options (`independent_tests`)."""
+    cfg = run_config(entry, ctx.workspace, ctx.isolation_dir)
+    return replace(cfg, independent_tests=True) if params.get("independent_tests") else cfg
+
+
 def model_name(
     arm: Mapping[str, Any], key: str, catalog: Mapping[str, ModelCatalogEntry], where: str
 ) -> str:
@@ -139,7 +147,7 @@ def reject_unknown_keys(arm: Mapping[str, Any], allowed: set[str], where: str) -
     if extra:
         raise BenchConfigError(
             f"{where}: unknown key(s) {', '.join(extra)}. This strategy takes: "
-            f"name, strategy, {', '.join(sorted(allowed))}."
+            f"name, strategy, {', '.join(sorted(allowed))}, independent_tests."
         )
 
 
@@ -158,13 +166,14 @@ class SingleStrategy:
 
     def run(self, ctx, params):
         entry = ctx.catalog[params["model"]]
-        cfg = run_config(entry, ctx.workspace, ctx.isolation_dir)
+        cfg = arm_config(entry, ctx, params)
         outcome = ctx.stream(ctx.task_text, cfg=cfg)
         return AttemptResult(
             verification_state=outcome.verification_state,
             retries_used=outcome.retries_used,
             run_summary=outcome.run_summary,
             models_used=(entry.name,),
+            independent_tests=getattr(outcome, "independent_tests", None),
         )
 
 
@@ -203,7 +212,7 @@ class EscalateStrategy:
             ladder = derive_ladder(catalog)
         else:
             ladder = ladder_from_models(catalog, params["models"])
-        cfg = run_config(ladder.rungs[0].entry, ctx.workspace, ctx.isolation_dir)
+        cfg = arm_config(ladder.rungs[0].entry, ctx, params)
         outcome = ctx.stream(ctx.task_text, cfg=cfg, ladder=ladder)
         rungs = tuple(
             {**r.to_dict(), "final": r.number == outcome.final_rung} for r in outcome.rungs
@@ -215,6 +224,7 @@ class EscalateStrategy:
             models_used=tuple(r.name for r in outcome.rungs),
             rungs=rungs,
             final_rung=outcome.final_rung,
+            independent_tests=getattr(outcome, "independent_tests", None),
         )
 
 

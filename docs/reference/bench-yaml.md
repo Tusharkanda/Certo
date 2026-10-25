@@ -48,6 +48,12 @@ Every arm has:
 | `name` | A unique name, made of letters, digits, `.`, `_` and `-`. It appears in the results and in file names. |
 | `strategy` | How the arm runs a task. See below. |
 
+Every arm can also have:
+
+| Key | Meaning |
+|---|---|
+| `independent_tests` | Optional, `true` or `false` (default). With `true`, each run writes [independent tests](../guides/independent-tests.md) before the build, as `--independent-tests` does, and records their result. Report only: the verdict and the score don't change. Their writing isn't in the plan's cost estimate. |
+
 The other keys depend on the strategy. An unknown strategy, or a key the
 strategy doesn't take, is an error that lists what is allowed.
 

@@ -41,6 +41,7 @@ CSV_FIELDS = (
     "cost_known",
     "retries_used",
     "final_rung",
+    "independent_status",
     "error",
 )
 
@@ -205,8 +206,28 @@ def _arm_models(meta: dict[str, Any], arm: dict[str, Any], records: list[dict[st
     return "derived ladder; used: " + (named(used) if used else "none yet")
 
 
+def _independent_failed(record: dict[str, Any]) -> bool:
+    return (record.get("independent_tests") or {}).get("status") == "failed"
+
+
+def _independent_columns(mine: list[dict[str, Any]]) -> dict[str, str]:
+    """For a benchmark with an independent_tests arm: how often they failed,
+    on runs the hidden tests passed (a wrong test, or a bug the hidden tests
+    miss) and on runs that fooled Certo."""
+    if not any(r.get("independent_tests") for r in mine):
+        return {"Independent tests failed": "-", "...hidden passed": "-", "...fooled": "-"}
+    passed = [r for r in mine if r["hidden_tests"]["passed"]]
+    fooled = [r for r in mine if r["fooled"]]
+    return {
+        "Independent tests failed": _rate(sum(map(_independent_failed, mine)), len(mine)),
+        "...hidden passed": f"{sum(map(_independent_failed, passed))} of {len(passed)}",
+        "...fooled": f"{sum(map(_independent_failed, fooled))} of {len(fooled)}",
+    }
+
+
 def arm_rows(meta: dict[str, Any], records: list[dict[str, Any]]) -> list[dict[str, str]]:
     rows = []
+    independent = any(a.get("independent_tests") for a in meta["config"]["arms"])
     for arm in meta["config"]["arms"]:
         mine = [r for r in records if r["arm"] == arm["name"]]
         rows.append(
@@ -229,6 +250,7 @@ def arm_rows(meta: dict[str, Any], records: list[dict[str, Any]]) -> list[dict[s
                 f"{sum(r['tokens_out'] for r in mine):,}",
                 "Cost": _cost(mine) if mine else "-",
                 "Cost per solved task": _cost_per_solved(mine),
+                **(_independent_columns(mine) if independent else {}),
             }
         )
     return rows
@@ -351,6 +373,13 @@ def render_markdown(meta: dict[str, Any], records: list[dict[str, Any]]) -> str:
             "- **Which rung produced the final result** (escalate arms): the rung whose "
             "verdict ended the run, counted over the arm's runs."
         ),
+        (
+            "- **Independent tests failed** (arms with `independent_tests: true`): runs where "
+            "most sets of independent tests failed. Report only: the verdict doesn't change. "
+            "**...hidden passed:** of the runs whose hidden tests passed (a wrong independent "
+            "test, or a bug the hidden tests miss). **...fooled:** of the runs that fooled "
+            "Certo (caught)."
+        ),
         "",
     ]
     return "\n".join(lines)
@@ -372,6 +401,7 @@ def write_csv(path: Path, records: list[dict[str, Any]]) -> None:
                     "hidden_status": r["hidden_tests"]["status"],
                     "hidden_passed": r["hidden_tests"]["passed"],
                     "unconfirmed_pass": r.get("unconfirmed_pass", False),
+                    "independent_status": (r.get("independent_tests") or {}).get("status"),
                 }
             )
 

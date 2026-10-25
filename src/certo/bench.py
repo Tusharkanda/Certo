@@ -218,6 +218,8 @@ def execute_run(
         # Escalation only: every rung that ran, and which one gave the verdict.
         "rungs": list(attempt.rungs) if attempt else [],
         "final_rung": attempt.final_rung if attempt else None,
+        # Arms with independent_tests: their result (report only), or None.
+        "independent_tests": _independent_record(attempt.independent_tests if attempt else None),
         "error": error,
         "started_at": started_at,
         "finished_at": _now(),
@@ -225,6 +227,17 @@ def execute_run(
     }
     _write_json(out_dir / "runs" / f"{planned.run_id}.json", record)
     return record
+
+
+def _independent_record(result: Any) -> dict[str, Any] | None:
+    if result is None:
+        return None
+    return {
+        "status": result.status,
+        "summary": result.summary,
+        "model": result.model,
+        "sets": [one.status for one in result.sets],
+    }
 
 
 def _message_dict(message: Any) -> Any:
@@ -399,6 +412,8 @@ def _print_plan(
             note = f" ({'; '.join(notes)})"
         else:
             likely += worst * runs
+        if arm.params.get("independent_tests"):
+            note += " (independent tests on; their writing isn't in the estimate)"
         print(f"  {arm.name}: {arm.strategy}, {'; '.join(parts)}, {runs} run(s){note}")
     line = f"  Estimated cost: at most ~${at_most:.2f}"
     if likely_known and abs(likely - at_most) > 0.005:

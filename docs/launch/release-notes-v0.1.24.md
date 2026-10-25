@@ -32,6 +32,14 @@ they caught only 2 of the 8:
 Local runs, not on `--resume`, not in server mode yet. See
 [Independent tests](../guides/independent-tests.md).
 
+## New: independent tests in `certo bench`
+
+A benchmark arm can turn them on with `independent_tests: true`. Each
+run writes them before the build and records their result, and
+`results.md` counts how often they failed on right work and on runs
+that fooled Certo. See
+[the benchmark file](../reference/bench-yaml.md#arms).
+
 ## Changed: Certo doesn't start while OpenHands plugins would load
 
 OpenHands, the agent toolkit under Certo, loads plugins into every run on

@@ -177,8 +177,10 @@ given design was chosen.
   `models.yaml` names; `bench_strategies.STRATEGIES` is the registry
   (`single`, `escalate`), each strategy building an explicit `Config` from the
   catalog entry (`run_config`, Certo defaults, isolated skill dirs, no
-  `.env`). `bench.py` runs repeat-major, one JSON per run (atomic write),
-  workspace snapshots, `--max-cost`, `--parallel` (cloud-only),
+  `.env`; `arm_config` adds the arm-level `independent_tests`, which
+  `bench_config` keeps out of params when off so old fingerprints still
+  match). `bench.py` runs repeat-major, one JSON per run (atomic write),
+  workspace snapshots, `--max-cost`, `--stop-at`, `--parallel` (cloud-only),
   `--resume` (fingerprint + task-set hash must match), each run's
   conversation in `runs/transcripts/<run_id>.json` (0.1.15). `bench_report.py`
   renders `results.md`/`results.csv` from the folder alone. The task

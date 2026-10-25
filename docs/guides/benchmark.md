@@ -222,6 +222,13 @@ In `results.md`, per arm:
 - **Cost per solved task:** the arm's total cost divided by the runs whose
   hidden tests passed. The fair way to compare a cheap model that solves
   less with an expensive one that solves more.
+- **Independent tests failed** (only when an arm sets
+  `independent_tests: true`): runs where most sets of
+  [independent tests](independent-tests.md) failed, then the same count
+  among runs whose hidden tests passed (a wrong independent test, or a
+  bug the hidden tests miss) and among runs that fooled Certo (caught).
+  Each run's result is also in `runs/*.json` and in the
+  `independent_status` column of `results.csv`.
 
 For an `escalate` arm with no `models:`, the **Models** column shows the
 ladder derived from the ratings. (A results folder from before version

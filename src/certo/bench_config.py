@@ -152,7 +152,15 @@ def _arms(raw: Any, catalog: dict[str, ModelCatalogEntry], where: str) -> list[A
             raise BenchConfigError(
                 f"{arm_where}: unknown strategy {strategy!r}. Known strategies: {known}."
             )
-        params = STRATEGIES[strategy].parse(item, catalog, arm_where)
+        # For every strategy. Kept out of params unless on, so results
+        # folders from before it still match on --resume.
+        independent = item.get("independent_tests", False)
+        if not isinstance(independent, bool):
+            raise BenchConfigError(f"{arm_where}: 'independent_tests' must be true or false.")
+        rest = {k: v for k, v in item.items() if k != "independent_tests"}
+        params = STRATEGIES[strategy].parse(rest, catalog, arm_where)
+        if independent:
+            params["independent_tests"] = True
         arms.append(Arm(name=name, strategy=strategy, params=params))
     return arms
 
