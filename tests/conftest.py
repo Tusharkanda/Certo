@@ -33,11 +33,12 @@ def user_plugins_dir(tmp_path_factory, monkeypatch):
 
 @pytest.fixture(autouse=True)
 def no_ollama_server(monkeypatch):
-    """No test asks a real Ollama server for its context window
+    """No test asks a real Ollama server for its context window or version
     (context_window.py); a test that needs it patches its own."""
     from certo import context_window
 
     monkeypatch.setattr(context_window, "ollama_context_tokens", lambda *a, **k: None)
+    monkeypatch.setattr(context_window, "ollama_version", lambda *a, **k: None)
     monkeypatch.setattr("certo.llm.ollama_context_tokens", lambda *a, **k: None)
 
 

@@ -31,7 +31,7 @@ from datetime import UTC, datetime, timedelta
 from pathlib import Path
 from typing import Any
 
-from . import __version__
+from . import __version__, context_window
 from .bench_config import DEFAULT_BENCH_FILE, Arm, BenchConfig, BenchConfigError, load_bench_config
 from .bench_report import arm_rows, cost_line, cost_summary, write_report
 from .independent_tests import failing_tests
@@ -114,6 +114,34 @@ def hardware_hint() -> dict[str, Any]:
         if gpus:
             hint["gpu"] = gpus.replace("\n", "; ")
     return {k: v for k, v in hint.items() if v not in ("", None)}
+
+
+def model_servers(cfg: BenchConfig) -> dict[str, dict[str, Any]]:
+    """For every Ollama model the arms use: the server's address (host and
+    port), its Ollama version and the context window it gives the model by
+    default, or None for what the server doesn't say. A local result can
+    then be traced to its setup. Never raises: a server that doesn't answer
+    is recorded as unknown, and its runs report the failure themselves."""
+    servers: dict[str, dict[str, Any]] = {}
+    for arm in cfg.arms:
+        for name in _plan_models(cfg, arm):
+            entry = cfg.catalog.get(name)
+            if entry is None or name in servers or not context_window.is_ollama(entry.model):
+                continue
+            version = context_window.ollama_version(entry.base_url)
+            servers[name] = {
+                "model": entry.model,
+                "server": context_window.server_address(entry.base_url),
+                "ollama_version": version,
+                # Loading the model can take a while; a silent server is skipped.
+                "context_tokens": context_window.ollama_context_tokens(
+                    entry.model, entry.base_url, entry.timeout_seconds or 300
+                )
+                if version
+                else None,
+                "context_tokens_set": entry.context_tokens or None,
+            }
+    return servers
 
 
 def _write_json(path: Path, data: Any) -> None:
@@ -480,6 +508,7 @@ def _meta(cfg: BenchConfig) -> dict[str, Any]:
         "certo_version": __version__,
         "date": _now(),
         "hardware": hardware_hint(),
+        "model_servers": model_servers(cfg),
         "task_set": {
             "version": task_set_version(cfg.tasks_dir),
             "hash": task_set_hash(cfg.tasks_dir),

@@ -20,6 +20,7 @@ import logging
 import threading
 import time
 import urllib.error
+import urllib.parse
 import urllib.request
 
 logger = logging.getLogger(__name__)
@@ -87,6 +88,28 @@ def ollama_context_tokens(model: str, base_url: str | None, timeout: float) -> i
     with _lock:
         _cache[key] = (time.monotonic(), tokens)
     return tokens
+
+
+def ollama_version(base_url: str | None, timeout: float = 10) -> str | None:
+    """The Ollama server's version (`/api/version`), or None when it doesn't
+    answer."""
+    base = (base_url or _DEFAULT_OLLAMA_URL).rstrip("/")
+    try:
+        version = _get(f"{base}/api/version", timeout).get("version")
+    except (OSError, ValueError, AttributeError, urllib.error.URLError):
+        return None
+    return version if isinstance(version, str) and version else None
+
+
+def server_address(base_url: str | None) -> str:
+    """Host and port only: no scheme, path or credentials."""
+    parsed = urllib.parse.urlsplit(base_url or _DEFAULT_OLLAMA_URL)
+    try:
+        port = parsed.port
+    except ValueError:
+        port = None
+    host = parsed.hostname or "unknown"
+    return f"{host}:{port}" if port else host
 
 
 def too_small_message(model: str, context_tokens: int, configured: bool) -> str:

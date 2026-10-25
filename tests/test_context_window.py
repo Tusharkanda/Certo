@@ -38,6 +38,9 @@ class _FakeOllama(BaseHTTPRequestHandler):
         self._reply({"done": True, "done_reason": "load"})
 
     def do_GET(self):
+        if self.path == "/api/version":
+            self._reply({"version": "0.12.6"})
+            return
         models = [{"name": m, "model": m, "context_length": 32768} for m in type(self).loaded]
         self._reply({"models": models})
 
@@ -72,3 +75,20 @@ def test_an_unreachable_server_gives_none():
         assert fresh.ollama_context_tokens("ollama/x", "http://127.0.0.1:9", 2) is None
     finally:
         reload(cw)
+
+
+def test_the_version_is_read_from_ollama(fake_ollama):
+    from importlib import reload
+
+    fresh = reload(cw)
+    try:
+        assert fresh.ollama_version(fake_ollama) == "0.12.6"
+        assert fresh.ollama_version("http://127.0.0.1:9", 2) is None
+    finally:
+        reload(cw)
+
+
+def test_server_address_is_host_and_port_only():
+    assert cw.server_address("http://user:secret@gpu-box:11434/v1") == "gpu-box:11434"
+    assert cw.server_address(None) == "localhost:11434"
+    assert cw.server_address("https://ollama.example.com") == "ollama.example.com"

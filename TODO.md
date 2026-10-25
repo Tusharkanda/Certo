@@ -156,10 +156,6 @@ first item is the suggested next one.
   task with a known `OLLAMA_CONTEXT_LENGTH`. Then consider a harness fix:
   when the final message parses as a tool call, send it back once as a
   correction. Gated by tier or opt-in, and benchmarked local and cloud.
-- **Record the Ollama setup in bench results.** `meta.json` has no Ollama
-  version or context length, so a local result can't be traced to the
-  setup (`/api/version`, `/api/ps`). Done when the report shows both.
-  Starter issue: [#5](https://github.com/alessioricco/certo/issues/5).
 - **Slow local models lose correct work to the time budget.** Three runs
   in the 0.1.15 local benchmark passed the hidden tests but ended
   `budget_exhausted`. Since 0.1.22 the checks run once when the last run

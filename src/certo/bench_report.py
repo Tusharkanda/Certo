@@ -273,6 +273,32 @@ def _hardware(hint: dict[str, Any]) -> str:
     return ", ".join(p for p in parts if p) or "unknown"
 
 
+def _model_servers(meta: dict[str, Any]) -> list[str]:
+    """One line per Ollama model: its server and the context window."""
+    windows = {
+        a["name"]: a["context_tokens"] for a in meta["config"]["arms"] if a.get("context_tokens")
+    }
+    lines = []
+    for name, info in meta.get("model_servers", {}).items():
+        version = info.get("ollama_version")
+        server = f"Ollama {version}" if version else "Ollama, version unknown"
+        context = info.get("context_tokens")
+        parts = [
+            f"{server} at {info.get('server', 'unknown')}",
+            f"server window {context:,} tokens" if context else "server window unknown",
+        ]
+        if info.get("context_tokens_set"):
+            parts.append(f"models.yaml sets {info['context_tokens_set']:,}")
+        arms = meta["config"].get("arm_models", {})
+        parts += [
+            f"arm {arm} asks for {tokens:,}"
+            for arm, tokens in windows.items()
+            if name in arms.get(arm, [])
+        ]
+        lines.append(f"  - {name} (`{info.get('model', '?')}`): " + ", ".join(parts))
+    return ["- Model servers:", *lines] if lines else []
+
+
 def render_markdown(meta: dict[str, Any], records: list[dict[str, Any]]) -> str:
     config = meta["config"]
     planned = len(config["tasks"]) * len(config["arms"]) * config["repeats"]
@@ -284,6 +310,7 @@ def render_markdown(meta: dict[str, Any], records: list[dict[str, Any]]) -> str:
         f"- Certo: {meta['certo_version']}",
         f"- Task set: version {task_set['version']} (`{task_set['hash']}`, {task_set['source']})",
         f"- Hardware: {_hardware(meta.get('hardware', {}))}",
+        *_model_servers(meta),
         f"- Tasks: {len(config['tasks'])} · arms: {len(config['arms'])} · repeats: "
         f"{config['repeats']} · runs recorded: {len(records)} of {planned}"
         + ("" if len(records) == planned else " (incomplete)"),

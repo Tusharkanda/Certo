@@ -205,7 +205,14 @@ Each benchmark writes a folder, by default `bench-results/<date-time>/`:
 | `runs/*.json` | Every detail of each run. |
 | `runs/transcripts/<run>.json` | The run's whole conversation: the agent's messages, the tools' output and Certo's notes. Read it to see why a run ended as it did. `seconds` says when each message arrived, counted from `started_at`: it shows where a long run spent its time. |
 | `workspaces/<run>/` | The code each run left behind (without `.venv` and `node_modules`). |
-| `meta.json` | Certo version, date, hardware, task set, the benchmark itself, and the plan's cost estimate. |
+| `meta.json` | Certo version, date, hardware, task set, the benchmark itself, the plan's cost estimate, and the Ollama setup (below). |
+
+For each Ollama model, `meta.json` (`model_servers`) and the top of
+`results.md` record the server's address (host and port only), its Ollama
+version and the context window the server gives the model, so a local
+result can be traced to how the model was served. Certo loads the model to
+read the window. A server that doesn't answer is recorded as unknown and
+doesn't stop the benchmark; its runs then fail on their own.
 
 In `results.md`, per arm:
 

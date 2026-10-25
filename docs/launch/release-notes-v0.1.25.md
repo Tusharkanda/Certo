@@ -91,6 +91,12 @@ a local model, without restarting Ollama) and `condense: false`, and each
 run's record counts its condensations. See
 [the benchmark file](../reference/bench-yaml.md#arms).
 
+A benchmark's results now also record, for each Ollama model, the
+server's address, its Ollama version and the context window it gives the
+model, so a local result can be traced to how the model was served
+([#5](https://github.com/alessioricco/certo/issues/5)). See
+[Read the results](../guides/benchmark.md#read-the-results).
+
 ## Fixed: a Node project with no tests is no longer `verified`
 
 `node --test` exits successfully when it finds no test files, so a

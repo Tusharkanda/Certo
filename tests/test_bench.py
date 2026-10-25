@@ -595,6 +595,46 @@ def test_meta_keeps_a_derived_arms_ladder_outside_the_fingerprint(tmp_path):
     assert "ladders" not in meta["config"]
 
 
+def test_meta_records_each_ollama_models_server(tmp_path, monkeypatch):
+    from certo import context_window
+
+    asked = []
+    monkeypatch.setattr(
+        context_window, "ollama_version", lambda url, *a: asked.append(url) or "0.12.6"
+    )
+    monkeypatch.setattr(context_window, "ollama_context_tokens", lambda *a, **k: 131072)
+    arms = "  - {name: local, strategy: single, model: local-coder, context_tokens: 32768}\n"
+    cfg = load_bench_config(_bench_file(tmp_path, arms + ONE_ARM))
+
+    servers = bench._meta(cfg)["model_servers"]
+
+    # Only the Ollama model is asked, once; the cloud arm has no entry.
+    assert asked == ["http://localhost:11434"]
+    assert servers == {
+        "local-coder": {
+            "model": "ollama/qwen3-coder:30b",
+            "server": "localhost:11434",
+            "ollama_version": "0.12.6",
+            "context_tokens": 131072,
+            "context_tokens_set": None,
+        }
+    }
+
+
+def test_a_silent_ollama_server_is_recorded_as_unknown(tmp_path, monkeypatch):
+    from certo import context_window
+
+    loaded = []
+    monkeypatch.setattr(context_window, "ollama_context_tokens", lambda *a, **k: loaded.append(a))
+    arms = "  - {name: local, strategy: single, model: local-coder}\n"
+    cfg = load_bench_config(_bench_file(tmp_path, arms))
+
+    info = bench._meta(cfg)["model_servers"]["local-coder"]
+
+    assert info["ollama_version"] is None and info["context_tokens"] is None
+    assert loaded == []  # no model load is tried on a server that didn't answer
+
+
 def test_earlier_results_give_a_likely_cost(tmp_path, monkeypatch, capsys):
     _earlier(
         tmp_path / "results",

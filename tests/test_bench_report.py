@@ -102,6 +102,37 @@ def test_header_records_where_and_what_was_run():
     assert "Small samples: 4 runs per arm" in markdown
 
 
+def test_header_names_each_ollama_server_and_window():
+    meta = json.loads(json.dumps(META))
+    meta["config"]["arms"][0]["context_tokens"] = 32768
+    meta["model_servers"] = {
+        "qwen": {
+            "model": "ollama/qwen3-coder:30b",
+            "server": "gpu-box:11434",
+            "ollama_version": "0.12.6",
+            "context_tokens": 131072,
+            "context_tokens_set": None,
+        }
+    }
+
+    markdown = render_markdown(meta, [])
+
+    assert (
+        "- Model servers:\n  - qwen (`ollama/qwen3-coder:30b`): Ollama 0.12.6 at gpu-box:11434, "
+        "server window 131,072 tokens, arm local asks for 32,768\n"
+    ) in markdown
+
+
+def test_an_unknown_server_and_an_older_meta_still_render():
+    meta = json.loads(json.dumps(META))
+    assert "Model servers" not in render_markdown(meta, [])
+    meta["model_servers"] = {"qwen": {"model": "ollama/x", "server": "localhost:11434"}}
+
+    markdown = render_markdown(meta, [])
+
+    assert "Ollama, version unknown at localhost:11434, server window unknown" in markdown
+
+
 def test_per_task_table():
     markdown = render_markdown(META, RECORDS)
     assert "| page-ranges | 1/2 | 2/2 |" in markdown
