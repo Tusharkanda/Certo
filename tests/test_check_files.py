@@ -1,0 +1,90 @@
+import os
+
+import pytest
+
+from certo.check_files import (
+    CheckFileChange,
+    changes_note,
+    check_file_changes,
+    is_check_file,
+    snapshot_check_files,
+)
+
+
+@pytest.mark.parametrize(
+    "path",
+    [
+        "tests/test_app.py",
+        "tests/fixtures/data.json",
+        "pkg/test_util.py",
+        "pkg/util_test.py",
+        "conftest.py",
+        "main_test.go",
+        "src/app.test.ts",
+        "src/App.spec.jsx",
+        "__tests__/app.js",
+        "src/test/java/AppTest.java",
+        "pyproject.toml",
+        "pytest.ini",
+        "package.json",
+        "tsconfig.app.json",
+        "eslint.config.mjs",
+        ".eslintrc.json",
+        "Cargo.toml",
+    ],
+)
+def test_check_files(path):
+    assert is_check_file(path)
+
+
+@pytest.mark.parametrize(
+    "path", ["app.py", "src/latest.py", "README.md", "src/contest.ts", "testing_notes.md"]
+)
+def test_other_files(path):
+    assert not is_check_file(path)
+
+
+def _write(root, path, text):
+    full = root / path
+    full.parent.mkdir(parents=True, exist_ok=True)
+    full.write_text(text)
+
+
+def test_changed_and_deleted_check_files_are_found(tmp_path):
+    _write(tmp_path, "tests/test_a.py", "def test_a():\n    assert f() == 1\n    assert g()\n")
+    _write(tmp_path, "tests/test_b.py", "def test_b():\n    assert True\n")
+    _write(tmp_path, "pytest.ini", "[pytest]\n")
+    _write(tmp_path, "app.py", "x = 1\n")
+    before = snapshot_check_files(str(tmp_path))
+    assert "app.py" not in before
+
+    _write(tmp_path, "tests/test_a.py", "def test_a():\n    pass\n")
+    os.remove(tmp_path / "tests" / "test_b.py")
+    _write(tmp_path, "tests/test_new.py", "def test_new():\n    pass\n")
+    _write(tmp_path, "app.py", "x = 2\n")
+
+    changes = check_file_changes(str(tmp_path), before)
+
+    assert changes == (
+        CheckFileChange(os.path.join("tests", "test_a.py"), False, 2, 1),
+        CheckFileChange(os.path.join("tests", "test_b.py"), True, 2, 0),
+    )
+
+
+def test_nothing_changed(tmp_path):
+    _write(tmp_path, "tests/test_a.py", "def test_a():\n    pass\n")
+    before = snapshot_check_files(str(tmp_path))
+    assert check_file_changes(str(tmp_path), before) == ()
+
+
+def test_the_note_lists_at_most_five():
+    changes = tuple(CheckFileChange(f"tests/test_{i}.py", False, 1, 0) for i in range(7))
+    note = changes_note(changes)
+    assert note.startswith("The agent changed 7 files the checks rely on: tests/test_0.py")
+    assert "tests/test_4.py (1 line removed, 0 lines added), and 2 more." in note
+    assert "tests/test_5.py" not in note
+
+
+def test_the_note_for_a_deleted_file():
+    note = changes_note((CheckFileChange("pytest.ini", True, 3, 0),))
+    assert "The agent changed 1 file the checks rely on: pytest.ini (deleted)." in note

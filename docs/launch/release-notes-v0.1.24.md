@@ -44,6 +44,22 @@ and its folder. A project's own plugins, and a repository's plugins when
 you run Certo on an existing folder, are still fine. See
 [OpenHands plugins](../guides/manage-skills.md#openhands-plugins).
 
+## New: a verified run lists the check files the agent changed
+
+`verified` means the project's checks passed, but an agent can make
+them pass by weakening them. Now Certo keeps a copy of the test files
+and check settings before the run, and after a `verified` run lists
+each one the agent changed or deleted:
+
+```
+Verification: verified
+  - The agent changed 1 file the checks rely on: tests/test_calc.py (1 line removed, 1 line added). The checks passed on the changed files; read the changes before you trust them.
+```
+
+The verdict stays `verified`, since the task may have asked for the
+change (this one did). See
+[Changed check files](../reference/verdicts.md#changed-check-files).
+
 ## Fixed: the time budget now stops a run in progress
 
 `CERTO_MAX_TASK_SECONDS` was checked only between runs, so one terminal

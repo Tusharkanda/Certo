@@ -39,6 +39,12 @@ from .acceptance import AcceptanceCheck, AcceptanceCheckResult, evaluate_accepta
 from .agent import build_agent
 from .artifacts import resolve_run_artifacts_dir, write_run_artifacts
 from .catalog_check import load_checked_catalog
+from .check_files import (
+    CheckFileChange,
+    changes_note,
+    check_file_changes,
+    snapshot_check_files,
+)
 from .config import Config, load_config, override_llm
 from .console import quiet_sdk_logs, visualizer_for
 from .deadline import stop_at_deadline
@@ -257,6 +263,9 @@ class TaskOutcome:
     # build (independent_tests.py). Report only: it never changes
     # verification_state.
     independent_tests: IndependentTestsResult | None = None
+    # A verified run's changes to the files its checks rely on
+    # (check_files.py). Report only, like independent_tests.
+    check_file_changes: tuple[CheckFileChange, ...] = ()
 
     @property
     def success(self) -> bool:
@@ -1793,6 +1802,7 @@ def _run_stream_task_phases(
     the earlier session.
     """
     before = workspace_listing(cfg.workspace) if check_changes else None
+    check_files_before = snapshot_check_files(cfg.workspace)
     # `first_message` is a resume's message; `task` stays the goal that
     # verification and the completion contract are judged against.
     conversation.send_message(first_message or task)
@@ -1858,7 +1868,27 @@ def _run_stream_task_phases(
             before,
             outcome,
         )
+    if outcome.verification_state == "verified":
+        outcome = _note_check_file_changes(cfg.workspace, check_files_before, outcome)
     return outcome
+
+
+def _note_check_file_changes(
+    workspace: str, before: dict[str, bytes], outcome: TaskOutcome
+) -> TaskOutcome:
+    """A `verified` run that changed the files its checks rely on says so,
+    with the lines removed and added (check_files.py). The verdict stays:
+    the task may have asked for the change."""
+    changes = check_file_changes(workspace, before)
+    if not changes:
+        return outcome
+    contract = outcome.completion_contract
+    limitations = [*contract.limitations, changes_note(changes)]
+    return replace(
+        outcome,
+        check_file_changes=changes,
+        completion_contract=replace(contract, limitations=limitations),
+    )
 
 
 # Files Certo itself writes in the project folder; they never count as the

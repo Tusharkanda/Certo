@@ -81,11 +81,11 @@ first item is the suggested next one.
   know yet what `qwen3.8` is best at among Certo's coding activities
   (not high-effort ones such as writing independent tests). Look for it
   in the benchmark results before building more local-only features.
-- **Protect verification files from silent agent changes.** The agent can
-  weaken or delete tests, build scripts or lint config before Certo
-  verifies; only prompts discourage it (golden rule 6 gap). Record those
-  files before the run, compare after, and report or reject changes the
-  task didn't ask for. Needs a policy for legitimate test changes.
+- **Changed check files: the rest** (0.1.24 lists them after a
+  `verified` run, report only; asked for on Reddit 2026-10-25). Left:
+  count them in `certo bench` reports (how often a verified run changed
+  or deleted a pre-existing test, against the hidden tests), then decide
+  whether removed test lines change the verdict.
 - **Context management for long runs.** The SDK's own condensing
   (verify-first), plus a warning when a local model's context window is
   too small for the task (qwen3.8 at 32K).

@@ -76,6 +76,13 @@ would look like success. Certo asks the agent once, and if it still
 changes nothing, the verdict is `unchanged`, not `verified`. See
 [`unchanged`](../reference/verdicts.md#unchanged-in-more-detail).
 
+**Passing checks prove less if the agent changed them.** An agent can
+make tests pass by weakening them. After a `verified` run, Certo lists
+each test or check settings file the agent changed or deleted, with the
+lines removed and added, so you can read them. The verdict stays, since
+the task may have asked for the change. See
+[Changed check files](../reference/verdicts.md#changed-check-files).
+
 **Other checks can only make things worse.** Lint, type checks and the
 Python start-up run can turn a pass into a failure, never a failure into a
 pass. Tidy code is not proof that it works.

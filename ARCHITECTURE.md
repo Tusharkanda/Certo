@@ -414,6 +414,13 @@ given design was chosen.
   (threads unless the model is local), and `run_test_sets()` votes
   (`failed` at `failing_sets_needed(n)` = most sets, else `split`;
   one set returns its own result unchanged); `set_lines()` lists each set.
+- **`check_files.py`** — stdlib only. `snapshot_check_files()` copies
+  test files and check settings (`is_check_file`, by path) before the
+  run; `runner._run_stream_task_phases` compares after a `verified`
+  outcome (`check_file_changes`, line counts via `SequenceMatcher`) and
+  adds `changes_note()` to the contract's limitations, plus
+  `TaskOutcome.check_file_changes`. Pre-existing files only; report only.
+- **`deadline.py`** — `stop_at_deadline()`, see `runner.py` above.
 - **`plugins.py`** — `foreign_plugins(workspace, projects_dir)`: the
   OpenHands plugins the SDK would load into a local run that don't belong
   to it (every user plugin; a project plugin from outside a generated

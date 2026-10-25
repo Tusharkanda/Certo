@@ -1113,3 +1113,11 @@ considered and live-verification detail: `docs/ROADMAP.txt`.
   tells the agent how to work under the cap. A bug fix, so no version
   bump; the cap is process-wide, so concurrent server runs share the
   nearest deadline (stricter, never looser).
+- **Changed check files are reported, not judged** (2026-10-25, from a
+  Reddit comment that `verified` overstates what passing checks show).
+  Kept the name `verified` (exit codes, scripts, reports) and closed the
+  gap instead: test files and check settings are copied before the run,
+  and a `verified` run lists those the agent changed or deleted, with
+  lines removed and added. New files aren't listed. The verdict stays,
+  because tasks often ask for test changes; deciding when a change
+  should downgrade it needs bench numbers first.

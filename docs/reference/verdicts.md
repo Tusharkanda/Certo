@@ -89,6 +89,32 @@ also changed no file: two models agreeing there is nothing to change
 stops the climb. The same goes for `inconclusive` when the model changed
 no file.
 
+## Changed check files
+
+`verified` means the project's checks passed after the run. An agent can
+make checks pass by weakening them: editing a test, deleting one, or
+turning a lint rule off. So before the run Certo keeps a copy of the
+files the checks rely on, and after a `verified` run it lists each one
+the agent changed or deleted, with the lines removed and added:
+
+```
+Verification: verified
+  - The agent changed 1 file the checks rely on: tests/test_calc.py (1 line removed, 1 line added). The checks passed on the changed files; read the changes before you trust them.
+```
+
+These files count: test files (in a `tests`, `test`, `__tests__` or
+`spec` folder, or named like `test_*.py`, `*_test.go`, `*.test.ts`,
+`*.spec.js`, `*Test.java`, `conftest.py`), and the settings files that
+steer tests, build and lint (`pyproject.toml`, `setup.cfg`,
+`pytest.ini`, `tox.ini`, `ruff.toml`, `mypy.ini`, `.flake8`,
+`package.json`, `tsconfig*`, `jest.config*`, `vitest.config*`, ESLint
+settings, `Cargo.toml`, `go.mod`, `pom.xml`, Gradle build files,
+`Makefile`). New files aren't listed: adding tests is normal.
+
+The verdict stays `verified`, since the task may have asked for the
+change, as in the example above. Removed lines in a test are the ones to
+read first.
+
 ## The order of the checks
 
 Certo checks, in this order, and stops at the first that applies:
@@ -110,7 +136,8 @@ Certo checks, in this order, and stops at the first that applies:
    again → `verified`, `inconclusive`, `retry_exhausted`, `no_progress` or
    `timed_out`
 5. After `verified`: did any file change? If not, ask the agent once and
-   check again → may turn `verified` into `unchanged`
+   check again → may turn `verified` into `unchanged`. If the files the
+   checks rely on changed, list them (the verdict stays)
 6. Run the acceptance checks, if any → may turn `verified` into
    `acceptance_failed`
 
