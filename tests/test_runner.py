@@ -3126,3 +3126,41 @@ def test_three_sets_are_written_and_vote(monkeypatch, tmp_path):
     assert outcome.independent_tests.summary == "2 of 3 sets failed"
     assert outcome.verification_state == "verified"  # report only
     assert outcome.run_summary.total_cost == pytest.approx(0.75)  # every writer counted
+
+
+def test_strict_independent_tests_turn_verified_into_independent_failed(monkeypatch, tmp_path):
+    outcome, _, _ = _independent_tests_run(
+        monkeypatch, tmp_path, independent_tests=True, independent_tests_strict=True
+    )
+
+    assert outcome.verification_state == "independent_failed"
+    assert outcome.independent_tests.status == "failed"
+    assert not outcome.success
+
+
+@pytest.mark.parametrize("status", ["passed", "split", "none", "error"])
+def test_strict_independent_tests_keep_verified_unless_they_failed(monkeypatch, tmp_path, status):
+    from certo.independent_tests import IndependentTestsResult as R
+
+    outcome, _, _ = _independent_tests_run(
+        monkeypatch,
+        tmp_path,
+        independent_tests=True,
+        independent_tests_strict=True,
+        set_results=[R(status, "summary", "m")],
+    )
+
+    assert outcome.verification_state == "verified"
+
+
+def test_strict_independent_tests_leave_other_verdicts_alone(monkeypatch, tmp_path):
+    outcome, _, _ = _independent_tests_run(
+        monkeypatch,
+        tmp_path,
+        verdict="inconclusive",
+        independent_tests=True,
+        independent_tests_strict=True,
+    )
+
+    assert outcome.verification_state == "inconclusive"
+    assert outcome.independent_tests.status == "failed"

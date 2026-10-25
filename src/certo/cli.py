@@ -314,6 +314,15 @@ def _build_parser() -> argparse.ArgumentParser:
         ),
     )
     parser.add_argument(
+        "--independent-tests-strict",
+        action="store_true",
+        help=(
+            "Like --independent-tests, but a 'verified' run whose independent "
+            "tests failed ends 'independent_failed' (exit 1). The same as "
+            "CERTO_INDEPENDENT_TESTS_STRICT=yes."
+        ),
+    )
+    parser.add_argument(
         "--interactive",
         action="store_true",
         help=(
@@ -408,6 +417,7 @@ _FAILING_STATES = (
     "confirmation_required",
     "budget_exhausted",
     "acceptance_failed",
+    "independent_failed",
     "stuck",
 )
 
@@ -547,6 +557,8 @@ def main(argv: list[str] | None = None) -> int:
         cfg = replace(cfg, interactive=True)
     if args.independent_tests:
         cfg = replace(cfg, independent_tests=True)
+    if args.independent_tests_strict:
+        cfg = replace(cfg, independent_tests=True, independent_tests_strict=True)
 
     if args.verbose:
         cfg = replace(cfg, verbose=True)
@@ -774,7 +786,7 @@ def main(argv: list[str] | None = None) -> int:
     if outcome.independent_tests is not None:
         from .independent_tests import failing_tests, report_line, set_lines
 
-        print(report_line(outcome.independent_tests))
+        print(report_line(outcome.independent_tests, strict=cfg.independent_tests_strict))
         details = set_lines(outcome.independent_tests) or failing_tests(outcome.independent_tests)
         for line in details:
             print(f"  - {line}")

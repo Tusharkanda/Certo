@@ -271,3 +271,11 @@ def test_one_set_reports_as_before(tmp_path, monkeypatch):
 
     assert result.sets == () and it.set_lines(result) == []
     assert it.report_line(result).startswith("Independent tests: failed, failed summary")
+
+
+def test_a_strict_report_line_isnt_report_only(tmp_path, monkeypatch):
+    result = _sets(tmp_path, ["failed", "failed", "passed"], monkeypatch)
+
+    line = it.report_line(result, strict=True)
+    assert line.startswith("Independent tests: failed, 2 of 3 sets failed (written from the task")
+    assert "report only" not in line

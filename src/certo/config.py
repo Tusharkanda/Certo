@@ -190,6 +190,10 @@ class Config:
     # CERTO_INDEPENDENT_TESTS_SETS: how many writers each write a set; the
     # result is "failed" only when most sets fail (1 to 5).
     independent_tests_sets: int = 3
+    # CERTO_INDEPENDENT_TESTS_STRICT: a `verified` run whose independent
+    # tests failed (most sets) ends `independent_failed` instead. Turns the
+    # tests on.
+    independent_tests_strict: bool = False
 
     # The full SDK console output: the system prompt, the whole task with
     # its skills, the SDK's INFO logs. Off by default (console.py shows a
@@ -651,7 +655,10 @@ def load_config(
         default=False,
     )
     verbose = _parse_bool(env, "VERBOSE", default=False)
-    independent_tests = _parse_bool(env, "INDEPENDENT_TESTS", default=False)
+    independent_tests_strict = _parse_bool(env, "INDEPENDENT_TESTS_STRICT", default=False)
+    independent_tests = (
+        _parse_bool(env, "INDEPENDENT_TESTS", default=False) or independent_tests_strict
+    )
     independent_tests_sets = _parse_positive_int(env, "INDEPENDENT_TESTS_SETS", default=3)
     if independent_tests_sets > MAX_INDEPENDENT_TESTS_SETS:
         raise ConfigError(
@@ -711,6 +718,7 @@ def load_config(
         interactive=interactive,
         independent_tests=independent_tests,
         independent_tests_sets=independent_tests_sets,
+        independent_tests_strict=independent_tests_strict,
         verbose=verbose,
         model_selection=model_selection,
         models_file=models_file,

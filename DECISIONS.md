@@ -1142,3 +1142,16 @@ considered and live-verification detail: `docs/ROADMAP.txt`.
   run is Haiku with independent tests on, 13 tasks × 3, for extra time,
   cost and false alarms on live builds. Local models are slow: their
   runs go into night slots (`--stop-at`, `--resume`), never the day.
+- **Independent tests change the verdict only when asked** (the Author,
+  2026-10-25, from the 0.1.24 numbers: 7 of 8 fooled runs caught on saved
+  projects, 1 of 38 right live runs failed by a wrong test). Default
+  stays report only; `--independent-tests-strict`
+  (`CERTO_INDEPENDENT_TESTS_STRICT`, turns the tests on) makes a
+  `verified` run with a `failed` result (most sets) end
+  `independent_failed`, exit 1. A new verdict, not `failed` or
+  `acceptance_failed`, so scripts can tell it apart. `split`, `none` and
+  errors never change it. Applied last, after the acceptance checks.
+  Not sent back to the agent as a fix attempt: that would show the
+  builder the tests, and a wrong test would push it to break right work.
+  With `--escalate` it doesn't climb (the tests run once, after the last
+  rung).

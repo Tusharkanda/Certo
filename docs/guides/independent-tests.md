@@ -4,9 +4,10 @@ This guide shows how to have Certo write tests for a task **before** the
 agent builds it, and run them on the result. They check the agent's work
 against the task, not against the agent's own tests.
 
-> **New and report only.** The result is printed next to the verdict, but
-> it doesn't change the verdict or the exit code. An independent test can
-> itself be wrong, and how often is still being measured.
+> **Report only by default.** The result is printed next to the verdict,
+> but it doesn't change the verdict or the exit code, because an
+> independent test can itself be wrong. To let it change the verdict, see
+> [Make them change the verdict](#make-them-change-the-verdict).
 
 ## Why
 
@@ -72,8 +73,8 @@ the outgoing side of a transfer by its negative amount; the tests called
 one transaction "outgoing" by its name and expected a +100 there to stop
 the match. When the task's words invite one misreading, most writers make
 it, and voting doesn't help. That is why the result is a report, not a
-verdict. When an independent test fails, read it before you trust it
-either way.
+verdict by default. When an independent test fails, read it before you
+trust it either way.
 
 Other results:
 
@@ -124,6 +125,32 @@ In 39 live benchmark runs with Haiku building and writing the tests (see
 
 So read a failing independent test before you trust it either way.
 
+## Make them change the verdict
+
+```bash
+certo tasks/ledger.md --project ledger --independent-tests-strict
+```
+
+Or set `CERTO_INDEPENDENT_TESTS_STRICT=yes`. Both turn the tests on. Now,
+when the project's checks pass but most sets fail, the verdict is
+`independent_failed` instead of `verified`, and Certo exits with 1:
+
+```text
+Verification: independent_failed
+Independent tests: failed, 2 of 3 sets failed (written from the task by m).
+```
+
+(From Certo's tests; `m` is the model.) Only `failed` changes the
+verdict: `split`, `none` and `couldn't run` leave `verified` as it is,
+and so does a run that ended with any other verdict. With `--escalate`,
+`independent_failed` doesn't climb to the next model: the tests are
+run once, after the last model.
+
+Use it where a script or a pipeline acts on the exit code and a false
+`verified` costs more than a second look. Expect it to stop about one
+right run in 40 with a wrong test (1 of 38 in the live runs above):
+then read the failing test, and if it's wrong, keep the work.
+
 ## In the benchmark
 
 To measure them on your own models, add `independent_tests: true` to an
@@ -162,4 +189,5 @@ where a later task's agent could see them.
 
 - [How verification works](../concepts/how-verification-works.md)
 - [Acceptance checks](acceptance-checks.md): your own pass or fail rules.
-- [Configuration](../reference/configuration.md): `CERTO_INDEPENDENT_TESTS`.
+- [Configuration](../reference/configuration.md): `CERTO_INDEPENDENT_TESTS`,
+  `CERTO_INDEPENDENT_TESTS_STRICT`.

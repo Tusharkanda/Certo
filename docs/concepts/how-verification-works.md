@@ -127,7 +127,8 @@ Be clear about the limits:
   honest about the tests; it doesn't make the tests complete. When the
   agent writes the tests, they can share its mistakes:
   [independent tests](../guides/independent-tests.md), written before the
-  build, are a second opinion (report only for now).
+  build, are a second opinion (report only, unless you turn on
+  `--independent-tests-strict`).
 - **It goes by the check's exit code.** A test runner that exits
   successfully when it finds no tests (such as `node --test`) makes a
   project with no tests `verified`. See

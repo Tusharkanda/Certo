@@ -416,6 +416,11 @@ given design was chosen.
   (threads unless the model is local), and `run_test_sets()` votes
   (`failed` at `failing_sets_needed(n)` = most sets, else `split`;
   one set returns its own result unchanged); `set_lines()` lists each set.
+  `_apply_strict_independent_tests` (CERTO_INDEPENDENT_TESTS_STRICT) turns
+  `verified` + `failed` into `independent_failed`, after the acceptance
+  checks: single path after `_apply_acceptance_checks`, escalation after
+  the final rung (it calls `state_writer.finish` again so STATUS.md has
+  the final verdict; the rung record keeps the rung's own verdict).
 - **`check_files.py`** — stdlib only. `snapshot_check_files()` copies
   test files and check settings (`is_check_file`, by path) before the
   run; `runner._run_stream_task_phases` compares after a `verified`

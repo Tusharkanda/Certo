@@ -31,6 +31,7 @@ works this way is in
 | `confirmation_required` | Confirm mode (`CERTO_CONFIRM_MODE=always`) needed an approval and nobody could give it (server mode). The action was rejected and the task stopped. | 1 |
 | `budget_exhausted` | The task's time budget (`CERTO_MAX_TASK_SECONDS`, 30 minutes by default) ran out before the work could be shown to pass. If it ran out during the agent's last step, the checks still ran once, with no fix attempt; work that passed them is `verified` instead. | 1 |
 | `acceptance_failed` | Everything else passed, but a required [acceptance check](../guides/acceptance-checks.md) failed. | 1 |
+| `independent_failed` | The checks passed, but most sets of [independent tests](../guides/independent-tests.md) failed. Only with `--independent-tests-strict` (`CERTO_INDEPENDENT_TESTS_STRICT=yes`); otherwise the result is only reported and the verdict stays `verified`. | 1 |
 | `stuck` | The agent's run ended in a stuck or error state instead of finishing. Certo doesn't verify a run that broke off; `certo verify` checks the files it left. A run that used all its steps (`CERTO_MAX_ITERATIONS`) is checked instead, and ends `stuck` only when the checks can't show the task is done. | 1 |
 
 The run itself can also fail before any verdict, for example with a
@@ -145,6 +146,8 @@ Certo checks, in this order, and stops at the first that applies:
    checks rely on changed, list them (the verdict stays)
 6. Run the acceptance checks, if any → may turn `verified` into
    `acceptance_failed`
+7. Run the independent tests, if on. With `--independent-tests-strict`,
+   most sets failing turns `verified` into `independent_failed`
 
 ## Check statuses
 

@@ -17,7 +17,8 @@ Run a task through the agent, then verify the result.
 ```text
 certo TASK [--project NAME] [--execution {local,docker}] [--model MODEL]
            [--api-key KEY] [--base-url URL] [--reasoning-effort LEVEL]
-           [--agents-md TEXT] [--independent-tests] [--interactive] [--verbose]
+           [--agents-md TEXT] [--independent-tests] [--independent-tests-strict]
+           [--interactive] [--verbose]
            [--auto-model]
            [--require-verification] [--acceptance-checks JSON_OR_FILE]
            [--escalate [LADDER]]
@@ -46,6 +47,7 @@ current folder, the file is read instead.
 | `--reasoning-effort LEVEL` | `CERTO_LLM_REASONING_EFFORT` | Reasoning effort for this run only: `none`, `minimal`, `low`, `medium`, `high`, `xhigh`, `max`, or any value the provider accepts. `none` or `off` turns it off. |
 | `--agents-md TEXT` | none | Write `TEXT` as the project's `AGENTS.md` before the task. Needs `--project`. |
 | `--independent-tests` | off (`CERTO_INDEPENDENT_TESTS`) | Before the build, have tests written from the task and the project as it is; after the verdict, run them and print the result under it. Report only: the verdict and exit code don't change. Local runs, not on `--resume`. See [Independent tests](../guides/independent-tests.md). |
+| `--independent-tests-strict` | off (`CERTO_INDEPENDENT_TESTS_STRICT`) | Like `--independent-tests`, but when most sets fail, a `verified` run ends `independent_failed` (exit 1). Other verdicts stay as they are. See [Make them change the verdict](../guides/independent-tests.md#make-them-change-the-verdict). |
 | `--interactive` | off (`CERTO_INTERACTIVE`) | Let the agent stop and ask you questions. See [Interactive and confirm mode](../guides/interactive-mode.md). |
 | `--verbose` | off (`CERTO_VERBOSE`) | Print the agent's full output: the whole system prompt, the task with the skills Certo adds, and the SDK's own logs. Without it, each of these is one line. |
 | `--auto-model` | off (`CERTO_MODEL_SELECTION`) | Pick the model from the model files (`models_list.yaml`, `models.yaml`, and the task profiles in `task_profiles.yaml`). A missing or broken model file is a configuration error (the error says which example to copy, or lists the problems): no banner, no resume hint, and no run is recorded. See [Pick models automatically](../guides/pick-models-automatically.md). |

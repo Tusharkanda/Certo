@@ -117,7 +117,7 @@ def _resolve_cfg(
         cfg = replace(cfg, execution=execution)
     # Not in server mode yet: a task's stored result has no place for it
     # (TODO.md). Off, so a server task never pays for tests it can't report.
-    cfg = replace(cfg, independent_tests=False)
+    cfg = replace(cfg, independent_tests=False, independent_tests_strict=False)
     if project is not None:
         cfg = replace(cfg, workspace=resolve_project_dir(cfg.projects_dir, project))
     if cfg.execution == "local":

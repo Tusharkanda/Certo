@@ -848,6 +848,32 @@ def test_exits_nonzero_when_task_budget_is_exhausted(monkeypatch, capsys):
     assert "CERTO_MAX_TASK_SECONDS" in out
 
 
+def test_independent_tests_strict_flag_turns_them_on_and_exits_nonzero(monkeypatch, capsys):
+    from certo.independent_tests import IndependentTestsResult
+
+    seen = {}
+
+    def _fake_run_task(task, cfg=None, **_kwargs):
+        seen["cfg"] = cfg
+        result = _fake_result([_FakeMessage("done")], verification_state="independent_failed")
+        result.outcome = replace(
+            result.outcome,
+            independent_tests=IndependentTestsResult("failed", "2 of 3 sets failed", "m"),
+        )
+        return result
+
+    monkeypatch.setattr(cli, "load_config", lambda: _cfg())
+    monkeypatch.setattr(cli, "run_task", _fake_run_task)
+
+    exit_code = cli.main(["--independent-tests-strict", "do something"])
+
+    out = capsys.readouterr().out
+    assert exit_code == 1
+    assert seen["cfg"].independent_tests and seen["cfg"].independent_tests_strict
+    assert "Verification: independent_failed" in out
+    assert "Independent tests: failed, 2 of 3 sets failed (written from the task by m)." in out
+
+
 def test_inconclusive_verification_still_exits_zero_but_is_visible(monkeypatch, capsys):
     # Inconclusive isn't an error (nothing was proven broken), but it must
     # not look like a silent, confirmed success either.

@@ -698,3 +698,41 @@ def test_independent_tests_are_written_once_with_rung_1_and_judge_the_final_rung
     assert seen["runs"] == [2]  # once, after the final rung
     assert outcome.final_rung == 2 and outcome.verification_state == "verified"
     assert outcome.independent_tests.summary == "3 passed"
+
+
+def test_strict_independent_tests_judge_the_final_rung_without_climbing(
+    tmp_path, fake_run, monkeypatch
+):
+    from dataclasses import replace
+
+    import certo.independent_tests as it
+    from certo.independent_tests import IndependentTestsResult, WrittenTests
+
+    def fake_write(task, writer_cfg, scratch, *, project, usage_id, run_writer):
+        folder = scratch / "new_tests"
+        folder.mkdir(parents=True)
+        return WrittenTests(
+            folder=folder, model=writer_cfg.model, files=("t.py",), language="python"
+        )
+
+    monkeypatch.setattr(it, "write_tests", fake_write)
+    monkeypatch.setattr(
+        it,
+        "run_independent_tests",
+        lambda written, workspace, runner=None: IndependentTestsResult(
+            "failed", "1 failed", written.model
+        ),
+    )
+    fake_run.script[:] = [("verified", 0.0, {}), ("verified", 0.01, {})]
+    cfg = replace(
+        _cfg(tmp_path),
+        independent_tests=True,
+        independent_tests_strict=True,
+        independent_tests_sets=1,
+    )
+
+    outcome, _ = _run(tmp_path, _ladder(tmp_path), cfg=cfg)
+
+    assert outcome.verification_state == "independent_failed"
+    assert len(outcome.rungs) == 1  # no climb on independent_failed
+    assert outcome.rungs[0].verdict == "verified"

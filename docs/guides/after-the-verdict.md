@@ -141,6 +141,20 @@ If the check itself was wrong (a wrong path, or text that is too strict),
 look at the file yourself: `certo verify` doesn't run acceptance checks.
 Fix the check before you use it again.
 
+## `independent_failed`
+
+Only with `--independent-tests-strict`. The project's checks passed, but
+most sets of [independent tests](independent-tests.md) failed. Each
+set's failing tests are named under the verdict. Read them first: an
+independent test can be wrong too.
+
+- If the test is right, the work is wrong: resume with what the test
+  expects, e.g. `certo --resume "A transfer's two amounts must have
+  opposite signs."` Certo doesn't send the tests to the agent.
+- If the test is wrong, the work may be fine: the project's own checks
+  passed. With `CERTO_ARTIFACTS_DIR` set, the tests are kept in the run's
+  record folder so you can check them.
+
 ## `budget_exhausted`
 
 The task's time budget (`CERTO_MAX_TASK_SECONDS`, 30 minutes by default)

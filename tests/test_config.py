@@ -980,3 +980,10 @@ def test_max_task_cost(value, expected):
 def test_max_task_cost_rejects_bad_values(value):
     with pytest.raises(ConfigError, match="CERTO_MAX_TASK_COST"):
         load_config(_base_env(CERTO_MAX_TASK_COST=value))
+
+
+def test_strict_independent_tests_are_off_by_default_and_turn_the_tests_on():
+    cfg = load_config(_base_env())
+    assert cfg.independent_tests_strict is False and cfg.independent_tests is False
+    cfg = load_config(_base_env(CERTO_INDEPENDENT_TESTS_STRICT="yes"))
+    assert cfg.independent_tests_strict is True and cfg.independent_tests is True

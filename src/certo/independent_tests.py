@@ -372,20 +372,17 @@ def failing_tests(result: IndependentTestsResult, limit: int = 5) -> list[str]:
     return found[:limit]
 
 
-def report_line(result: IndependentTestsResult) -> str:
-    """The line under the verdict."""
-    if result.sets and result.status in ("passed", "failed", "split"):
-        return (
-            f"Independent tests: {result.status}, {result.summary} "
-            f"(written from the task by {result.model}; report only)."
-        )
+def report_line(result: IndependentTestsResult, *, strict: bool = False) -> str:
+    """The line under the verdict. `strict`: CERTO_INDEPENDENT_TESTS_STRICT,
+    so the result can change the verdict and isn't "report only"."""
     if result.status == "none":
         return f"Independent tests: none ({result.summary})."
     if result.status == "error":
         return f"Independent tests: couldn't run ({result.summary})."
+    how = "" if strict else "; report only"
     return (
         f"Independent tests: {result.status}, {result.summary} "
-        f"(written from the task by {result.model}; report only)."
+        f"(written from the task by {result.model}{how})."
     )
 
 

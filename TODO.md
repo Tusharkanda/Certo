@@ -71,12 +71,19 @@ first item is the suggested next one.
   about doubled). Left: (1) the writer sometimes gets an expected number
   wrong (`duration-parser`: 7625 for `"2h 5m 10s"`, in 2 of 3 sets at
   times); try a writer instruction to work out expected values from the
-  task's own examples, measured on a replay; (2) decide whether a 2-of-3
-  failure changes the verdict; (3) server mode; (4) maybe an option for a
-  different writer model than the build's. The `qwen3.8` replay
+  task's own examples, measured on a replay; (2) server mode; (3) maybe
+  an option for a different writer model than the build's. (A 2-of-3
+  failure changes the verdict only with `--independent-tests-strict`,
+  0.1.25.) The `qwen3.8` replay
   (2026-10-25) caught 2 of 8 fooled runs with the vote (Haiku: 7 of 8),
   and the Author keeps qwen away from high-effort work, so its own tests
   aren't the answer for local users.
+- **The run record keeps the verdict from before the last steps.** With
+  one model, `runner.stream_task` writes the `CERTO_ARTIFACTS_DIR` record
+  before the acceptance checks and `--independent-tests-strict` run, so a
+  run that ends `acceptance_failed` or `independent_failed` is recorded
+  as `verified` there (escalation records the final verdict). Found
+  2026-10-25. Done when the record holds the verdict the CLI prints.
 - **`room-bookings` hidden test is stricter than the task** (2026-10-25,
   live Haiku arm). A `204` sent with `Content-Type: application/json`
   and no body fails the hidden tests (they parse any JSON-marked

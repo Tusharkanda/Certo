@@ -156,6 +156,7 @@ model), write an explicit ladder.
 | `inconclusive` | Climb, unless the rung before also ended `inconclusive`, or both changed no file: then stop. |
 | `unchanged` | Climb, unless the rung before also changed no file: then stop. |
 | `budget_exhausted`, `confirmation_required` | Stop: these are your own limits. |
+| `independent_failed` | Never seen by the ladder: with `--independent-tests-strict`, the tests run once, after the last rung, and can turn its `verified` into `independent_failed`. |
 | A provider failure (outage, rate limit, rejected key) | Climb, recorded as a provider failure rather than a quality failure. |
 
 **Why `inconclusive` climbs, but only once in a row.** It means nothing

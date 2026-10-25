@@ -173,6 +173,7 @@ VERIFICATION_STATES = (
     "confirmation_required",
     "budget_exhausted",
     "acceptance_failed",
+    "independent_failed",
     "stuck",
 )
 
@@ -260,8 +261,9 @@ class TaskOutcome:
     rungs: tuple[RungResult, ...] = ()
     final_rung: int | None = None
     # CERTO_INDEPENDENT_TESTS: the result of the tests written before the
-    # build (independent_tests.py). Report only: it never changes
-    # verification_state.
+    # build (independent_tests.py). Report only, unless
+    # CERTO_INDEPENDENT_TESTS_STRICT turns a "verified" whose tests failed
+    # into "independent_failed".
     independent_tests: IndependentTestsResult | None = None
     # A verified run's changes to the files its checks rely on
     # (check_files.py). Report only, like independent_tests.
@@ -1244,10 +1246,11 @@ def _apply_independent_tests(
     keep_in: str | None = None,
 ) -> TaskOutcome:
     """Run the independent tests on the finished project and attach the
-    result. Report only: `verification_state` stays as it is. The tests are
-    copied to `keep_in` (the run's records folder, never the project, so a
-    later task's agent can't see them; one folder per set when there are
-    several), then the scratch folder is removed."""
+    result. `verification_state` stays as it is (see
+    `_apply_strict_independent_tests`). The tests are copied to `keep_in`
+    (the run's records folder, never the project, so a later task's agent
+    can't see them; one folder per set when there are several), then the
+    scratch folder is removed."""
     if written is None:
         return outcome
     try:
@@ -1265,6 +1268,30 @@ def _apply_independent_tests(
                 logger.warning("Could not keep the independent tests", exc_info=True)
         shutil.rmtree(written.scratch, ignore_errors=True)
     return replace(outcome, independent_tests=result)
+
+
+def _apply_strict_independent_tests(
+    outcome: TaskOutcome, cfg: Config, emit: Callable[[Message], None]
+) -> TaskOutcome:
+    """CERTO_INDEPENDENT_TESTS_STRICT: a `verified` run whose independent
+    tests failed (most sets; never `split`, `none` or `error`) becomes
+    `independent_failed`. Applied last, after the acceptance checks, so a
+    run that fails both reports the user's own check first."""
+    result = outcome.independent_tests
+    if not (
+        cfg.independent_tests_strict
+        and outcome.verification_state == "verified"
+        and result is not None
+        and result.status == "failed"
+    ):
+        return outcome
+    _emit_notice(
+        emit,
+        "Certo: the project's checks passed, but the independent tests failed "
+        f"({result.summary}). Not reporting this as verified "
+        "(CERTO_INDEPENDENT_TESTS_STRICT).",
+    )
+    return replace(outcome, verification_state="independent_failed")
 
 
 def _apply_acceptance_checks(
@@ -1609,6 +1636,7 @@ def stream_task(
                     run_summary=run_summary.to_dict(),
                 )
         outcome = _apply_acceptance_checks(outcome, cfg, emit, acceptance_checks)
+        outcome = _apply_strict_independent_tests(outcome, cfg, emit)
         if model_chain is not None:
             outcome = replace(outcome, model_decisions=tuple(model_chain.decisions))
         if state_writer is not None:
@@ -2368,6 +2396,10 @@ def _stream_escalation(
                 if cfg.artifacts_dir and run_id
                 else None,
             )
+            strict = _apply_strict_independent_tests(final_outcome, cfg, io.emit)
+            if strict is not final_outcome and state_writer is not None:
+                state_writer.finish(strict)  # STATUS.md says the final verdict
+            final_outcome = strict
     except BaseException as exc:
         captured_error = exc
         raise
