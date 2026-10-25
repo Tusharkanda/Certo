@@ -2844,7 +2844,9 @@ def test_only_a_verified_run_is_checked_for_changes(monkeypatch, tmp_path):
 
 def test_a_weakened_test_is_reported_and_the_verdict_stays(monkeypatch, tmp_path):
     (tmp_path / "tests").mkdir()
-    (tmp_path / "tests" / "test_app.py").write_text("def test_a():\n    assert run() == 2\n")
+    (tmp_path / "tests" / "test_app.py").write_text(
+        "def test_a():\n    assert run() == 2\n    assert run(1) == 3\n"
+    )
     outcome, _, _ = _phases(
         monkeypatch,
         tmp_path,
@@ -2855,7 +2857,7 @@ def test_a_weakened_test_is_reported_and_the_verdict_stays(monkeypatch, tmp_path
     assert [c.path for c in outcome.check_file_changes] == [os.path.join("tests", "test_app.py")]
     note = outcome.completion_contract.limitations[-1]
     assert "The agent changed 1 file the checks rely on" in note
-    assert "(1 line removed, 1 line added)" in note
+    assert "(1 line changed, 1 line removed)" in note
 
 
 def test_new_tests_alone_are_not_reported(monkeypatch, tmp_path):

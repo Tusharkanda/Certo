@@ -66,7 +66,7 @@ def test_changed_and_deleted_check_files_are_found(tmp_path):
     changes = check_file_changes(str(tmp_path), before)
 
     assert changes == (
-        CheckFileChange(os.path.join("tests", "test_a.py"), False, 2, 1),
+        CheckFileChange(os.path.join("tests", "test_a.py"), False, 1, 0, 1),
         CheckFileChange(os.path.join("tests", "test_b.py"), True, 2, 0),
     )
 
@@ -81,10 +81,30 @@ def test_the_note_lists_at_most_five():
     changes = tuple(CheckFileChange(f"tests/test_{i}.py", False, 1, 0) for i in range(7))
     note = changes_note(changes)
     assert note.startswith("The agent changed 7 files the checks rely on: tests/test_0.py")
-    assert "tests/test_4.py (1 line removed, 0 lines added), and 2 more." in note
+    assert "tests/test_4.py (1 line removed), and 2 more." in note
     assert "tests/test_5.py" not in note
 
 
 def test_the_note_for_a_deleted_file():
     note = changes_note((CheckFileChange("pytest.ini", True, 3, 0),))
     assert "The agent changed 1 file the checks rely on: pytest.ini (deleted)." in note
+
+
+def test_a_rewritten_line_is_changed_not_removed(tmp_path):
+    _write(tmp_path, "test_inv.py", "from inv import A\n\ndef test_a():\n    assert A()\n")
+    before = snapshot_check_files(str(tmp_path))
+    _write(
+        tmp_path,
+        "test_inv.py",
+        "from inv import A, B\n\ndef test_a():\n    assert A()\n\ndef test_b():\n    assert B()\n",
+    )
+    (change,) = check_file_changes(str(tmp_path), before)
+    assert change.described == "test_inv.py (1 line changed, 3 lines added)"
+
+
+def test_line_endings_only(tmp_path):
+    _write(tmp_path, "pytest.ini", "[pytest]\n")
+    before = snapshot_check_files(str(tmp_path))
+    (tmp_path / "pytest.ini").write_bytes(b"[pytest]\r\n")
+    (change,) = check_file_changes(str(tmp_path), before)
+    assert change.described == "pytest.ini (line endings only)"

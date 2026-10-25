@@ -53,7 +53,7 @@ each one the agent changed or deleted:
 
 ```
 Verification: verified
-  - The agent changed 1 file the checks rely on: tests/test_calc.py (1 line removed, 1 line added). The checks passed on the changed files; read the changes before you trust them.
+  - The agent changed 1 file the checks rely on: tests/test_calc.py (1 line changed). The checks passed on the changed files; read the changes before you trust them.
 ```
 
 The verdict stays `verified`, since the task may have asked for the

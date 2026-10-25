@@ -95,11 +95,11 @@ no file.
 make checks pass by weakening them: editing a test, deleting one, or
 turning a lint rule off. So before the run Certo keeps a copy of the
 files the checks rely on, and after a `verified` run it lists each one
-the agent changed or deleted, with the lines removed and added:
+the agent changed or deleted, with the lines changed, removed and added:
 
 ```
 Verification: verified
-  - The agent changed 1 file the checks rely on: tests/test_calc.py (1 line removed, 1 line added). The checks passed on the changed files; read the changes before you trust them.
+  - The agent changed 1 file the checks rely on: tests/test_calc.py (1 line changed). The checks passed on the changed files; read the changes before you trust them.
 ```
 
 These files count: test files (in a `tests`, `test`, `__tests__` or
@@ -111,9 +111,14 @@ steer tests, build and lint (`pyproject.toml`, `setup.cfg`,
 settings, `Cargo.toml`, `go.mod`, `pom.xml`, Gradle build files,
 `Makefile`). New files aren't listed: adding tests is normal.
 
+A line rewritten in place (an import that now imports one more name, a
+corrected expected value) counts as changed, not removed. Removed lines
+in a test are the ones to read first.
+
 The verdict stays `verified`, since the task may have asked for the
-change, as in the example above. Removed lines in a test are the ones to
-read first.
+change, as in the example above. On 379 saved benchmark runs, no run
+removed a test line or deleted a test, including the 8 that fooled
+Certo: see [Check files changed by benchmark runs](../benchmark/check-file-changes-0.1.24.md).
 
 ## The order of the checks
 

@@ -81,11 +81,12 @@ first item is the suggested next one.
   know yet what `qwen3.8` is best at among Certo's coding activities
   (not high-effort ones such as writing independent tests). Look for it
   in the benchmark results before building more local-only features.
-- **Changed check files: the rest** (0.1.24 lists them after a
-  `verified` run, report only; asked for on Reddit 2026-10-25). Left:
-  count them in `certo bench` reports (how often a verified run changed
-  or deleted a pre-existing test, against the hidden tests), then decide
-  whether removed test lines change the verdict.
+- **Changed check files: decide again with new data** (0.1.24 lists
+  them after a `verified` run, report only). On 379 saved bench runs
+  (2026-10-25, `scripts/count_check_file_changes.py`) no run removed a
+  test line or deleted a test, and the 8 fooled runs changed no check
+  file, so there is nothing yet to justify a verdict change. Re-run the
+  count after each baseline; also give some starters a test to break.
 - **Context management for long runs.** The SDK's own condensing
   (verify-first), plus a warning when a local model's context window is
   too small for the task (qwen3.8 at 32K).

@@ -1877,7 +1877,7 @@ def _note_check_file_changes(
     workspace: str, before: dict[str, bytes], outcome: TaskOutcome
 ) -> TaskOutcome:
     """A `verified` run that changed the files its checks rely on says so,
-    with the lines removed and added (check_files.py). The verdict stays:
+    with the lines changed, removed and added (check_files.py). The verdict stays:
     the task may have asked for the change."""
     changes = check_file_changes(workspace, before)
     if not changes:

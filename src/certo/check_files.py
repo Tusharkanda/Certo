@@ -5,7 +5,7 @@ can make them pass by weakening them: editing a test, deleting one, or
 switching a lint rule off. Certo copies the check files before the run
 (test files, and the settings files that steer tests, build and lint)
 and, after a `verified` run, reports each one the agent changed or
-deleted, with the lines removed and added. New files aren't reported:
+deleted, with the lines changed, removed and added. New files aren't reported:
 adding tests is normal. Report only; the task may have asked for it.
 """
 
@@ -87,14 +87,24 @@ def snapshot_check_files(root: str) -> dict[str, bytes]:
 class CheckFileChange:
     path: str
     deleted: bool
-    removed: int  # lines
-    added: int  # lines
+    removed: int  # lines gone
+    added: int  # new lines
+    changed: int = 0  # lines rewritten in place (an extended import, say)
 
     @property
     def described(self) -> str:
         if self.deleted:
             return f"{self.path} (deleted)"
-        return f"{self.path} ({_lines(self.removed)} removed, {_lines(self.added)} added)"
+        counts = [
+            f"{_lines(count)} {what}"
+            for count, what in (
+                (self.changed, "changed"),
+                (self.removed, "removed"),
+                (self.added, "added"),
+            )
+            if count
+        ]
+        return f"{self.path} ({', '.join(counts) or 'line endings only'})"
 
 
 def _lines(count: int) -> str:
@@ -115,13 +125,15 @@ def check_file_changes(root: str, before: dict[str, bytes]) -> tuple[CheckFileCh
             continue
         if new == old:
             continue
-        removed = added = 0
+        changed = removed = added = 0
         matcher = difflib.SequenceMatcher(None, old.splitlines(), new.splitlines(), autojunk=False)
         for tag, i1, i2, j1, j2 in matcher.get_opcodes():
             if tag != "equal":
-                removed += i2 - i1
-                added += j2 - j1
-        changes.append(CheckFileChange(path, False, removed, added))
+                rewritten = min(i2 - i1, j2 - j1)
+                changed += rewritten
+                removed += i2 - i1 - rewritten
+                added += j2 - j1 - rewritten
+        changes.append(CheckFileChange(path, False, removed, added, changed))
     return tuple(changes)
 
 

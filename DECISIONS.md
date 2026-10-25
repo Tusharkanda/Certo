@@ -1121,3 +1121,9 @@ considered and live-verification detail: `docs/ROADMAP.txt`.
   lines removed and added. New files aren't listed. The verdict stays,
   because tasks often ask for test changes; deciding when a change
   should downgrade it needs bench numbers first.
+- **Changed check files stay report only, with rewritten lines counted
+  apart** (2026-10-25, from the count on 379 saved bench runs). No run
+  removed a test line or deleted a test; the 8 fooled runs changed no
+  check file. 30 `inventory-fix` runs showed "1 line removed" only
+  because they extended the test file's import, so a line rewritten in
+  place is now "changed", and "removed" means lines really gone.
