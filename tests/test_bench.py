@@ -227,7 +227,9 @@ def test_max_cost_stops_cleanly_and_keeps_results(tmp_path, project_venv, capsys
 def test_an_independent_tests_arm_records_and_reports_them(tmp_path, project_venv, capsys):
     from certo.independent_tests import IndependentTestsResult
 
-    one = IndependentTestsResult("failed", "1 failed", "m")
+    one = IndependentTestsResult(
+        "failed", "1 failed", "m", "FAILED .certo_hidden_tests/test_a.py::test_rule - boom"
+    )
     result = IndependentTestsResult(
         "failed", "2 of 3 sets failed", "anthropic/test-model-a", sets=(one, one, one)
     )
@@ -247,7 +249,14 @@ def test_an_independent_tests_arm_records_and_reports_them(tmp_path, project_ven
         "status": "failed",
         "summary": "2 of 3 sets failed",
         "model": "anthropic/test-model-a",
-        "sets": ["failed", "failed", "failed"],
+        "sets": [
+            {
+                "status": "failed",
+                "summary": "1 failed",
+                "failing": [".certo_hidden_tests/test_a.py::test_rule"],
+            }
+        ]
+        * 3,
     }
     assert without["independent_tests"] is None
     report = (out / "results.md").read_text()

@@ -34,6 +34,7 @@ from typing import Any
 from . import __version__
 from .bench_config import DEFAULT_BENCH_FILE, Arm, BenchConfig, BenchConfigError, load_bench_config
 from .bench_report import arm_rows, cost_line, cost_summary, write_report
+from .independent_tests import failing_tests
 from .bench_strategies import STRATEGIES, RunContext
 from .bench_tasks import (
     BUILTIN_TASKS_DIR,
@@ -236,7 +237,12 @@ def _independent_record(result: Any) -> dict[str, Any] | None:
         "status": result.status,
         "summary": result.summary,
         "model": result.model,
-        "sets": [one.status for one in result.sets],
+        # Each set's result and failing tests, to tell a wrong test from a
+        # real bug afterwards (the tests themselves aren't kept).
+        "sets": [
+            {"status": one.status, "summary": one.summary, "failing": failing_tests(one)}
+            for one in result.sets
+        ],
     }
 
 
