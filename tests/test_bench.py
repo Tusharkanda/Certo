@@ -797,3 +797,31 @@ def test_the_plan_says_which_model_each_auto_run_starts_on(tmp_path, monkeypatch
     assert "picks local-coder for 1 run(s), cloud-b for 1 run(s)" in text
     # At most every candidate per run; likely only the picked one.
     assert "Estimated cost: at most ~$10.00, likely ~$4.00" in text
+
+
+def test_an_escalate_arm_can_restart_each_rung(tmp_path):
+    from certo.bench_config import BenchConfigError
+
+    arms = "  - {name: r, strategy: escalate, models: [cloud-a, cloud-b], handoff: restart}\n"
+    cfg = load_bench_config(_bench_file(tmp_path, arms))
+    assert cfg.arms[0].params["handoff"] == "restart"
+    # The default stays out of params, so older results folders still resume.
+    plain_arm = "  - {name: p, strategy: escalate, models: [cloud-a, cloud-b]}\n"
+    plain = load_bench_config(_bench_file(tmp_path, plain_arm))
+    assert "handoff" not in plain.arms[0].params
+    bad = "  - {name: r, strategy: escalate, models: [cloud-a, cloud-b], handoff: rewind}\n"
+    with pytest.raises(BenchConfigError, match="'handoff' must be one of"):
+        load_bench_config(_bench_file(tmp_path, bad))
+
+
+def test_a_saved_workspace_leaves_out_the_checkpoint_repository(tmp_path):
+    (tmp_path / ".certo" / "checkpoints").mkdir(parents=True)
+    (tmp_path / ".certo" / "STATUS.md").write_text("x")
+    (tmp_path / "checkpoints").mkdir()  # a project's own folder of that name stays
+
+    shutil.copytree(tmp_path, tmp_path.parent / "copy", ignore=bench._snapshot_ignore)
+
+    copy = tmp_path.parent / "copy"
+    assert (copy / ".certo" / "STATUS.md").exists()
+    assert not (copy / ".certo" / "checkpoints").exists()
+    assert (copy / "checkpoints").exists()

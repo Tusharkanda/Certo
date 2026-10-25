@@ -78,6 +78,7 @@ finish, or its provider fails.
 | Key | Meaning |
 |---|---|
 | `models` | Optional. A list of at least two model names, in the order to climb. Without it, the arm uses the ladder Certo builds from the active models' ratings: the same ladder for every task, printed in the plan. |
+| `handoff` | Optional, `continue` (default) or `restart`: what each rung after the first starts from, as `CERTO_ESCALATION_HANDOFF`. Two arms that differ only in this compare the two. |
 
 ```yaml
 arms:

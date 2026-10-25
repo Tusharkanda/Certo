@@ -14,6 +14,7 @@ from openhands.sdk import ConversationExecutionStatus
 from openhands.sdk.conversation.exceptions import ConversationRunError
 from openhands.sdk.llm.exceptions.types import LLMRateLimitError
 
+from certo.checkpoints import git_available, list_checkpoints
 from certo import runner
 from certo.config import Config
 from certo.verification import CheckOutcome
@@ -757,3 +758,107 @@ def test_strict_independent_tests_judge_the_final_rung_without_climbing(
     assert outcome.verification_state == "independent_failed"
     assert len(outcome.rungs) == 1  # no climb on independent_failed
     assert outcome.rungs[0].verdict == "verified"
+
+
+# --- CERTO_ESCALATION_HANDOFF=restart -------------------------------------
+
+
+def _files_seen_by_each_rung(monkeypatch, tmp_path) -> list[dict]:
+    """Wrap the fake rung so each records the files it started from."""
+    seen: list[dict] = []
+    fake = runner._run_stream_task_phases
+
+    def recording(conversation, cfg, emit, task, *args, **kwargs):
+        seen.append(
+            {
+                p.name: p.read_text()
+                for p in tmp_path.iterdir()
+                if p.is_file() and p.suffix in (".py", ".txt")
+            }
+        )
+        return fake(conversation, cfg, emit, task, *args, **kwargs)
+
+    monkeypatch.setattr(runner, "_run_stream_task_phases", recording)
+    return seen
+
+
+@pytest.mark.skipif(not git_available(), reason="checkpoints need git")
+def test_restart_gives_the_next_rung_the_original_files(tmp_path, fake_run, monkeypatch):
+    (tmp_path / "app.py").write_text("original\n")
+    seen = _files_seen_by_each_rung(monkeypatch, tmp_path)
+    fake_run.script[:] = [
+        ("retry_exhausted", 0.0, {"app.py": "rung one's attempt\n", "extra.py": "x\n"}),
+        ("verified", 0.0, {}),
+    ]
+
+    outcome, progress = _run(
+        tmp_path, _ladder(tmp_path), cfg=_cfg(tmp_path, escalation_handoff="restart")
+    )
+
+    assert outcome.verification_state == "verified"
+    assert seen[1] == {"app.py": "original\n"}  # rung one's files are gone
+    assert any("changes were undone (its work is in checkpoint" in line for line in progress)
+    assert "Certo has undone its changes" in fake_run.calls[1]["first_message"]
+    # Rung one's work can be brought back.
+    labels = [c.label for c in list_checkpoints(str(tmp_path))]
+    assert labels[:3] == ["before the agent", "before rollback", "rolled back to 1"]
+
+
+@pytest.mark.skipif(not git_available(), reason="checkpoints need git")
+@pytest.mark.skipif(not git_available(), reason="checkpoints need git")
+def test_restart_names_the_check_runs_checkpoint_when_it_holds_the_work(
+    tmp_path, fake_run, monkeypatch
+):
+    # A CLI run snapshots each check run, so the work is already kept.
+    from certo.checkpoints import snapshot
+
+    seen = _files_seen_by_each_rung(monkeypatch, tmp_path)
+    fake = runner._run_stream_task_phases
+
+    def checked(conversation, cfg, emit, task, *args, **kwargs):
+        outcome = fake(conversation, cfg, emit, task, *args, **kwargs)
+        snapshot(str(tmp_path), "checks 1: failed")
+        return outcome
+
+    monkeypatch.setattr(runner, "_run_stream_task_phases", checked)
+    fake_run.script[:] = [
+        ("retry_exhausted", 0.0, {"app.py": "attempt\n"}),
+        ("verified", 0.0, {}),
+    ]
+
+    _, progress = _run(
+        tmp_path, _ladder(tmp_path), cfg=_cfg(tmp_path, escalation_handoff="restart")
+    )
+
+    assert any("(its work is in checkpoint 2)" in line for line in progress)
+    assert "app.py" not in seen[1]
+
+
+def test_continue_is_the_default_and_keeps_the_files(tmp_path, fake_run, monkeypatch):
+    (tmp_path / "app.py").write_text("original\n")
+    seen = _files_seen_by_each_rung(monkeypatch, tmp_path)
+    fake_run.script[:] = [
+        ("retry_exhausted", 0.0, {"app.py": "rung one's attempt\n"}),
+        ("verified", 0.0, {}),
+    ]
+
+    _run(tmp_path, _ladder(tmp_path))
+
+    assert seen[1] == {"app.py": "rung one's attempt\n"}
+    assert "Certo has undone" not in fake_run.calls[1]["first_message"]
+    assert list_checkpoints(str(tmp_path)) == []  # no checkpoint without state
+
+
+def test_restart_without_git_continues_and_says_so(tmp_path, fake_run, monkeypatch):
+    monkeypatch.setattr(runner, "safe_snapshot", lambda *a, **k: None)
+    fake_run.script[:] = [
+        ("retry_exhausted", 0.0, {"app.py": "rung one's attempt\n"}),
+        ("verified", 0.0, {}),
+    ]
+
+    _, progress = _run(
+        tmp_path, _ladder(tmp_path), cfg=_cfg(tmp_path, escalation_handoff="restart")
+    )
+
+    assert any("can't restart from the original files" in line for line in progress)
+    assert (tmp_path / "app.py").read_text() == "rung one's attempt\n"

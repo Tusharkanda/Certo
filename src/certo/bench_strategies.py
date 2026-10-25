@@ -23,7 +23,7 @@ from collections.abc import Callable, Mapping
 from dataclasses import dataclass, replace
 from typing import Any, Protocol
 
-from .config import DEFAULT_MAX_ITERATIONS, Config, override_llm
+from .config import DEFAULT_MAX_ITERATIONS, ESCALATION_HANDOFFS, Config, override_llm
 from .escalation import derive_ladder, ladder_from_models
 from .model_catalog import ModelCatalog, ModelCatalogEntry
 
@@ -199,10 +199,18 @@ class EscalateStrategy:
     description = "a ladder of models, climbing on verification failure"
 
     def parse(self, arm, catalog, where):
-        reject_unknown_keys(arm, {"models"}, where)
+        reject_unknown_keys(arm, {"models", "handoff"}, where)
+        # Kept out of params at its default, so older results folders still
+        # match on --resume.
+        handoff = arm.get("handoff", "continue")
+        if handoff not in ESCALATION_HANDOFFS:
+            raise BenchConfigError(
+                f"{where}: 'handoff' must be one of: {', '.join(ESCALATION_HANDOFFS)}."
+            )
+        extra = {"handoff": handoff} if handoff != "continue" else {}
         if "models" not in arm:
             active = [name for name, entry in catalog.items() if entry.activated]
-            return {"models": None, "derived_models": active}
+            return {"models": None, "derived_models": active, **extra}
         names = arm["models"]
         if not isinstance(names, list) or len(names) < 2:
             raise BenchConfigError(
@@ -213,7 +221,7 @@ class EscalateStrategy:
             raise BenchConfigError(f"{where}: 'models' lists a model twice.")
         for i, _ in enumerate(names):
             model_name({"models": names[i]}, "models", catalog, where)
-        return {"models": list(names)}
+        return {"models": list(names), **extra}
 
     def models(self, params):
         return params["models"] if params["models"] is not None else params["derived_models"]
@@ -225,6 +233,7 @@ class EscalateStrategy:
         else:
             ladder = ladder_from_models(catalog, params["models"])
         cfg = arm_config(ladder.rungs[0].entry, ctx, params)
+        cfg = replace(cfg, escalation_handoff=params.get("handoff", "continue"))
         outcome = ctx.stream(ctx.task_text, cfg=cfg, ladder=ladder)
         rungs = tuple(
             {**r.to_dict(), "final": r.number == outcome.final_rung} for r in outcome.rungs

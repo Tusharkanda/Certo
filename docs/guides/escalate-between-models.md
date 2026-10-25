@@ -227,6 +227,27 @@ The file lists come from a listing of the folder before and after the
 rung, leaving out caches, environments (`.venv`, `node_modules`) and
 `.certo/`.
 
+### Start each rung from the original files
+
+By default the next model continues from the files the previous one left.
+With `CERTO_ESCALATION_HANDOFF=restart`, Certo first puts the files back as
+they were before the first model started, and the next model starts
+clean. It still gets the note and the failing checks, as a record of what
+didn't work:
+
+```text
+Another model already worked on this task in this folder and couldn't finish it. Certo has undone its changes: the files are back as they were before any model started. What it did and why it failed is below, so you can avoid the same mistakes; start from the files as they are now. This summary was written by Certo from what it recorded, not by a model.
+```
+
+The previous model's work isn't lost: Certo keeps it as a
+[checkpoint](checkpoints.md) first, and says which one, so
+`certo rollback N` brings it back. Restart needs git; without it, the
+next model continues, with a note. Files a checkpoint leaves out
+(environments such as `.venv` and `node_modules`, ignored files) stay as
+they are. Whether restart beats continue hasn't been measured yet, which
+is why it is off by default; a benchmark arm can compare them
+(`handoff: restart`, see [the benchmark file](../reference/bench-yaml.md#strategy-escalate)).
+
 ## Limits
 
 - **Time.** `CERTO_MAX_TASK_SECONDS` covers every rung together, as it
@@ -307,7 +328,8 @@ task moves to the next one, recorded as a "provider or run failure".
 - **CLI:** `--escalate [LADDER]`. It can't be combined with
   `--auto-model`, `--model` or `--resume`.
 - **Settings:** `CERTO_MODEL_SELECTION=escalate`, and optionally
-  `CERTO_ESCALATION_LADDER=NAME` (see [Configuration](../reference/configuration.md)).
+  `CERTO_ESCALATION_LADDER=NAME` and `CERTO_ESCALATION_HANDOFF=restart`
+  (see [Configuration](../reference/configuration.md)).
 - **Server:** an `escalate` field on `POST /tasks` and the WebSocket:
   `true`, or a ladder name.
 

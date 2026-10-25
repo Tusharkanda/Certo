@@ -10,6 +10,7 @@ import logging
 import os
 import re
 import shutil
+import subprocess
 import tempfile
 import time
 import uuid
@@ -48,7 +49,13 @@ from .check_files import (
 )
 from .config import Config, load_config, override_llm
 from .console import quiet_sdk_logs, visualizer_for
-from .checkpoints import safe_snapshot
+from .checkpoints import (
+    Checkpoint,
+    CheckpointError,
+    list_checkpoints,
+    rollback,
+    safe_snapshot,
+)
 from .cost_limit import cost_limit, cost_limit_reached, pause_at_cost_limit, set_cost_limit
 from .deadline import stop_at_deadline
 from .independent_tests import (
@@ -2215,6 +2222,38 @@ def _cost_note(rungs: Sequence[RungResult]) -> str:
     return note
 
 
+def _restart_rung(
+    cfg: Config, restart_from: Checkpoint | None, previous: RungResult, io: _EscalationIO
+) -> bool:
+    """CERTO_ESCALATION_HANDOFF=restart: put the files back as they were
+    before the first rung (the previous rung's work is snapshotted first,
+    so `certo rollback` can bring it back). False when there is nothing to
+    undo, or no checkpoint to restore from: the rung then continues."""
+    if cfg.escalation_handoff != "restart":
+        return False
+    if restart_from is None:
+        io.notify(
+            "Certo: can't restart from the original files (no checkpoint: is git installed?); "
+            "the next model continues from the files as they are."
+        )
+        return False
+    if not (previous.changes.created or previous.changes.modified or previous.changes.deleted):
+        return False
+    try:
+        latest = list_checkpoints(cfg.workspace)[-1]
+        kept, _ = rollback(cfg.workspace, restart_from.number)
+    except (CheckpointError, OSError, subprocess.SubprocessError) as exc:
+        io.notify(f"Certo: couldn't restore the original files ({exc}); the next model continues.")
+        return False
+    # None: the files already matched the last checkpoint (a check run's).
+    where = f" (its work is in checkpoint {(kept or latest).number})"
+    io.notify(
+        f"Certo: {previous.name}'s changes were undone{where}; the next model starts from "
+        "the files as they were before the first model."
+    )
+    return True
+
+
 def _escalation_stop_reason(cfg: Config, deadline: float, rungs: Sequence[RungResult]) -> str:
     """Why the next rung must not start, or "" when it may."""
     if time.monotonic() >= deadline:
@@ -2351,7 +2390,15 @@ def _stream_escalation(
     # final result, whichever rung produced it.
     first_cfg = _rung_config(cfg, ladder.rungs[0])
     written = _write_independent_tests(task, first_cfg, cfg, io.emit)
-    _checkpoint(cfg, "before the agent")
+    # CERTO_ESCALATION_HANDOFF=restart: every later rung starts from these
+    # files, so they are always kept, even when checkpoints are off.
+    restart_from = (
+        safe_snapshot(cfg.workspace, "before the agent", always=True)
+        if cfg.escalation_handoff == "restart"
+        else None
+    )
+    if restart_from is None:
+        _checkpoint(cfg, "before the agent")
     if written is not None:
         per_model_metrics.update(written.metrics)
         efforts.update(dict.fromkeys(written.usage_ids, first_cfg.reasoning_effort))
@@ -2407,8 +2454,11 @@ def _stream_escalation(
                     _metrics_cost(written) + sum(r.cost for r in rungs),
                 )
 
+                restarted = number > 1 and _restart_rung(cfg, restart_from, rungs[-1], io)
                 first_message = (
-                    None if number == 1 else handoff_message(task, rungs, failing_output)
+                    None
+                    if number == 1
+                    else handoff_message(task, rungs, failing_output, restarted=restarted)
                 )
                 before = workspace_listing(cfg.workspace)
                 rung_started = time.monotonic()

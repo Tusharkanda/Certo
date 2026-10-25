@@ -971,6 +971,15 @@ def test_escalate_is_a_model_selection_mode_with_an_optional_ladder():
     assert load_config(_base_env()).escalation_ladder == ""
 
 
+def test_escalation_handoff_is_continue_unless_set_to_restart():
+    assert load_config(_base_env()).escalation_handoff == "continue"
+    assert load_config(_base_env(CERTO_ESCALATION_HANDOFF="Restart")).escalation_handoff == (
+        "restart"
+    )
+    with pytest.raises(ConfigError, match="CERTO_ESCALATION_HANDOFF must be one of"):
+        load_config(_base_env(CERTO_ESCALATION_HANDOFF="rewind"))
+
+
 @pytest.mark.parametrize(("value", "expected"), [("", None), ("2.5", 2.5), ("0", 0.0)])
 def test_max_task_cost(value, expected):
     assert load_config(_base_env(CERTO_MAX_TASK_COST=value)).max_task_cost == expected

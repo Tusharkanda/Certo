@@ -20,6 +20,12 @@ files):
 A checkpoint the files haven't changed since is skipped. Checkpoints
 stay between runs, so a project collects them; they are numbered from 1.
 
+With `--escalate` and `CERTO_ESCALATION_HANDOFF=restart`, Certo also uses
+them itself: before each model after the first, it keeps the previous
+model's work as a checkpoint (`before rollback`) and puts the files back
+as they were `before the agent` (`rolled back to N`). See
+[Start each rung from the original files](escalate-between-models.md#start-each-rung-from-the-original-files).
+
 They live in the project's `.certo/checkpoints/` folder, a separate git
 repository that Certo keeps for itself. Your own git repository, if
 there is one, is never touched: no commit, branch, stash or change to

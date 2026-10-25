@@ -103,10 +103,11 @@ first item is the suggested next one.
 - **Context management for long runs.** The SDK's own condensing
   (verify-first), plus a warning when a local model's context window is
   too small for the task (qwen3.8 at 32K).
-- **Escalation "restart" mode.** Start the next rung from the original
-  files instead of the previous rung's. Checkpoints (0.1.25) already hold
-  them: `checkpoints.rollback` to `before the agent` before the rung.
-  Measure on the benchmark before making it a ladder option.
+- **Measure escalation's restart mode.** `CERTO_ESCALATION_HANDOFF=restart`
+  exists (0.1.25, off by default). Bench two escalate arms that differ only
+  in `handoff`, on tasks where the first rung fails (task set v2's larger
+  tasks with `qwen3.8` first), then decide whether it becomes a ladder
+  option or the default.
 - **Automatic use of checkpoints.** Undo a fix attempt that left more
   checks failing than before. Changes agent behaviour, so benchmark it
   on a local and a cloud model first (the Author chose manual rollback

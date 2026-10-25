@@ -28,6 +28,7 @@ DOCKER_PLATFORMS = ("linux/amd64", "linux/arm64")
 VERIFY_TESTS_MODES = ("always", "never")
 TASK_STORE_BACKENDS = ("memory", "redis", "sqlite", "mysql", "postgres")
 MODEL_SELECTION_MODES = ("manual", "auto", "escalate")
+ESCALATION_HANDOFFS = ("continue", "restart")
 
 logger = logging.getLogger(__name__)
 
@@ -227,6 +228,11 @@ class Config:
     # from models_list.yaml to climb; blank: `default`, else a derived one
     # (see escalation.py).
     escalation_ladder: str = ""
+    # CERTO_ESCALATION_HANDOFF: what the next rung starts from. "continue"
+    # (default): the files as the previous rung left them. "restart": the
+    # files as they were before the first rung, restored from a checkpoint
+    # (the previous rung's work stays in one, see checkpoints.py).
+    escalation_handoff: str = "continue"
     # CERTO_MAX_TASK_COST: a USD cap on a task, every rung and the
     # independent tests included. The agent is stopped once the cost
     # reaches it (cost_limit.py), and no escalation rung starts past it;
@@ -690,6 +696,9 @@ def load_config(
     task_profiles_file = _get(env, "TASK_PROFILES_FILE") or ""
     escalation_file = _get(env, "ESCALATION_FILE") or ""
     escalation_ladder = _get(env, "ESCALATION_LADDER") or ""
+    escalation_handoff = _parse_choice(
+        env, "ESCALATION_HANDOFF", default="continue", choices=ESCALATION_HANDOFFS
+    )
     max_task_cost = _parse_optional_cost(env, "MAX_TASK_COST")
     artifacts_dir = _get(env, "ARTIFACTS_DIR") or ""
     no_worktree_warning = _parse_bool(env, "NO_WORKTREE_WARNING", default=False)
@@ -743,6 +752,7 @@ def load_config(
         task_profiles_file=task_profiles_file,
         escalation_file=escalation_file,
         escalation_ladder=escalation_ladder,
+        escalation_handoff=escalation_handoff,
         max_task_cost=max_task_cost,
         artifacts_dir=artifacts_dir,
         no_worktree_warning=no_worktree_warning,

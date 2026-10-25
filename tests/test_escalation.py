@@ -331,3 +331,26 @@ def test_one_model_at_two_efforts_is_told_apart_by_its_effort(tmp_path):
     assert first.to_dict()["reasoning_effort"] == "low"
     # A rung without its own effort runs at its model entry's, if any.
     assert _rung("verified").described == "m (x/m, effort default)"
+
+
+def test_a_restarted_handoff_says_the_changes_were_undone():
+    from certo.escalation import handoff_message
+
+    message = handoff_message(
+        "Build it",
+        [_rung("retry_exhausted", created=("app.py",))],
+        "E  assert 1 == 2",
+        restarted=True,
+    )
+
+    assert "Certo has undone its changes" in message
+    assert "- Files it created: app.py" in message
+    assert "failing, on its version (now undone):" in message
+
+
+def test_a_restart_after_no_work_reads_like_a_continue():
+    from certo.escalation import handoff_message
+
+    message = handoff_message("Build it", [_rung("inconclusive")], "", restarted=True)
+
+    assert "undone" not in message

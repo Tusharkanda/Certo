@@ -58,9 +58,18 @@ from .model_pricing import (
 DEFAULT_RESULTS_DIR = "bench-results"
 # Verdicts where the agent didn't finish on its own, so it made no claim.
 _NO_CLAIM_VERDICTS = ("stuck", "budget_exhausted", "cost_exhausted", "confirmation_required")
-_SNAPSHOT_IGNORE = shutil.ignore_patterns(
+_SKIPPED = shutil.ignore_patterns(
     ".venv", "venv", "node_modules", "__pycache__", ".pytest_cache", ".ruff_cache"
 )
+
+
+def _snapshot_ignore(folder: str, names: list[str]) -> set[str]:
+    """What a saved workspace leaves out: environments and caches, and the
+    checkpoint repository a restart-mode run keeps in `.certo/`."""
+    skipped = set(_SKIPPED(folder, names))
+    if os.path.basename(folder) == ".certo" and "checkpoints" in names:
+        skipped.add("checkpoints")
+    return skipped
 
 
 @dataclass(frozen=True)
@@ -201,7 +210,7 @@ def execute_run(
         snapshot = out_dir / "workspaces" / planned.run_id
         if snapshot.exists():
             shutil.rmtree(snapshot)
-        shutil.copytree(workspace, snapshot, ignore=_SNAPSHOT_IGNORE, symlinks=True)
+        shutil.copytree(workspace, snapshot, ignore=_snapshot_ignore, symlinks=True)
     finally:
         shutil.rmtree(workspace, ignore_errors=True)
         shutil.rmtree(isolation, ignore_errors=True)
@@ -464,6 +473,8 @@ def _print_plan(
             note += f" (context window {arm.params['context_tokens']:,} tokens)"
         if arm.params.get("condense") is False:
             note += " (no condensing)"
+        if arm.params.get("handoff") == "restart":
+            note += " (each rung restarts from the original files)"
         print(f"  {arm.name}: {arm.strategy}, {'; '.join(parts)}, {runs} run(s){note}")
     line = f"  Estimated cost: at most ~${at_most:.2f}"
     if likely_known and abs(likely - at_most) > 0.005:

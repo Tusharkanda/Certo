@@ -117,6 +117,17 @@ on, each record keeps the task's profile, and `results.md` counts how
 many runs started on each model. See
 [`strategy: auto`](../reference/bench-yaml.md#strategy-auto).
 
+## New: escalation can restart each model from the original files
+
+With `CERTO_ESCALATION_HANDOFF=restart`, the next model on a ladder starts
+from the files as they were before the first model, not from the
+previous model's half-done work. That work is kept as a checkpoint
+first, so `certo rollback` can bring it back, and the next model still
+gets Certo's note on what was tried and the failing checks. It is off by
+default until a benchmark shows when it helps; a benchmark escalate arm
+takes `handoff: restart` to compare. See
+[Start each rung from the original files](../guides/escalate-between-models.md#start-each-rung-from-the-original-files).
+
 ## Fixed: a Node project with no tests is no longer `verified`
 
 `node --test` exits successfully when it finds no test files, so a

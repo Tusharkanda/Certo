@@ -425,12 +425,23 @@ def handoff_task(message: str) -> str | None:
     return message.split(marker, 1)[1]
 
 
-def handoff_message(task: str, previous: Sequence[RungResult], failing_output: str) -> str:
+def handoff_message(
+    task: str, previous: Sequence[RungResult], failing_output: str, *, restarted: bool = False
+) -> str:
     """The first message of a rung after the first: the original task, a
     note Certo writes from recorded facts, and the real output of the checks
-    that were failing. The files stay in the folder as they were left."""
+    that were failing. The files stay in the folder as they were left, or,
+    when `restarted`, are back as they were before the first rung."""
     last = previous[-1]
-    if last.verdict == "inconclusive" and not last.did_no_work:
+    if restarted and _changed_any(last):
+        intro = (
+            "Another model already worked on this task in this folder and couldn't "
+            "finish it. Certo has undone its changes: the files are back as they were "
+            "before any model started. What it did and why it failed is below, so you "
+            "can avoid the same mistakes; start from the files as they are now. This "
+            "summary was written by Certo from what it recorded, not by a model."
+        )
+    elif last.verdict == "inconclusive" and not last.did_no_work:
         intro = (
             "Another model already worked on this task in this folder, but left nothing "
             "Certo could check: no test ran, or no check could run. Its "
@@ -482,7 +493,12 @@ def handoff_message(task: str, previous: Sequence[RungResult], failing_output: s
         lines.append(f"- Earlier models on this task: {earlier}")
     lines += ["", HANDOFF_TASK_HEADING, "", task.strip()]
     if failing_output:
-        lines += ["", "Output of the checks that were failing:", "", failing_output]
+        heading = (
+            "Output of the checks that were failing, on its version (now undone):"
+            if restarted and _changed_any(last)
+            else "Output of the checks that were failing:"
+        )
+        lines += ["", heading, "", failing_output]
     return "\n".join(lines)
 
 

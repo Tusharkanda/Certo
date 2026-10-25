@@ -1242,3 +1242,14 @@ considered and live-verification detail: `docs/ROADMAP.txt`.
   changes stay in the folder with a checkpoint before it, so
   `certo rollback` can undo them by hand (manual rollback, as decided
   for checkpoints).
+- **Escalation restart mode is a setting, off by default**
+  (2026-10-25). `CERTO_ESCALATION_HANDOFF=continue|restart`, and
+  `handoff:` on a bench escalate arm, so the two can be compared before
+  either becomes a per-ladder option or the default (unmeasured). Restart
+  takes an `always` "before the agent" checkpoint even when checkpoints
+  are off (library, bench), then before each later rung that changed
+  files calls `checkpoints.rollback`, which keeps the previous rung's work
+  as "before rollback". The handoff note still lists what the previous
+  model did and its failing output, marked as undone. Without git it
+  continues, with a notice. Bench workspaces leave out
+  `.certo/checkpoints`.
