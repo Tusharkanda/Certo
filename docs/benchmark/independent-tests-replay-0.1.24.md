@@ -133,7 +133,9 @@ written by a stronger model than the one doing the build.
   3 times. In this replay the same task's sets passed it every time. See
   [Independent tests](../guides/independent-tests.md#what-you-see).
   The task now says plainly that only the sign decides which side a
-  transaction is on.
+  transaction is on. Three new Haiku sets written after that
+  (2026-10-25, $0.03) each tested that rule, and all three passed the
+  reference solution and failed the starter.
 - "Right" means the hidden tests passed. Some of those projects have
   real bugs, as above, so a few "false alarms" in the first table are
   correct catches.

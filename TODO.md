@@ -71,12 +71,8 @@ first item is the suggested next one.
   `--resume`/`STATUS.md`. The main step from "small task" to "app".
 - **Independent tests: the rest** (0.1.24: `--independent-tests`, three
   sets by default with a 2-of-3 vote, report only; replay in
-  `docs/benchmark/independent-tests-replay-0.1.24.md`). Left: (1)
-  `ledger-transfers` wording rewritten 2026-10-25 (only the sign decides
-  outgoing/incoming; writers had read it as a role given by name): write
-  fresh Haiku sets for that task and check they pass the reference
-  before claiming the fix works; (2) decide whether a 2-of-3 failure
-  changes the verdict; (3) server mode; (4) maybe an option for a
+  `docs/benchmark/independent-tests-replay-0.1.24.md`). Left: (1) decide whether a 2-of-3 failure
+  changes the verdict; (2) server mode; (3) maybe an option for a
   different writer model than the build's. The `qwen3.8` replay
   (2026-10-25) caught 2 of 8 fooled runs with the vote (Haiku: 7 of 8),
   and the Author keeps qwen away from high-effort work, so its own tests
