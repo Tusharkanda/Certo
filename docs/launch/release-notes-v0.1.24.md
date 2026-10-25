@@ -1,6 +1,21 @@
 # Certo v0.1.24
 
-Not released yet.
+This release is about checks that don't come from the agent that did the
+work:
+
+- **Independent tests:** with `--independent-tests`, three short
+  conversations write tests from the task before the agent builds, and
+  Certo runs them after the verdict. Report only for now. On 379 saved
+  benchmark projects they caught 7 of the 8 runs that had fooled Certo;
+  in 39 live runs they failed right work once, with a wrong test.
+- **Changed check files:** a `verified` run lists the test files and
+  check settings the agent changed, so a weakened test shows up.
+- **Time budget:** a run that runs out of time is now stopped, instead
+  of one command waiting for hours.
+- **Safety:** Certo doesn't start while OpenHands plugins Certo hasn't
+  checked would load.
+- **Benchmark:** arms can turn on independent tests, and `--stop-at`
+  ends a long benchmark at a set time, for runs over several nights.
 
 ## New: independent tests (report only)
 
@@ -29,6 +44,10 @@ fooled Certo, and failed none of the reference solutions, with
 `claude-haiku-5-5` writing them. Written by the local `qwen3.8:27b`,
 they caught only 2 of the 8:
 [Independent tests on saved projects](../benchmark/independent-tests-replay-0.1.24.md).
+In 39 live benchmark runs with Haiku, they failed 1 of the 38 runs
+whose work was right (a wrong test), took about 34 seconds per run to
+write, and doubled the cost:
+[Independent tests in live benchmark runs](../benchmark/independent-tests-live-0.1.24.md).
 Local runs, not on `--resume`, not in server mode yet. See
 [Independent tests](../guides/independent-tests.md).
 
@@ -37,20 +56,8 @@ Local runs, not on `--resume`, not in server mode yet. See
 A benchmark arm can turn them on with `independent_tests: true`. Each
 run writes them before the build and records their result, and
 `results.md` counts how often they failed on right work and on runs
-that fooled Certo. See
+that fooled Certo; each run's record keeps the failing tests. See
 [the benchmark file](../reference/bench-yaml.md#arms).
-
-## Changed: Certo doesn't start while OpenHands plugins would load
-
-OpenHands, the agent toolkit under Certo, loads plugins into every run on
-its own: from your user folders (`~/.agents/plugins/`,
-`~/.openhands/plugins/`) and, for a project Certo generates, from a git
-repository around it. A plugin can add skills, tools and hooks that
-Certo hasn't checked. Now Certo looks before a run, and before
-`certo bench`, and doesn't start when it finds one, naming each plugin
-and its folder. A project's own plugins, and a repository's plugins when
-you run Certo on an existing folder, are still fine. See
-[OpenHands plugins](../guides/manage-skills.md#openhands-plugins).
 
 ## New: a verified run lists the check files the agent changed
 
@@ -75,6 +82,18 @@ if it's already past today). The run in progress finishes and is saved,
 so a long benchmark can run one slice per night and continue with
 `--resume`, without stopping it by hand and losing a run. See
 [Benchmark models and strategies](../guides/benchmark.md#run-it).
+
+## Changed: Certo doesn't start while OpenHands plugins would load
+
+OpenHands, the agent toolkit under Certo, loads plugins into every run on
+its own: from your user folders (`~/.agents/plugins/`,
+`~/.openhands/plugins/`) and, for a project Certo generates, from a git
+repository around it. A plugin can add skills, tools and hooks that
+Certo hasn't checked. Now Certo looks before a run, and before
+`certo bench`, and doesn't start when it finds one, naming each plugin
+and its folder. A project's own plugins, and a repository's plugins when
+you run Certo on an existing folder, are still fine. See
+[OpenHands plugins](../guides/manage-skills.md#openhands-plugins).
 
 ## Fixed: the time budget now stops a run in progress
 

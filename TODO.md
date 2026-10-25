@@ -65,15 +65,25 @@ first item is the suggested next one.
   `--resume`/`STATUS.md`. The main step from "small task" to "app".
 - **Independent tests: the rest** (0.1.24: `--independent-tests`, three
   sets by default with a 2-of-3 vote, report only; replay in
-  `docs/benchmark/independent-tests-replay-0.1.24.md`). Left: (1) a
-  live Haiku arm with them on (`independent_tests: true`, 13 tasks × 3) for extra time, cost and false alarms (DECISIONS
-  2026-10-25: no local arm, the catch rate rests on the replay); (2)
-  from those numbers, decide whether a 2-of-3 failure changes the
-  verdict; (3) server mode; (4) maybe an option for a
+  `docs/benchmark/independent-tests-replay-0.1.24.md`). Live Haiku arm
+  done 2026-10-25 (`docs/benchmark/independent-tests-live-0.1.24.md`: 1
+  of 38 right runs failed, by a wrong test; ~34 s to write per run; cost
+  about doubled). Left: (1) the writer sometimes gets an expected number
+  wrong (`duration-parser`: 7625 for `"2h 5m 10s"`, in 2 of 3 sets at
+  times); try a writer instruction to work out expected values from the
+  task's own examples, measured on a replay; (2) decide whether a 2-of-3
+  failure changes the verdict; (3) server mode; (4) maybe an option for a
   different writer model than the build's. The `qwen3.8` replay
   (2026-10-25) caught 2 of 8 fooled runs with the vote (Haiku: 7 of 8),
   and the Author keeps qwen away from high-effort work, so its own tests
   aren't the answer for local users.
+- **`room-bookings` hidden test is stricter than the task** (2026-10-25,
+  live Haiku arm). A `204` sent with `Content-Type: application/json`
+  and no body fails the hidden tests (they parse any JSON-marked
+  response), though the task only says "`204` with no body". One fooled
+  run of 39 came from it. Either say it in the task or skip parsing an
+  empty body in the hidden test; both change the task set's hash, so do
+  it with the next task-set change.
 - **Find the best use of local models for coding.** The Author doesn't
   know yet what `qwen3.8` is best at among Certo's coding activities
   (not high-effort ones such as writing independent tests). Look for it

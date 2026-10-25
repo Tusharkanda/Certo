@@ -111,6 +111,17 @@ Measured on 379 projects from earlier benchmark runs, with
   false alarms, but with the vote they caught only 2 of the 8, and none
   of the real bugs. A weaker model writes weaker tests.
 
+In 39 live benchmark runs with Haiku building and writing the tests (see
+[Independent tests in live benchmark runs](../benchmark/independent-tests-live-0.1.24.md)):
+
+- They failed 1 of the 38 runs whose work was right, and that failing
+  test was wrong: it expected the wrong number of seconds for
+  `"2h 5m 10s"`.
+- Writing them took about 34 seconds per run, and the benchmark cost
+  about twice as much as without them.
+- The one run that fooled Certo broke a rule the task doesn't state, so
+  tests written from the task couldn't catch it.
+
 So read a failing independent test before you trust it either way.
 
 ## In the benchmark

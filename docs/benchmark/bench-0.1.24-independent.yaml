@@ -1,0 +1,10 @@
+# Independent tests measured live (Certo 0.1.24, task set version 2):
+# Haiku builds every task three times with independent tests on, for the
+# extra time and cost they add and how often they fail on right work.
+# Run it with: certo bench --config bench-0.1.24-independent.yaml --parallel 3
+# Every model below must be enabled in your models.yaml; see
+# docs/guides/write-a-benchmark-file.md.
+tasks: all
+repeats: 3
+arms:
+  - {name: haiku-independent, strategy: single, model: claude-haiku-5-5, independent_tests: true}
