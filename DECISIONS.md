@@ -1099,3 +1099,9 @@ considered and live-verification detail: `docs/ROADMAP.txt`.
   report only: a live `ledger-transfers` run showed all three sets
   sharing one misreading invited by the task's wording, so the vote
   removes random wrong tests, not shared ones.
+- **`ledger-transfers`: the sign alone decides the side** (the Author,
+  2026-10-25). The task's sentence "the outgoing amount is negative" led
+  most independent-test writers to treat "outgoing" as a role given by
+  name. The rule is unchanged, so the task set stays version 2; its hash
+  changes, so runs from before this aren't compared with later ones
+  automatically.

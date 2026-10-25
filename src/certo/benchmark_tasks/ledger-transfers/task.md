@@ -32,12 +32,13 @@ def find_transfers(transactions) -> list[tuple[Transaction, Transaction]]:
 ```
 
 It returns the transfers among `transactions` as `(outgoing, incoming)`
-pairs. An outgoing and an incoming transaction are a transfer when all
-of these hold:
+pairs. Only the sign of the amount says which side a transaction is on:
+a negative amount is outgoing, a positive one is incoming. The account
+and the description never decide it. An outgoing and an incoming
+transaction are a transfer when all of these hold:
 
 - they are in different accounts;
-- the outgoing amount is negative, the incoming one positive, and they
-  are the same amount apart from the sign, in the same currency;
+- they are the same amount apart from the sign, in the same currency;
 - the incoming one is dated 0 to 3 days after the outgoing one
   (3 days included), never before it.
 

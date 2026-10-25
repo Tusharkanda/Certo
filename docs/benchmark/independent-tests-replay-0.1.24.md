@@ -132,6 +132,8 @@ written by a stronger model than the one doing the build.
   help; three more sets for that task failed its reference solution 2 of
   3 times. In this replay the same task's sets passed it every time. See
   [Independent tests](../guides/independent-tests.md#what-you-see).
+  The task now says plainly that only the sign decides which side a
+  transaction is on.
 - "Right" means the hidden tests passed. Some of those projects have
   real bugs, as above, so a few "false alarms" in the first table are
   correct catches.
