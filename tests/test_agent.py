@@ -224,3 +224,18 @@ def test_terminal_tool_spec_is_untouched_without_a_terminal_env():
 
     terminal = next(t for t in agent.tools if t.name == "terminal")
     assert terminal.params == {}
+
+
+def test_the_condenser_summarizes_only_near_the_context_window():
+    from openhands.sdk.context.condenser import LLMSummarizingCondenser
+
+    agent = build_agent(_cfg())
+
+    assert isinstance(agent.condenser, LLMSummarizingCondenser)
+    assert agent.condenser.llm.model == agent.llm.model
+    assert agent.condenser.max_size == 1_000_000  # no event-count trigger
+    assert agent.condenser.keep_first == 4
+
+
+def test_the_condenser_can_be_turned_off():
+    assert build_agent(_cfg(condense=False)).condenser is None

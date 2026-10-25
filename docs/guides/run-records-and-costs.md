@@ -28,6 +28,12 @@ Run summary:
   `llamafile/`) costs nothing. When LiteLLM has no price for any other
   model, the line ends with `+ unknown (no pricing data for ...)`. That
   means unknown, not free.
+- **Older steps summarized** appears only when the conversation nearly
+  filled the model's context window: the agent framework then summarized
+  its older steps, keeping the task and the latest steps, and the run
+  went on. The summary is written by the same model, and its tokens are
+  in the totals. It says how many times, for example
+  `Older steps summarized: once (the context window was nearly full)`.
 
 ## Keep a record of every run
 

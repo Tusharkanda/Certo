@@ -15,7 +15,7 @@ import time
 import uuid
 import weakref
 from collections.abc import Callable, Sequence
-from dataclasses import dataclass, replace
+from dataclasses import dataclass, field, replace
 from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
@@ -30,7 +30,7 @@ from openhands.sdk import (
 )
 from openhands.sdk.conversation import ConversationState
 from openhands.sdk.conversation.exceptions import ConversationRunError
-from openhands.sdk.event import ActionEvent, ObservationEvent
+from openhands.sdk.event import ActionEvent, Condensation, ObservationEvent
 from openhands.sdk.event.conversation_error import ConversationErrorEvent
 from openhands.sdk.llm.exceptions.types import LLMError
 from openhands.sdk.security.confirmation_policy import AlwaysConfirm
@@ -1445,12 +1445,21 @@ def stream_task(
         # there (the library default, the benchmark) takes none.
         cfg = replace(cfg, checkpoints=False)
 
+    condensed = [0]
+
     def on_event(event: Event) -> None:
         if isinstance(event, LLMConvertibleEvent):
             message = event.to_llm_message()
             checkpoint_buffer.append(message)
             all_messages.append(message)
             emit(message)
+        elif isinstance(event, Condensation):
+            condensed[0] += 1
+            _emit_notice(
+                emit,
+                "Certo: the conversation nearly filled the model's context window, so older "
+                "steps were summarized (the task and the latest steps are kept).",
+            )
 
     if ladder is None and cfg.model_selection == "escalate":
         ladder = load_ladder(
@@ -1475,6 +1484,7 @@ def stream_task(
                 on_awaiting_input=on_awaiting_input,
                 on_escalate=on_escalate,
                 on_progress=on_progress,
+                condensed=condensed,
             ),
             acceptance_checks=acceptance_checks,
             run_id=run_id,
@@ -1637,7 +1647,9 @@ def stream_task(
             if written is not None:
                 per_model_metrics.update(written.metrics)
                 efforts.update(dict.fromkeys(written.usage_ids, agent_cfg.reasoning_effort))
-            run_summary = summarize_run(time.monotonic() - run_started, per_model_metrics, efforts)
+            run_summary = summarize_run(
+                time.monotonic() - run_started, per_model_metrics, efforts, condensed[0]
+            )
             if cfg.artifacts_dir:
                 stats = conversation.conversation_stats
                 write_run_artifacts(
@@ -2075,6 +2087,8 @@ class _EscalationIO:
     on_awaiting_input: OnAwaitingInput | None
     on_escalate: OnEscalate | None
     on_progress: Callable[[str], None] | None
+    # How many times the condenser summarized older steps, over every rung.
+    condensed: list[int] = field(default_factory=lambda: [0])
 
     def notify(self, text: str) -> None:
         """An escalation line: a notice in the transcript, and printed."""
@@ -2484,7 +2498,7 @@ def _stream_escalation(
                 combined_metrics={},
                 per_model_metrics=per_model_metrics,
                 run_summary=summarize_run(
-                    time.monotonic() - run_started, per_model_metrics, efforts
+                    time.monotonic() - run_started, per_model_metrics, efforts, io.condensed[0]
                 ).to_dict(),
                 rungs=rung_dicts(rungs, final_rung if captured_error is None else None),
             )
@@ -2497,7 +2511,9 @@ def _stream_escalation(
         rungs=tuple(rungs),
         final_rung=final_rung,
         model_decisions=tuple(decisions),
-        run_summary=summarize_run(time.monotonic() - run_started, per_model_metrics, efforts),
+        run_summary=summarize_run(
+            time.monotonic() - run_started, per_model_metrics, efforts, io.condensed[0]
+        ),
     )
 
 

@@ -201,6 +201,9 @@ class Config:
     # CERTO_CHECKPOINTS: snapshots of the project in .certo/checkpoints/
     # during a run, for `certo rollback` (checkpoints.py).
     checkpoints: bool = True
+    # CERTO_CONDENSE: let the SDK summarize older steps when the
+    # conversation nears the model's context window (agent.py).
+    condense: bool = True
 
     # The full SDK console output: the system prompt, the whole task with
     # its skills, the SDK's INFO logs. Off by default (console.py shows a
@@ -669,6 +672,7 @@ def load_config(
     )
     independent_tests_sets = _parse_positive_int(env, "INDEPENDENT_TESTS_SETS", default=3)
     checkpoints = _parse_bool(env, "CHECKPOINTS", default=True)
+    condense = _parse_bool(env, "CONDENSE", default=True)
     if independent_tests_sets > MAX_INDEPENDENT_TESTS_SETS:
         raise ConfigError(
             f"CERTO_INDEPENDENT_TESTS_SETS must be at most {MAX_INDEPENDENT_TESTS_SETS}, "
@@ -730,6 +734,7 @@ def load_config(
         independent_tests_sets=independent_tests_sets,
         independent_tests_strict=independent_tests_strict,
         checkpoints=checkpoints,
+        condense=condense,
         verbose=verbose,
         model_selection=model_selection,
         models_file=models_file,

@@ -2633,6 +2633,29 @@ def test_stream_task_saves_the_conversation_and_the_final_verdict(monkeypatch, t
     assert "verdict `retry_exhausted`" in (tmp_path / ".certo" / "STATUS.md").read_text()
 
 
+def test_a_condensation_is_announced_and_counted(monkeypatch, tmp_path):
+    from openhands.sdk.event import Condensation
+
+    _stub_for_state_tests(monkeypatch)
+    notices: list = []
+    monkeypatch.setattr(runner, "_emit_notice", lambda _emit, text: notices.append(text))
+
+    def fake_phases(conversation, cfg, emit, task, *args, **_kwargs):
+        (callback,) = conversation.kwargs["callbacks"]
+        callback(
+            Condensation(
+                forgotten_event_ids=set(), summary="s", summary_offset=1, llm_response_id="r"
+            )
+        )
+        return _verified_outcome()
+
+    monkeypatch.setattr(runner, "_run_stream_task_phases", fake_phases)
+    outcome = runner.stream_task("do it", cfg=_cfg(workspace=str(tmp_path)))
+
+    assert outcome.run_summary.condensations == 1
+    assert any("older steps were summarized" in n for n in notices)
+
+
 def _checkpoint_run(monkeypatch, tmp_path, **kwargs):
     from certo import checkpoints
 

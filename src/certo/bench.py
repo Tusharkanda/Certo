@@ -216,6 +216,8 @@ def execute_run(
         "cost": round(summary.total_cost, 6) if summary else 0.0,
         "cost_known": summary.cost_complete if summary else True,
         "retries_used": attempt.retries_used if attempt else 0,
+        # How often older steps were summarized (the context window filled up).
+        "condensations": summary.condensations if summary else 0,
         # Escalation only: every rung that ran, and which one gave the verdict.
         "rungs": list(attempt.rungs) if attempt else [],
         "final_rung": attempt.final_rung if attempt else None,

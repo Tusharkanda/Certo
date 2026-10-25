@@ -79,3 +79,10 @@ model got, and refuses one under 16,384 tokens with the fix. And
 `CERTO_LLM_CONTEXT_TOKENS=32768` (or `context_tokens` in `models.yaml`)
 asks Ollama for that size with every request, without restarting it.
 See [Give the model a large enough context window](../guides/ollama-and-local-models.md#give-the-model-a-large-enough-context-window).
+
+Knowing the window also lets a long run go on when it fills up: the agent
+framework now summarizes the older steps, keeping the task and the
+latest steps (`CERTO_CONDENSE`, on by default). It only acts near the
+window, so a run that fits is unchanged; the run summary says
+`Older steps summarized` when it happened.
+

@@ -4,7 +4,8 @@ from __future__ import annotations
 
 from collections.abc import Mapping
 
-from openhands.sdk import Agent, AgentContext
+from openhands.sdk import LLM, Agent, AgentContext
+from openhands.sdk.context.condenser import LLMSummarizingCondenser
 
 from .config import Config
 from .llm import build_llm
@@ -180,6 +181,24 @@ _LIFECYCLE_SKILLS_SUFFIX = (
 )
 
 
+# The condenser summarizes older steps only when the conversation nears the
+# model's context window (the SDK's `max_input_tokens`, context_window.py)
+# or a provider says it is over it. Its other trigger, a count of events,
+# is set out of reach: a run that still fits keeps its whole history, so
+# nothing changes for a model with room to spare.
+CONDENSER_MAX_EVENTS = 1_000_000
+# Never summarized: the system prompt and the task, at the start.
+CONDENSER_KEEP_FIRST = 4
+
+
+def _condenser(llm: LLM) -> LLMSummarizingCondenser:
+    """The SDK's own condenser, summarizing with the agent's model (as the
+    SDK's presets do), so its cost is in the run summary."""
+    return LLMSummarizingCondenser(
+        llm=llm, max_size=CONDENSER_MAX_EVENTS, keep_first=CONDENSER_KEEP_FIRST
+    )
+
+
 def build_agent(
     cfg: Config,
     *,
@@ -230,10 +249,12 @@ def build_agent(
         disabled_skills=disabled_project_skills(cfg.workspace, cfg.projects_dir),
         system_message_suffix="\n\n".join(suffixes),
     )
+    llm = build_llm(cfg, usage_id=usage_id)
     agent = Agent(
-        llm=build_llm(cfg, usage_id=usage_id),
+        llm=llm,
         tools=build_tools(terminal_env),
         agent_context=agent_context,
+        condenser=_condenser(llm) if cfg.condense else None,
     )
     # CERTO_CONFIRM_MODE == "always" should attach a confirmation policy that
     # pauses before each tool call. The confirmation-policy API is not yet

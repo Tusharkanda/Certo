@@ -1192,3 +1192,13 @@ considered and live-verification detail: `docs/ROADMAP.txt`.
   (verified live: the server loaded the model at that size), so a user
   needn't restart Ollama. The SDK gets `max_input_tokens` = the window
   less a quarter (at least 4,096) for the answer, never under 16,384.
+- **The SDK's condenser, for every model, only near the window**
+  (2026-10-25, Phase 2.4). `LLMSummarizingCondenser` with the agent's own
+  LLM (as the SDK's presets do, so its cost is counted), `keep_first=4`
+  and `max_size` out of reach, so only its token trigger (the SDK's
+  `max_input_tokens`) and a provider's context-exceeded error make it
+  summarize. A run that fits keeps its whole history: nothing changes on
+  a cloud model with room to spare, which is why it isn't gated by tier.
+  The SDK allows a changed condenser on resume (only removed tools
+  break it). Each condensation is announced and counted in the run
+  summary and the bench record. `CERTO_CONDENSE=no` turns it off.

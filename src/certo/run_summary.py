@@ -62,6 +62,9 @@ class ModelUsage:
 class RunSummary:
     duration_seconds: float
     models: tuple[ModelUsage, ...] = ()
+    # How often the SDK's condenser summarized older steps because the
+    # conversation neared the model's context window (agent.py).
+    condensations: int = 0
 
     @property
     def total_tokens(self) -> int:
@@ -91,6 +94,7 @@ class RunSummary:
     def to_dict(self) -> dict[str, Any]:
         return {
             "duration_seconds": round(self.duration_seconds, 3),
+            "condensations": self.condensations,
             "models": [
                 {
                     "model": m.model,
@@ -135,6 +139,9 @@ class RunSummary:
             for m in self.models:
                 cost = f"${m.cost:.4f}" if m.cost_known else "cost unknown"
                 lines.append(f"  - {m.label}: {m.total_tokens:,} tokens, {cost}")
+        if self.condensations:
+            times = "once" if self.condensations == 1 else f"{self.condensations} times"
+            lines.append(f"Older steps summarized: {times} (the context window was nearly full)")
         return lines
 
 
@@ -157,6 +164,7 @@ def summarize_run(
     duration_seconds: float,
     per_model_metrics: Mapping[str, Mapping[str, Any]],
     efforts: Mapping[str, str | None] | None = None,
+    condensations: int = 0,
 ) -> RunSummary:
     """Build a `RunSummary` from `{usage_id: Metrics.get()}` dicts.
 
@@ -203,4 +211,4 @@ def summarize_run(
         for (model, effort), t in merged.items()
         if t["prompt"] or t["completion"] or t["cost"]
     )
-    return RunSummary(duration_seconds=duration_seconds, models=models)
+    return RunSummary(duration_seconds=duration_seconds, models=models, condensations=condensations)

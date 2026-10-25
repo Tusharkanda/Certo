@@ -76,7 +76,10 @@ OLLAMA_CONTEXT_LENGTH=32768 ollama serve
 settings.) `ollama ps` shows the context a loaded model got.
 
 Without the setting, Certo asks Ollama which window the model got, after
-loading it, so the agent framework knows the real size. A window under
+loading it, so the agent framework knows the real size. When a long run
+nearly fills it, the older steps are summarized and the run goes on
+(`CERTO_CONDENSE`); the run summary then says
+`Older steps summarized`. A window under
 16,384 tokens stops the run before the agent starts, with the fix in the
 message. See
 [Troubleshooting](../troubleshooting.md#context-window-below-the-minimum).

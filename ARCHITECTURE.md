@@ -439,6 +439,11 @@ given design was chosen.
   to Ollama as `litellm_extra_body.options.num_ctx`, and raises the SDK's
   `LLMContextWindowTooSmallError` with Certo's message under 16,384.
   Tests: `conftest.no_ollama_server` stubs the detection.
+  `agent._condenser` attaches the SDK's `LLMSummarizingCondenser` (same
+  LLM object, `max_size=CONDENSER_MAX_EVENTS` so only tokens or a
+  context-exceeded error trigger it); `stream_task.on_event` counts
+  `Condensation` events into `RunSummary.condensations` (also in each
+  bench record) and emits a notice.
 - **`checkpoints.py`** — stdlib only. A git repository at
   `.certo/checkpoints/` (`GIT_DIR`) with the project as work tree, its
   own `GIT_INDEX_FILE`, `GIT_CONFIG_GLOBAL=/dev/null` and

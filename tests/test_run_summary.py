@@ -132,3 +132,14 @@ def test_one_model_at_two_efforts_is_two_entries_each_named_with_its_effort():
     assert "Models: ollama/qwen (effort default), ollama/qwen (effort high)" in lines
     assert "  - ollama/qwen (effort high): 220 tokens, $0.0000" in lines
     assert [m["reasoning_effort"] for m in summary.to_dict()["models"]] == [None, "high"]
+
+
+def test_condensations_are_counted_and_shown():
+    summary = summarize_run(12.0, {}, condensations=2)
+
+    assert summary.condensations == 2
+    assert summary.to_dict()["condensations"] == 2
+    assert "Older steps summarized: 2 times (the context window was nearly full)" in (
+        summary.format_lines()
+    )
+    assert not any("summarized" in line for line in summarize_run(1.0, {}).format_lines())
