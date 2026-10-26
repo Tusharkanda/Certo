@@ -141,4 +141,7 @@ many tests ran from the summary (`node --test`, and Jest's or Vitest's
 was for Python, Go and Rust
 ([#23](https://github.com/alessioricco/certo/issues/23)). See
 [Verification by language](../reference/verification-by-language.md#node-in-detail).
+Thanks to @rahul05ranjan, whose pull request
+([#28](https://github.com/alessioricco/certo/pull/28)) worked through the
+same fix and found that a piped `npm test` prints `ℹ tests 0`.
 
