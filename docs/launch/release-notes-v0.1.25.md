@@ -84,7 +84,11 @@ Knowing the window also lets a long run go on when it fills up: the agent
 framework now summarizes the older steps, keeping the task and the
 latest steps (`CERTO_CONDENSE`, on by default). It only acts near the
 window, so a run that fits is unchanged; the run summary says
-`Older steps summarized` when it happened.
+`Older steps summarized` when it happened. In
+[a benchmark](../benchmark/context-0.1.25.md) with `qwen3.8:27b` at
+32K, on the larger tasks, 3 of 8 runs passed the hidden tests with
+condensing and 0 of 8 without. The sample is small, and most runs ran
+out of time before the window filled.
 
 In `certo bench`, an arm can set `context_tokens` (a smaller window for
 a local model, without restarting Ollama) and `condense: false`, and each

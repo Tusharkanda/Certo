@@ -79,7 +79,9 @@ Without the setting, Certo asks Ollama which window the model got, after
 loading it, so the agent framework knows the real size. When a long run
 nearly fills it, the older steps are summarized and the run goes on
 (`CERTO_CONDENSE`); the run summary then says
-`Older steps summarized`. A window under
+`Older steps summarized`. Keep it on: in
+[a benchmark at 32K](../benchmark/context-0.1.25.md), the runs that
+filled the window and went on were the ones that passed. A window under
 16,384 tokens stops the run before the agent starts, with the fix in the
 message. See
 [Troubleshooting](../troubleshooting.md#context-window-below-the-minimum).

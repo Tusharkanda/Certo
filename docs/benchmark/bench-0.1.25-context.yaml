@@ -1,0 +1,13 @@
+# Context management measured on a local model (Certo 0.1.25, task set
+# version 2): qwen3.8:27b with a 32,768-token context window, asked from
+# Ollama per request, with and without condensing older steps, on the four
+# larger tasks, twice each.
+# Results: context-0.1.25.md.
+# Run it with: certo bench --config bench-0.1.25-context.yaml
+# Every model below must be enabled in your models.yaml; see
+# docs/guides/write-a-benchmark-file.md.
+tasks: [ledger-transfers, library-loans, room-bookings, todo-deps]
+repeats: 2
+arms:
+  - {name: qwen-32k, strategy: single, model: qwen3.8-27b-local, context_tokens: 32768}
+  - {name: qwen-32k-no-condense, strategy: single, model: qwen3.8-27b-local, context_tokens: 32768, condense: false}
