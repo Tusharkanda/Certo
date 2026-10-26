@@ -160,3 +160,12 @@ Thanks to @rahul05ranjan, whose pull request
 ([#28](https://github.com/alessioricco/certo/pull/28)) worked through the
 same fix and found that a piped `npm test` prints `ℹ tests 0`.
 
+
+## New guide: verify before every commit
+
+[Verify before every commit](../guides/verify-before-commit.md) shows how
+to run `certo verify` from a git hook or the pre-commit framework, and
+why the pre-commit framework checks exactly what you commit
+([#13](https://github.com/alessioricco/certo/issues/13)). Thanks to
+@SakarPaisen, who wrote it
+([#16](https://github.com/alessioricco/certo/pull/16)).

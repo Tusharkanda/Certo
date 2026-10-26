@@ -2,8 +2,8 @@
 
 `certo verify` runs the same checks Certo runs after an agent finishes:
 project detection, the project's environment, then its tests, build, lint
-and type checks, with no model, no API key and no retries. Run it before
-each commit and a broken commit never reaches git.
+and type checks, with no model, no API key and no retries. Run it from a
+git hook and a commit whose checks fail is stopped before it is made.
 
 This guide shows how to wire that into a git hook. What `certo verify`
 runs for each language, its output and its exit codes are in
@@ -22,6 +22,19 @@ certo verify --require-verification
 
 The hook runs in the project root, which is what `certo verify` checks by
 default. A nonzero exit blocks the commit.
+
+**The plain hook checks your files, not your commit.** `certo verify`
+checks the files as they are in the folder, including changes you haven't
+staged with `git add`. If the staged version is broken but an unstaged
+change fixes it, the checks pass and the broken version is committed. Use
+this hook only when you commit everything you changed, or use the
+[pre-commit framework](#the-pre-commit-framework), which sets unstaged
+changes aside while the hook runs, so the checks see what you commit.
+
+**The first run can be slow.** On a Python project without an
+environment, `certo verify` creates `.venv` and may install pytest, which
+needs a network connection. Later runs reuse it. See
+[Verification by language](../reference/verification-by-language.md#python-in-detail).
 
 ## Exit codes
 
@@ -56,7 +69,9 @@ repos:
 ```
 
 `language: system` uses the `certo` already installed on your machine;
-pre-commit does not install it for you.
+pre-commit does not install it for you. Before the hook runs, pre-commit
+sets aside the changes you haven't staged and puts them back afterwards,
+so `certo verify` checks exactly what you are committing.
 
 ## Skipping the hook
 
