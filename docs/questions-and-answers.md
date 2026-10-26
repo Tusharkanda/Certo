@@ -219,3 +219,32 @@ agent stops. "The model said it worked" never counts as `verified`. The
 real cases behind this are in [Why agents lie](concepts/why-agents-lie.md),
 and how the checks work in
 [How verification works](concepts/how-verification-works.md).
+
+## How Certo is built
+
+### Why is Certo built on the OpenHands SDK?
+
+So that Certo's own code can be about checking the work, not about
+running the agent. The [OpenHands Software Agent SDK](https://docs.openhands.dev/sdk)
+already runs the agent loop, gives the agent its terminal and file
+tools, talks to every provider through LiteLLM, and can run the work in
+Docker. Certo adds the rest: when a task counts as done, which model
+runs and when to hand over, the time and cost limits, and the CLI and
+server you use.
+
+The SDK gives Certo what it needs:
+
+- **Any model, with no code change.** Moving between Claude, GPT,
+  Gemini and a local Ollama model is one setting, `CERTO_LLM_MODEL`.
+  See [OpenAI, Claude and Gemini](guides/openai-claude-gemini.md) and
+  [Ollama and local models](guides/ollama-and-local-models.md).
+- **Tools you can test without a model.** Each custom tool is a small
+  class that unit tests can call directly, with no model call. See
+  [Add custom tools](guides/add-custom-tools.md).
+- **Parts Certo uses as they are:** asking before each tool call
+  (`CERTO_CONFIRM_MODE`), summarizing older steps when a small context
+  window fills up (`CERTO_CONDENSE`), token and cost counts per run, and
+  [running in Docker](guides/run-in-docker.md).
+
+The SDK is young and its API still changes, so Certo pins one exact
+version and moves to a new one only after its tests pass with it.
