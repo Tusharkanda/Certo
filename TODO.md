@@ -57,7 +57,8 @@ first item is the suggested next one.
   don't take them for current docs; fix every reference. Starter issue:
   [#4](https://github.com/alessioricco/certo/issues/4).
 - **Docker verification has never run against a real container**, and
-  neither has escalation under Docker. Fake-workspace tests only.
+  neither has escalation under Docker. Fake-workspace tests only. Open
+  for a report: [#34](https://github.com/alessioricco/certo/issues/34).
 
 ## 2. Complex tasks
 
@@ -120,8 +121,13 @@ first item is the suggested next one.
   opaque commands; the runner and its results aren't parsed.
 - **Node: infer ESLint/`tsc` from config**, as `_ruff_configured()` does
   for Python. Flat-config variants make this harder than the Python case.
+  Open for contributors: [#33](https://github.com/alessioricco/certo/issues/33).
 - **Java: a Maven/Gradle toolchain** in the Docker image and the dev
   environment. Java is detection-only in both today.
+- **Java: no tests probably counts as `verified`.** `mvn test` and
+  `gradle test` succeed with no tests, and Certo doesn't count the tests
+  that ran, as it does for Node, Go and Rust. Unconfirmed live. Open for
+  contributors: [#32](https://github.com/alessioricco/certo/issues/32).
 - **New ecosystems**, in order: C#/.NET, PHP (Composer), Ruby, Kotlin/
   Android (Gradle), C/C++ (CMake), Swift. Open for contributors: Ruby
   [#19](https://github.com/alessioricco/certo/issues/19), PHP [#20](https://github.com/alessioricco/certo/issues/20), .NET [#21](https://github.com/alessioricco/certo/issues/21), Swift [#22](https://github.com/alessioricco/certo/issues/22).
@@ -171,7 +177,8 @@ first item is the suggested next one.
 - **Per-tier tuning for small models.** Shorter prompts and stricter
   tool-call repair, gated by model tier and measured on both tiers.
 - **`certo doctor` for Ollama**: model pulled, context size, thinking
-  mode, measured tokens per second.
+  mode, measured tokens per second. Open for contributors, as part of
+  `certo check`: [#35](https://github.com/alessioricco/certo/issues/35).
 - **Measured speed and context in the catalog**, filled from real runs,
   so ladders can weigh speed. A `speed` rating would count as capability
   today.
@@ -210,8 +217,7 @@ cut that first run's output from 2,949 lines to 1,021.)
 - **Docs articles still to write** (ideas from 2026-10-18): build an
   app in several tasks (needs real runs); review the agent's work safely;
   share your benchmark results (with the benchmark file, as `docs/benchmark/` does); keep costs down; use `certo verify`
-  without the agent (pre-commit, any AI tool: starter issue
-  [#13](https://github.com/alessioricco/certo/issues/13)).
+  without the agent (pre-commit: done in #16; any AI tool: [#31](https://github.com/alessioricco/certo/issues/31)).
 - **Prebuilt Docker image.** Docker execution from a pip install fails:
   `workspace.py` builds from `docker/agent-server.Dockerfile` relative to
   the repo, which isn't in the wheel. Ship the Dockerfile and tool source
@@ -291,6 +297,9 @@ database).
 
 ## Smaller bugs
 
+- **A bench run that ends with an error records 0 tokens**, cost and
+  condensations, however long it worked (a 31-minute run, 2026-10-26).
+  Open for contributors: [#30](https://github.com/alessioricco/certo/issues/30).
 - **Tool calls written as text rose in the 0.1.23 baseline**: 7 of 39
   `qwen3.8` runs, against 1 of 27 in 0.1.22, with the same prompt, SDK,
   LiteLLM and Ollama settings; 3 of 3 on `ledger-transfers`. Find out
