@@ -912,6 +912,25 @@ def test_counting_the_tests_npm_test_ran(output, ran):
     assert _node_tests_run(output) == ran
 
 
+def _npm_test(command: list[str], cwd: str) -> CheckSpec:
+    return CheckSpec(
+        name="npm test", primary=True, command=command, cwd=cwd, count_tests=_node_tests_run
+    )
+
+
+def test_a_passing_run_that_prints_the_count_text_inside_a_line_stays_passed(tmp_path):
+    # Only a summary line of its own counts: "contests 0" is not "tests 0".
+    outcome = execute_check(_npm_test(_printing("contests 0"), str(tmp_path)))
+
+    assert outcome.status == "passed"
+
+
+def test_a_failing_run_that_counts_no_tests_stays_failed(tmp_path):
+    outcome = execute_check(_npm_test(_printing("# tests 0", 1), str(tmp_path)))
+
+    assert outcome.status == "failed"
+
+
 @_requires_npm
 def test_a_node_project_whose_tests_run_none_is_not_verified(tmp_path):
     _write_package_json(tmp_path, {"test": "node --test"})
