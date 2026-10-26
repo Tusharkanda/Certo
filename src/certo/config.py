@@ -46,6 +46,9 @@ DEFAULT_MAX_VERIFY_RETRIES = 2
 DEFAULT_MAX_TASK_SECONDS = 1800
 # The SDK's own default for one model call (`LLM.timeout`). 0 means no limit.
 DEFAULT_LLM_TIMEOUT_SECONDS = 300
+# CERTO_CONTEXT_WARN_TOKENS: the window the 0.1.25 context benchmark ran
+# well at with condensing (docs/benchmark/context-0.1.25.md).
+DEFAULT_CONTEXT_WARN_TOKENS = 32768
 DEFAULT_DOCKER_IMAGE = "certo/agent-server:local"
 DEFAULT_DOCKER_PLATFORM = (
     "linux/arm64" if _platform.machine().lower() in ("arm64", "aarch64") else "linux/amd64"
@@ -205,6 +208,9 @@ class Config:
     # CERTO_CONDENSE: let the SDK summarize older steps when the
     # conversation nears the model's context window (agent.py).
     condense: bool = True
+    # CERTO_CONTEXT_WARN_TOKENS: warn at the start of a run when the
+    # model's known context window is smaller; 0 = never (context_window.py).
+    context_warn_tokens: int = DEFAULT_CONTEXT_WARN_TOKENS
 
     # The full SDK console output: the system prompt, the whole task with
     # its skills, the SDK's INFO logs. Off by default (console.py shows a
@@ -680,6 +686,9 @@ def load_config(
     independent_tests_sets = _parse_positive_int(env, "INDEPENDENT_TESTS_SETS", default=3)
     checkpoints = _parse_bool(env, "CHECKPOINTS", default=True)
     condense = _parse_bool(env, "CONDENSE", default=True)
+    context_warn_tokens = _parse_nonnegative_int(
+        env, "CONTEXT_WARN_TOKENS", default=DEFAULT_CONTEXT_WARN_TOKENS
+    )
     if independent_tests_sets > MAX_INDEPENDENT_TESTS_SETS:
         raise ConfigError(
             f"CERTO_INDEPENDENT_TESTS_SETS must be at most {MAX_INDEPENDENT_TESTS_SETS}, "
@@ -745,6 +754,7 @@ def load_config(
         independent_tests_strict=independent_tests_strict,
         checkpoints=checkpoints,
         condense=condense,
+        context_warn_tokens=context_warn_tokens,
         verbose=verbose,
         model_selection=model_selection,
         models_file=models_file,

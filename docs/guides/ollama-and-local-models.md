@@ -81,7 +81,16 @@ nearly fills it, the older steps are summarized and the run goes on
 (`CERTO_CONDENSE`); the run summary then says
 `Older steps summarized`. Keep it on: in
 [a benchmark at 32K](../benchmark/context-0.1.25.md), the runs that
-filled the window and went on were the ones that passed. A window under
+filled the window and went on were the ones that passed.
+
+A window under 32,768 tokens gets a warning when the run starts, and
+the run goes on:
+
+```text
+Certo: ollama/qwen3.8:27b has a context window of 24,576 tokens (the Ollama server's setting), under CERTO_CONTEXT_WARN_TOKENS=32,768: when a long task fills it, older steps are summarized and the run goes on. For more room, set CERTO_LLM_CONTEXT_TOKENS=32768 (Certo then asks Ollama for that size), or start Ollama with OLLAMA_CONTEXT_LENGTH=32768. (CERTO_CONTEXT_WARN_TOKENS=0 turns this warning off.)
+```
+
+`CERTO_CONTEXT_WARN_TOKENS` sets the size it warns under. A window under
 16,384 tokens stops the run before the agent starts, with the fix in the
 message. See
 [Troubleshooting](../troubleshooting.md#context-window-below-the-minimum).

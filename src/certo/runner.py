@@ -37,6 +37,7 @@ from openhands.sdk.llm.exceptions.types import LLMError
 from openhands.sdk.security.confirmation_policy import AlwaysConfirm
 from openhands.tools.task_tracker import TaskTrackerTool
 
+from . import context_window
 from .acceptance import AcceptanceCheck, AcceptanceCheckResult, evaluate_acceptance_checks
 from .agent import build_agent
 from .artifacts import resolve_run_artifacts_dir, write_run_artifacts
@@ -370,6 +371,25 @@ def _prepare_agent_env(
             f"Certo: the agent starts without a project environment: {setup.unavailable_reason}",
         )
     return setup.env
+
+
+def _warn_small_window(cfg: Config, emit: Callable[[Message], None]) -> None:
+    """A notice when the model's known context window is under
+    CERTO_CONTEXT_WARN_TOKENS (context_window.py). Never fatal: a window
+    that can't be learned gives no notice."""
+    if not cfg.context_warn_tokens:
+        return
+    try:
+        tokens = context_window.known_context_tokens(
+            cfg.model, cfg.llm_context_tokens, cfg.base_url, cfg.llm_timeout_seconds or 600
+        )
+    except Exception:  # noqa: BLE001 - a warning must never stop the run
+        return
+    if tokens and tokens < cfg.context_warn_tokens:
+        message = context_window.small_window_warning(
+            cfg.model, tokens, cfg.context_warn_tokens, bool(cfg.llm_context_tokens), cfg.condense
+        )
+        _emit_notice(emit, f"Certo: {message}")
 
 
 def _is_clean_no_tests_collected(run: VerificationRun) -> bool:
@@ -1619,6 +1639,7 @@ def stream_task(
     with build_workspace(cfg) as workspace:
         runner = _command_runner(cfg, workspace)
         project_env = _prepare_agent_env(task, cfg, runner, emit)
+        _warn_small_window(agent_cfg, emit)
 
         def new_conversation(**persistence: Any) -> Conversation:
             return Conversation(
@@ -2413,6 +2434,7 @@ def _stream_escalation(
                 rung_cfg = _rung_config(cfg, rung)
                 usage_id = f"certo:rung{number}:{rung.name}"
                 efforts[usage_id] = rung_cfg.reasoning_effort
+                _warn_small_window(rung_cfg, io.emit)
 
                 def new_conversation(
                     rung_cfg: Config = rung_cfg, usage_id: str = usage_id, **persistence: Any

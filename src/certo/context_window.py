@@ -112,16 +112,60 @@ def server_address(base_url: str | None) -> str:
     return f"{host}:{port}" if port else host
 
 
+def _where(configured: bool) -> str:
+    return "CERTO_LLM_CONTEXT_TOKENS" if configured else "the Ollama server's setting"
+
+
+def _fix(model: str, size: int = 32768) -> str:
+    if is_ollama(model):
+        return (
+            f"Set CERTO_LLM_CONTEXT_TOKENS={size} (Certo then asks Ollama for that size), or "
+            f"start Ollama with OLLAMA_CONTEXT_LENGTH={size}."
+        )
+    return "Choose a model with a larger window, or set CERTO_LLM_CONTEXT_TOKENS."
+
+
 def too_small_message(model: str, context_tokens: int, configured: bool) -> str:
-    where = "CERTO_LLM_CONTEXT_TOKENS" if configured else "the Ollama server's setting"
+    return (
+        f"{model} has a context window of {context_tokens:,} tokens ({_where(configured)}), "
+        f"below the {MIN_CONTEXT_TOKENS:,} an agent needs: the model would lose the start of "
+        f"the task. {_fix(model)}"
+    )
+
+
+def known_context_tokens(
+    model: str, configured: int, base_url: str | None, timeout: float
+) -> int | None:
+    """The model's context window when Certo knows it: the configured one,
+    or for Ollama the server's (cached, so asking again before the run
+    costs nothing). None for a cloud model without a configured window:
+    LiteLLM knows those, and they are far larger."""
+    if configured:
+        return configured
+    if is_ollama(model):
+        return ollama_context_tokens(model, base_url, timeout)
+    return None
+
+
+def small_window_warning(
+    model: str, context_tokens: int, warn_at: int, configured: bool, condense: bool
+) -> str:
+    """The notice for a window under CERTO_CONTEXT_WARN_TOKENS. The run
+    still starts: only a window under the SDK's minimum is refused."""
+    effect = (
+        "when a long task fills it, older steps are summarized and the run goes on"
+        if condense
+        else "a long task may fill it, and with CERTO_CONDENSE=no nothing makes room"
+    )
     fix = (
-        "Set CERTO_LLM_CONTEXT_TOKENS=32768 (Certo then asks Ollama for that size), or start "
-        "Ollama with OLLAMA_CONTEXT_LENGTH=32768."
+        _fix(model, max(warn_at, 32768))
         if is_ollama(model)
-        else "Choose a model with a larger window, or set CERTO_LLM_CONTEXT_TOKENS."
+        # A cloud model's window is only known when CERTO_LLM_CONTEXT_TOKENS sets it.
+        else "Raise CERTO_LLM_CONTEXT_TOKENS if the model allows more, or choose a model "
+        "with a larger window."
     )
     return (
-        f"{model} has a context window of {context_tokens:,} tokens ({where}), below the "
-        f"{MIN_CONTEXT_TOKENS:,} an agent needs: the model would lose the start of the task. "
-        f"{fix}"
+        f"{model} has a context window of {context_tokens:,} tokens ({_where(configured)}), "
+        f"under CERTO_CONTEXT_WARN_TOKENS={warn_at:,}: {effect}. For more room, "
+        f"{fix[0].lower()}{fix[1:]} (CERTO_CONTEXT_WARN_TOKENS=0 turns this warning off.)"
     )

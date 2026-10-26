@@ -291,6 +291,20 @@ def test_each_rung_is_a_fresh_conversation_with_its_own_model_and_settings(tmp_p
     assert rung2.max_verify_retries == 2  # CERTO_MAX_VERIFY_RETRIES
 
 
+def test_each_rung_with_a_small_window_is_warned_about(tmp_path, fake_run, monkeypatch):
+    from certo import context_window
+
+    notices: list = []
+    monkeypatch.setattr(runner, "_emit_notice", lambda _emit, text: notices.append(text))
+    monkeypatch.setattr(context_window, "ollama_context_tokens", lambda *a, **k: 24576)
+    fake_run.script[:] = [("no_progress", 0, {}), ("verified", 0, {})]
+    _run(tmp_path, _ladder(tmp_path))
+
+    warned = [n for n in notices if "CERTO_CONTEXT_WARN_TOKENS" in n]
+    # The local rung only: a cloud model's window isn't known, and is larger.
+    assert len(warned) == 1 and warned[0].startswith("Certo: ollama/qwen3-coder:30b has")
+
+
 def test_the_time_budget_is_shared_by_every_rung(tmp_path, fake_run):
     fake_run.script[:] = [("no_progress", 0, {}), ("verified", 0, {})]
     _run(tmp_path, _ladder(tmp_path))

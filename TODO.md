@@ -98,10 +98,6 @@ first item is the suggested next one.
   test line or deleted a test, and the 8 fooled runs changed no check
   file, so there is nothing yet to justify a verdict change. Re-run the
   count after each baseline; also give some starters a test to break.
-- **Warn when a local model's window is too small for the task.**
-  Condensing is done and measured (`docs/benchmark/context-0.1.25.md`);
-  only a window under 16K is refused today. That benchmark found no run
-  that needed the warning, so first decide whether it is still wanted.
 - **Measure escalation's restart mode.** `CERTO_ESCALATION_HANDOFF=restart`
   exists (0.1.25, off by default). Bench two escalate arms that differ only
   in `handoff`, on tasks where the first rung fails (task set v2's larger

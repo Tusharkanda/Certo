@@ -1265,3 +1265,11 @@ considered and live-verification detail: `docs/ROADMAP.txt`.
   version used `2 * 3600 + 5 * 60 + 10` (`duration-parser`'s) and every
   set copied it, so that run was discarded; the example is now
   `12 * 4 + 3`. Behaviour changes only with `--independent-tests`.
+- **A small context window is a warning set by the user**
+  (2026-10-26, the Author). `CERTO_CONTEXT_WARN_TOKENS` (default 32768,
+  the window the context benchmark ran well at with condensing; `0` =
+  off): a notice at the start of a run and of each rung when the known
+  window (set, or asked from Ollama) is smaller; the run goes on. Certo
+  can't tell a task's size in advance, so a threshold the user sets is
+  more honest than a guess. Cloud windows aren't checked (unknown to
+  Certo, and far larger). The 16,384 refusal stays (the SDK's minimum).

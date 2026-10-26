@@ -92,3 +92,28 @@ def test_server_address_is_host_and_port_only():
     assert cw.server_address("http://user:secret@gpu-box:11434/v1") == "gpu-box:11434"
     assert cw.server_address(None) == "localhost:11434"
     assert cw.server_address("https://ollama.example.com") == "ollama.example.com"
+
+
+def test_the_known_window_is_the_set_one_or_the_ollama_servers(monkeypatch):
+    asked = []
+    monkeypatch.setattr(cw, "ollama_context_tokens", lambda *a: asked.append(a) or 8192)
+    assert cw.known_context_tokens("ollama/q", 32768, None, 5) == 32768
+    assert cw.known_context_tokens("ollama/q", 0, "http://box:11434", 5) == 8192
+    assert cw.known_context_tokens("anthropic/claude-haiku-5-5", 0, None, 5) is None
+    assert asked == [("ollama/q", "http://box:11434", 5)]  # never for a cloud model
+
+
+def test_the_small_window_warning_says_what_happens_and_how_to_fix_it():
+    text = cw.small_window_warning("ollama/q", 24576, 32768, configured=False, condense=True)
+    assert text.startswith(
+        "ollama/q has a context window of 24,576 tokens (the Ollama server's setting), "
+        "under CERTO_CONTEXT_WARN_TOKENS=32,768: when a long task fills it, older steps are "
+        "summarized and the run goes on."
+    )
+    assert "CERTO_LLM_CONTEXT_TOKENS=32768" in text and "OLLAMA_CONTEXT_LENGTH=32768" in text
+    assert "CERTO_CONTEXT_WARN_TOKENS=0 turns this warning off" in text
+    raw = cw.small_window_warning("ollama/q", 24576, 65536, configured=True, condense=False)
+    assert "(CERTO_LLM_CONTEXT_TOKENS)" in raw and "nothing makes room" in raw
+    assert "CERTO_LLM_CONTEXT_TOKENS=65536" in raw
+    cloud = cw.small_window_warning("anthropic/m", 20000, 32768, configured=True, condense=True)
+    assert "For more room, raise CERTO_LLM_CONTEXT_TOKENS if the model allows more" in cloud

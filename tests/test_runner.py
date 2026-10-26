@@ -2832,6 +2832,30 @@ def test_a_condensation_is_announced_and_counted(monkeypatch, tmp_path):
     assert any("older steps were summarized" in n for n in notices)
 
 
+@pytest.mark.parametrize(
+    ("window", "warn_at", "warned"),
+    [(24576, 32768, True), (32768, 32768, False), (None, 32768, False), (24576, 0, False)],
+)
+def test_a_small_known_window_is_warned_about_before_the_agent(
+    monkeypatch, tmp_path, window, warn_at, warned
+):
+    from certo import context_window
+
+    _stub_for_state_tests(monkeypatch)
+    notices: list = []
+    monkeypatch.setattr(runner, "_emit_notice", lambda _emit, text: notices.append(text))
+    monkeypatch.setattr(context_window, "ollama_context_tokens", lambda *a, **k: window)
+    monkeypatch.setattr(runner, "_run_stream_task_phases", lambda *a, **k: _verified_outcome())
+    cfg = _cfg(workspace=str(tmp_path), model="ollama/qwen3.8:27b", context_warn_tokens=warn_at)
+
+    runner.stream_task("do it", cfg=cfg)
+
+    found = [n for n in notices if "CERTO_CONTEXT_WARN_TOKENS" in n]
+    assert bool(found) is warned
+    if warned:
+        assert found[0].startswith("Certo: ollama/qwen3.8:27b has a context window of 24,576")
+
+
 def _checkpoint_run(monkeypatch, tmp_path, **kwargs):
     from certo import checkpoints
 

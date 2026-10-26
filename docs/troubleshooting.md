@@ -296,6 +296,20 @@ server for it), or start Ollama with `OLLAMA_CONTEXT_LENGTH=32768`.
 Otherwise choose a model with a larger window, such as a coder model.
 Common with older models such as `ollama/llama3`.
 
+### A warning about a small context window
+
+**You see:** `has a context window of 24,576 tokens (the Ollama server's
+setting), under CERTO_CONTEXT_WARN_TOKENS=32,768` when a run starts.
+
+**Cause:** the model's window is smaller than `CERTO_CONTEXT_WARN_TOKENS`
+(32,768 by default). The run goes on; a long task fills the window
+sooner, and its older steps are then summarized.
+
+**Fix:** follow the message: for Ollama, set
+`CERTO_LLM_CONTEXT_TOKENS=32768` or start Ollama with
+`OLLAMA_CONTEXT_LENGTH=32768`. If the smaller window is what you want,
+lower `CERTO_CONTEXT_WARN_TOKENS`, or set it to `0`.
+
 ### The agent behaves erratically with Ollama
 
 **You see:** the agent repeats steps, forgets the task, wanders off, or
