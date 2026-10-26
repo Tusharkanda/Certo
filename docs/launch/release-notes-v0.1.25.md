@@ -1,6 +1,27 @@
 # Certo v0.1.25
 
-Not released yet.
+This release is about long runs that keep their work, and a verdict
+you can make stricter:
+
+- **Strict independent tests:** with `--independent-tests-strict`, a
+  run whose independent tests mostly fail ends `independent_failed`
+  instead of `verified`. The test writer now writes calculations instead
+  of numbers worked out by hand: wrong test sets went from 11 of 65 to 0.
+- **Checkpoints:** Certo snapshots the project during a run, and
+  `certo rollback` takes it back to any snapshot.
+- **Time and cost limits that hold:** a model call is cut to the time
+  left, so a run ends within seconds of its budget, and
+  `CERTO_MAX_TASK_COST` now stops any run while it runs, not only
+  between escalation rungs.
+- **Local models with small context windows:** Certo learns the window
+  from Ollama or `CERTO_LLM_CONTEXT_TOKENS`, summarizes older steps when
+  it nearly fills (3 of 8 hard tasks solved with it on `qwen3.8` at 32K,
+  0 of 8 without), and warns when it is small.
+- **Escalation and the benchmark:** each model can restart from the
+  original files, and benchmark arms can use `--auto-model` and set
+  their own time budget, context window and condensing.
+- **Fixed:** a Node project whose tests ran nothing is no longer
+  `verified`.
 
 ## New: independent tests can change the verdict
 
