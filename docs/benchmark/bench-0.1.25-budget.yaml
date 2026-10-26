@@ -1,0 +1,12 @@
+# Phase 2 proof (Certo 0.1.25, task set version 2): does a longer time
+# budget turn the local model's out-of-time runs into passes? The same
+# arm as bench-0.1.25-context.yaml's qwen-32k (qwen3.8:27b, a 32,768-token
+# window asked from Ollama, condensing on), with 60 minutes per run instead
+# of 30, on the four larger tasks, twice each.
+# Run it with: certo bench --config bench-0.1.25-budget.yaml
+# Every model below must be enabled in your models.yaml; see
+# docs/guides/write-a-benchmark-file.md.
+tasks: [ledger-transfers, library-loans, room-bookings, todo-deps]
+repeats: 2
+arms:
+  - {name: qwen-32k-60m, strategy: single, model: qwen3.8-27b-local, context_tokens: 32768, max_task_seconds: 3600}

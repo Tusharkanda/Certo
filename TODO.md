@@ -19,7 +19,10 @@ first item is the suggested next one.
   30-minute `CERTO_MAX_TASK_SECONDS`; it ended `verified` only because the
   checks now run once after the budget, with no time left for a fix
   attempt. Decide whether init writes a longer budget for Ollama (as it
-  does the 1200s call timeout), from more than one run.
+  does the 1200s call timeout). Measured 2026-10-26
+  (`docs/benchmark/budget-0.1.25.md`): 60 minutes solved 2/8 of the
+  larger tasks against 3/8 with 30; the only right work the budget
+  stopped had no tests. Not shown to help; the Author decides.
 - **Baselines, when the Author chooses.** `docs/benchmark/baseline-<version>.md`
   (local vs cloud, fooled rate, cost per solved task), run when the
   Author decides; minor releases may skip it (2026-10-23). Also a README
@@ -157,12 +160,6 @@ first item is the suggested next one.
   task with a known `OLLAMA_CONTEXT_LENGTH`. Then consider a harness fix:
   when the final message parses as a tool call, send it back once as a
   correction. Gated by tier or opt-in, and benchmarked local and cloud.
-- **Slow local models lose correct work to the time budget.** Three runs
-  in the 0.1.15 local benchmark passed the hidden tests but ended
-  `budget_exhausted`. Since 0.1.22 the checks run once when the last run
-  ends after the budget, so passing work is `verified`. Since 0.1.25 a
-  bench arm can set `max_task_seconds`. Left: a run that proves a longer
-  budget turns those runs into passes (with the `certo init` item above).
 - **Bench estimates from recorded cost.** The plan prices every run at a
   fixed ~500k input / ~20k output tokens (far too high: a cloud run used
   ~124k in the baseline). Use the per-model average from earlier
@@ -300,7 +297,9 @@ database).
   whether it is chance, the model's build (record the Ollama model digest
   in the bench results; it is in `/api/ps`) or the larger task, and
   whether Certo could recover (for example, send the text back as a
-  reminder to make the call). Done when the cause is known.
+  reminder to make the call). 2026-10-26: 4 of 8 runs in the 60-minute
+  budget benchmark ended this way (1 of 8 in the 30-minute one). Done
+  when the cause is known.
 - **`certo skills`: turn an official skill off**, globally or for one
   project (later, agreed 2026-10-22). Today a third-party skill can only
   replace one.
