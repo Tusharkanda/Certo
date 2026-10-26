@@ -71,11 +71,11 @@ first item is the suggested next one.
   `docs/benchmark/independent-tests-replay-0.1.24.md`). Live Haiku arm
   done 2026-10-25 (`docs/benchmark/independent-tests-live-0.1.24.md`: 1
   of 38 right runs failed, by a wrong test; ~34 s to write per run; cost
-  about doubled). Left: (1) the writer sometimes gets an expected number
-  wrong (`duration-parser`: 7625 for `"2h 5m 10s"`, in 2 of 3 sets at
-  times); try a writer instruction to work out expected values from the
-  task's own examples, measured on a replay; (2) server mode; (3) maybe
-  an option for a different writer model than the build's. (A 2-of-3
+  about doubled). The writer's wrong sums are fixed (0.1.25: it writes
+  the calculation in the test; `docs/benchmark/writer-arithmetic-0.1.25.md`).
+  Left: (1) tests that misread the task still turn up in some runs (0
+  to 7 of 65 sets); (2) server mode; (3) maybe an option for a different
+  writer model than the build's. (A 2-of-3
   failure changes the verdict only with `--independent-tests-strict`,
   0.1.25.) The `qwen3.8` replay
   (2026-10-25) caught 2 of 8 fooled runs with the vote (Haiku: 7 of 8),

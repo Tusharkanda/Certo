@@ -25,6 +25,17 @@ where a false `verified` costs more than a second look. See
 [Make them change the verdict](../guides/independent-tests.md#make-them-change-the-verdict)
 and [`independent_failed`](../guides/after-the-verdict.md#independent_failed).
 
+## Fixed: fewer wrong independent tests
+
+The model that writes independent tests sometimes got an expected
+number wrong (7625 seconds for `"2h 5m 10s"`, which is 7510), and that
+test then failed right work. It now writes the calculation in the test
+(`2 * 3600 + 5 * 60 + 10`) instead of a number it worked out itself. On
+saved projects, Haiku's sets with a wrong test fell from 11 of 65 to 0
+of 65, and false alarms on right projects from 20% to 5%, with no catch
+lost (part of that is run-to-run luck: the sums are what the rule
+fixes). See [the replay](../benchmark/writer-arithmetic-0.1.25.md).
+
 ## New: checkpoints, and `certo rollback`
 
 During a run Certo now takes a snapshot of the project's files before

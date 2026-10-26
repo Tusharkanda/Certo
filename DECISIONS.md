@@ -1258,3 +1258,10 @@ considered and live-verification detail: `docs/ROADMAP.txt`.
   `CERTO_MAX_TASK_SECONDS` does. Left out of params at the default, for
   `--resume`. Needed to give a slow local arm more time than the cloud
   arms in one benchmark (Phase 2 exit proof).
+- **The test writer writes calculations, not computed numbers**
+  (2026-10-26). One rule in `WRITER_INSTRUCTIONS`, measured on a replay
+  (`writer-arithmetic-0.1.25.md`): wrong sets 11/65 → 0/65, no real catch
+  lost. Its example must not be any bundled task's answer: the first
+  version used `2 * 3600 + 5 * 60 + 10` (`duration-parser`'s) and every
+  set copied it, so that run was discarded; the example is now
+  `12 * 4 + 3`. Behaviour changes only with `--independent-tests`.

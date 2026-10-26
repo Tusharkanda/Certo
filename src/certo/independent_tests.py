@@ -67,6 +67,10 @@ commands, endpoints, their arguments and outputs, and the rules the task \
 gives. Never guess a name neither of them gives.
 - Prefer the rules a quick implementation would get wrong: edge cases, \
 limits, error cases, exact formats the task spells out.
+- Work out every expected value from the task's rules, and check your \
+reasoning against the task's own examples. When an expected number comes \
+from a calculation, write the calculation in the test (for example \
+12 * 4 + 3), not a number you worked out yourself.
 - Choose the language and test tool from the task: Python with pytest \
 (files named test_*.py), Node with node:test (files ending in .js), Go \
 (files ending in _test.go, in their own package that imports the project \

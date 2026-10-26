@@ -149,7 +149,10 @@ run once, after the last model.
 Use it where a script or a pipeline acts on the exit code and a false
 `verified` costs more than a second look. Expect it to stop about one
 right run in 40 with a wrong test (1 of 38 in the live runs above):
-then read the failing test, and if it's wrong, keep the work.
+then read the failing test, and if it's wrong, keep the work. Since
+0.1.25 the writer computes expected numbers in the test instead of by
+hand, which removed the wrong sums behind most false alarms
+([the replay](../benchmark/writer-arithmetic-0.1.25.md)).
 
 ## In the benchmark
 
