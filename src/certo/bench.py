@@ -32,6 +32,7 @@ from pathlib import Path
 from typing import Any
 
 from . import __version__, context_window
+from .banner import _duration
 from .bench_config import DEFAULT_BENCH_FILE, Arm, BenchConfig, BenchConfigError, load_bench_config
 from .bench_report import arm_rows, cost_line, cost_summary, write_report
 from .independent_tests import failing_tests
@@ -473,6 +474,8 @@ def _print_plan(
             note += f" (context window {arm.params['context_tokens']:,} tokens)"
         if arm.params.get("condense") is False:
             note += " (no condensing)"
+        if arm.params.get("max_task_seconds"):
+            note += f" (time budget {_duration(arm.params['max_task_seconds'])} per run)"
         if arm.params.get("handoff") == "restart":
             note += " (each rung restarts from the original files)"
         print(f"  {arm.name}: {arm.strategy}, {'; '.join(parts)}, {runs} run(s){note}")

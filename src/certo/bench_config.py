@@ -92,7 +92,7 @@ class BenchConfig:
 # Options every arm may have, whatever its strategy (bench_strategies.arm_config).
 # Each is kept out of params at its default, so results folders from before
 # it still match on --resume.
-_ARM_OPTIONS = ("independent_tests", "condense", "context_tokens")
+_ARM_OPTIONS = ("independent_tests", "condense", "context_tokens", "max_task_seconds")
 
 
 def _load_yaml(path: Path) -> dict[str, Any]:
@@ -183,6 +183,13 @@ def _arms(raw: Any, catalog: dict[str, ModelCatalogEntry], where: str) -> list[A
                     f"{arm_where}: 'context_tokens' works with strategy 'single' only (a "
                     "ladder's models take theirs from models.yaml)."
                 )
+        budget = item.get("max_task_seconds")
+        if budget is not None and (
+            isinstance(budget, bool) or not isinstance(budget, int) or budget < 1
+        ):
+            raise BenchConfigError(
+                f"{arm_where}: 'max_task_seconds' must be a whole number of seconds, at least 1."
+            )
         rest = {k: v for k, v in item.items() if k not in _ARM_OPTIONS}
         params = STRATEGIES[strategy].parse(rest, catalog, arm_where)
         if independent:
@@ -191,6 +198,8 @@ def _arms(raw: Any, catalog: dict[str, ModelCatalogEntry], where: str) -> list[A
             params["condense"] = False
         if context is not None:
             params["context_tokens"] = context
+        if budget is not None:
+            params["max_task_seconds"] = budget
         arms.append(Arm(name=name, strategy=strategy, params=params))
     return arms
 

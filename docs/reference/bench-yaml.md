@@ -56,6 +56,7 @@ Every arm can also have:
 |---|---|
 | `independent_tests` | Optional, `true` or `false` (default). With `true`, each run writes [independent tests](../guides/independent-tests.md) before the build, as `--independent-tests` does, and records their result. Report only: the verdict and the score don't change. Their writing isn't in the plan's cost estimate. |
 | `condense` | Optional, `true` (default) or `false`. With `false`, the run doesn't summarize older steps when the context window nearly fills (`CERTO_CONDENSE=no`), to measure what condensing changes. Each run's record counts its condensations. |
+| `max_task_seconds` | Optional, any strategy: each run's time budget in seconds, as `CERTO_MAX_TASK_SECONDS` (default 1800, 30 minutes). Give a slow local model more time without changing it for the cloud arms. For an `escalate` arm it is one budget for all the rungs together. |
 | `context_tokens` | Optional, strategy `single` only: the model's context window for this arm, at least 16,384, as `CERTO_LLM_CONTEXT_TOKENS`. For an Ollama model it is asked from the server, so one machine can benchmark a small window without restarting Ollama. |
 
 The other keys depend on the strategy. An unknown strategy, or a key the

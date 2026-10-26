@@ -224,6 +224,17 @@ def test_max_cost_stops_cleanly_and_keeps_results(tmp_path, project_venv, capsys
     assert "Stopped: the recorded cost reached --max-cost $1.50." in capsys.readouterr().out
 
 
+def test_an_arm_time_budget_reaches_the_run_and_the_plan(tmp_path, project_venv, capsys):
+    arms = (
+        "  - {name: a, strategy: single, model: cloud-a, max_task_seconds: 3600}\n"
+        "  - {name: b, strategy: single, model: cloud-b}\n"
+    )
+    model = FakeModel(project_venv)
+    assert _run(_bench_file(tmp_path, arms), tmp_path / "out", model) == 0
+    assert "1 run(s) (time budget 60 min per run)" in capsys.readouterr().out
+    assert [c.cfg.max_task_seconds for c in model.calls] == [3600, 1800]
+
+
 def test_an_independent_tests_arm_records_and_reports_them(tmp_path, project_venv, capsys):
     from certo.independent_tests import IndependentTestsResult
 

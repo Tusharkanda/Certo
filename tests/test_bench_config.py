@@ -12,6 +12,7 @@ from certo import bench_strategies
 from certo.bench_config import BenchConfigError, load_bench_config
 from certo.bench_strategies import STRATEGIES, AttemptResult, RunContext, run_config
 from certo.bench_tasks import load_tasks
+from certo.config import DEFAULT_MAX_TASK_SECONDS
 from certo.model_files import example_path
 
 _REPO = Path(__file__).resolve().parent.parent
@@ -522,6 +523,46 @@ def test_the_arm_options_reach_the_run(tmp_path):
 def test_bad_arm_options_are_refused(tmp_path, option, message):
     bench = f"arms:\n  - {{name: a, strategy: single, model: cloud, {option}}}\n"
     with pytest.raises(BenchConfigError, match=message):
+        load_bench_config(_write(tmp_path, bench))
+
+
+BUDGET = """
+tasks: all
+arms:
+  - {name: slow, strategy: single, model: cloud, max_task_seconds: 3600}
+  - {name: ladder, strategy: escalate, models: [local-coder, cloud], max_task_seconds: 5400}
+  - {name: plain, strategy: single, model: cloud}
+"""
+
+
+def test_max_task_seconds_is_an_arm_option_for_every_strategy(tmp_path):
+    cfg = load_bench_config(_write(tmp_path, BUDGET))
+    slow, ladder, plain = cfg.arms
+    assert slow.params == {"model": "cloud", "max_task_seconds": 3600}
+    assert ladder.params["max_task_seconds"] == 5400
+    assert plain.params == {"model": "cloud"}  # left out at its default, for --resume
+    seen = []
+
+    def fake_stream(task, *, cfg, ladder=None):
+        seen.append(cfg.max_task_seconds)
+        return SimpleNamespace(
+            verification_state="verified",
+            retries_used=0,
+            run_summary=None,
+            rungs=(),
+            final_rung=None,
+        )
+
+    ctx = RunContext("do it", "/ws", cfg.catalog, "/iso", fake_stream, cfg.model_catalog)
+    for arm in cfg.arms:
+        STRATEGIES[arm.strategy].run(ctx, arm.params)
+    assert seen == [3600, 5400, DEFAULT_MAX_TASK_SECONDS]
+
+
+@pytest.mark.parametrize("value", ["0", "-5", "'1h'", "true", "1.5"])
+def test_a_bad_max_task_seconds_is_refused(tmp_path, value):
+    bench = f"arms:\n  - {{name: a, strategy: single, model: cloud, max_task_seconds: {value}}}\n"
+    with pytest.raises(BenchConfigError, match="'max_task_seconds' must be a whole number"):
         load_bench_config(_write(tmp_path, bench))
 
 

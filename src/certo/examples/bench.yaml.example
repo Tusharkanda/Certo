@@ -33,6 +33,8 @@ arms:
   - name: local
     strategy: single
     model: qwen3.8-27b-local      # a model `name`
+    # Optional, any arm: each run's time budget in seconds (default 1800).
+    # max_task_seconds: 3600
 
   - name: cloud
     strategy: single

@@ -164,8 +164,9 @@ first item is the suggested next one.
 - **Slow local models lose correct work to the time budget.** Three runs
   in the 0.1.15 local benchmark passed the hidden tests but ended
   `budget_exhausted`. Since 0.1.22 the checks run once when the last run
-  ends after the budget, so passing work is `verified`. Left:
-  Consider a per-arm budget in `bench.yaml`.
+  ends after the budget, so passing work is `verified`. Since 0.1.25 a
+  bench arm can set `max_task_seconds`. Left: a run that proves a longer
+  budget turns those runs into passes (with the `certo init` item above).
 - **Bench estimates from recorded cost.** The plan prices every run at a
   fixed ~500k input / ~20k output tokens (far too high: a cloud run used
   ~124k in the baseline). Use the per-model average from earlier

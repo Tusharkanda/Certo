@@ -1253,3 +1253,8 @@ considered and live-verification detail: `docs/ROADMAP.txt`.
   model did and its failing output, marked as undone. Without git it
   continues, with a notice. Bench workspaces leave out
   `.certo/checkpoints`.
+- **Bench arms can set `max_task_seconds`** (2026-10-26). Any strategy;
+  an escalate arm's budget covers all its rungs, as
+  `CERTO_MAX_TASK_SECONDS` does. Left out of params at the default, for
+  `--resume`. Needed to give a slow local arm more time than the cloud
+  arms in one benchmark (Phase 2 exit proof).

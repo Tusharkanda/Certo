@@ -92,7 +92,9 @@ out of time before the window filled.
 
 In `certo bench`, an arm can set `context_tokens` (a smaller window for
 a local model, without restarting Ollama) and `condense: false`, and each
-run's record counts its condensations. See
+run's record counts its condensations. An arm can also set its own time
+budget, `max_task_seconds`, so a slow local model gets more time while
+the cloud arms keep the default 30 minutes. See
 [the benchmark file](../reference/bench-yaml.md#arms).
 
 A benchmark's results now also record, for each Ollama model, the
