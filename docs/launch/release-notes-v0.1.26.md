@@ -28,7 +28,7 @@ See [Troubleshooting](../troubleshooting.md#the-run-ends-at-once-with-a-tool-cal
 
 A `certo bench` run that ends with an error, for example when the model
 server goes away, now records the tokens, cost and condensations it
-used up to the error, instead of zeros. Thanks to @bfs2021 (#30, #36).
-For now this covers `single` and `auto` arms; `escalate` arms are
-[#37](https://github.com/alessioricco/certo/issues/37).
+used up to the error, instead of zeros, whatever the arm's strategy;
+an escalation counts every model it tried. Thanks to @bfs2021 (#30,
+#36, #37, #38).
 
