@@ -133,6 +133,15 @@ def test_preexisting_legacy_skill_triggers_are_unchanged():
     assert catalog["pin-dependencies"].match_path_trigger("pyproject.toml") is not None
 
 
+def test_testable_interactive_apps_fires_on_a_terminal_game_only():
+    skill = _real_catalog()["testable-interactive-apps"]
+
+    hangman = (Path(__file__).parents[1] / "skill-tasks/hangman-cli/task.md").read_text()
+    assert skill.match_trigger(hangman) is not None
+    assert skill.match_trigger("Read numbers from standard input and print the sum") is not None
+    assert skill.match_trigger("Add a slugify function with tests") is None
+
+
 def test_no_skill_name_collisions_between_lifecycle_and_preexisting_skills():
     skills = load_skill_catalog(BUILTIN_SKILLS_DIR)
     names = [s.name for s in skills]

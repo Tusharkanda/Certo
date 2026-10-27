@@ -34,6 +34,16 @@ record the digest of the model's build, next to the Ollama version and
 the context window, so two benchmarks of the same model name can be told
 apart when it was pulled again in between.
 
+## New skill: testable interactive programs
+
+When a task describes a game, a menu or another terminal program,
+Certo's new `testable-interactive-apps` skill tells the agent to keep
+the rules apart from input and output, to make randomness controllable,
+and to test the rules and the whole program with its input piped in.
+Without tests, Certo can't say such a program works: `qwen3.8` wrote a
+working Hangman game in 3 of 3 runs, and none was `verified`, because it
+wrote no tests. See [Manage skills](../guides/manage-skills.md).
+
 ## Benchmark: arms without some of Certo's skills
 
 A benchmark arm can list `skills_off`, Certo's own skills its runs

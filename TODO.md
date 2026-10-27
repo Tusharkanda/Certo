@@ -260,13 +260,16 @@ Rules for every new skill: short and narrowly triggered (prefer `paths:`
 triggers; every skill that fires costs context a 32K local model can't
 spare); measured with `certo bench` on a local and a cloud model before
 release; authored for Certo in the legacy `triggers:`/`paths:` format.
-Today there are 12 (eight `lifecycle/`, `git/commit-conventions`,
+Today there are 13 (eight `lifecycle/`, `git/commit-conventions`,
 `python-web/fastapi-conventions` and `pin-dependencies`,
-`testing/pytest-conventions`).
+`testing/pytest-conventions` and `testable-interactive-apps`).
 
 **Make a project verifiable** (first; suggested order: the first three):
-- `testable-interactive-apps`: logic apart from input/output, so games
-  and menus are testable. Triggers: game, interactive, menu, terminal.
+- Measure `testable-interactive-apps` (built 2026-10-27) before
+  0.1.26: `qwen3.8` on `skill-tasks/hangman-cli` with and without it
+  (`skills_off`), and a cloud model on the bundled set, where it fires
+  only on `wordle-score` ("game"). Done when published as a benchmark
+  page.
 - `python-environment`: use the project's `.venv`; never install into
   Certo's interpreter or with `pip install --user`; declare dependencies
   in `pyproject.toml` first.
