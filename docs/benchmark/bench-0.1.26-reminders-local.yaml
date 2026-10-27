@@ -1,0 +1,15 @@
+# Tool-call reminders (Certo 0.1.26, task set version 2): does sending a
+# tool call written as text back to the agent turn those runs into
+# finished work? The same qwen3.8:27b arm as bench-0.1.25-context.yaml's
+# qwen-32k (a 32,768-token window asked from Ollama, condensing on), with
+# reminders off and on (the default, 3), on the two tasks where saved
+# qwen3.8 runs ended this way most (todo-deps 6 of 9, ledger-transfers
+# 5 of 9), three times each.
+# Run it with: certo bench --config bench-0.1.26-reminders-local.yaml
+# Every model below must be enabled in your models.yaml; see
+# docs/guides/write-a-benchmark-file.md.
+tasks: [todo-deps, ledger-transfers]
+repeats: 3
+arms:
+  - {name: qwen-no-reminders, strategy: single, model: qwen3.8-27b-local, context_tokens: 32768, tool_call_reminders: 0}
+  - {name: qwen-reminders, strategy: single, model: qwen3.8-27b-local, context_tokens: 32768}

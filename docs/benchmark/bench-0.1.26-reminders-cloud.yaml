@@ -1,0 +1,11 @@
+# Tool-call reminders on a cloud model (Certo 0.1.26, task set version 2):
+# a model that makes real tool calls should never get a reminder, and its
+# results should not change. claude-haiku-5-5 with the default (3), on
+# every task, once.
+# Run it with: certo bench --config bench-0.1.26-reminders-cloud.yaml
+# Every model below must be enabled in your models.yaml; see
+# docs/guides/write-a-benchmark-file.md.
+tasks: all
+repeats: 1
+arms:
+  - {name: haiku-reminders, strategy: single, model: claude-haiku-5-5}
