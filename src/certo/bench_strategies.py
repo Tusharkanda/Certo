@@ -113,7 +113,7 @@ def run_config(entry: ModelCatalogEntry, workspace: str, isolation_dir: str) -> 
 def arm_config(entry: ModelCatalogEntry, ctx: RunContext, params: Mapping[str, Any]) -> Config:
     """run_config, plus the arm's own options (`independent_tests`,
     `condense`, `context_tokens`, `max_task_seconds`,
-    `tool_call_reminders`; bench_config._ARM_OPTIONS)."""
+    `tool_call_reminders`, `skills_off`; bench_config._ARM_OPTIONS)."""
     cfg = run_config(entry, ctx.workspace, ctx.isolation_dir)
     if params.get("independent_tests"):
         cfg = replace(cfg, independent_tests=True)
@@ -125,6 +125,8 @@ def arm_config(entry: ModelCatalogEntry, ctx: RunContext, params: Mapping[str, A
         cfg = replace(cfg, max_task_seconds=params["max_task_seconds"])
     if "tool_call_reminders" in params:
         cfg = replace(cfg, tool_call_reminders=params["tool_call_reminders"])
+    if params.get("skills_off"):
+        cfg = replace(cfg, skills_off=tuple(params["skills_off"]))
     return cfg
 
 

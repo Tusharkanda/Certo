@@ -235,7 +235,8 @@ def build_agent(
         suffixes.append(_project_env_suffix(project_env))
     # Official, then third-party (global, then this project's), one skill
     # per name: AgentContext rejects duplicate names (skill_library.py).
-    skills = collect(cfg, cfg.workspace, own=False).skills
+    # Minus the official ones a benchmark arm turned off.
+    skills = collect(cfg, cfg.workspace, own=False).without_official(cfg.skills_off)
     agent_context = AgentContext(
         skills=skills,
         # Resolved lazily by the Conversation once the real workspace path is

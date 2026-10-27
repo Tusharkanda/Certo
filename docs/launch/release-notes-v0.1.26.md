@@ -34,6 +34,12 @@ record the digest of the model's build, next to the Ollama version and
 the context window, so two benchmarks of the same model name can be told
 apart when it was pulled again in between.
 
+## Benchmark: arms without some of Certo's skills
+
+A benchmark arm can list `skills_off`, Certo's own skills its runs
+don't get, to measure what a skill changes next to an arm that has it.
+See [the benchmark file reference](../reference/bench-yaml.md).
+
 ## Changed: old sections in `models_list.yaml` are no longer read
 
 Since 0.1.20, task profiles and escalation ladders have their own files,

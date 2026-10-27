@@ -1292,6 +1292,14 @@ considered and live-verification detail: `docs/ROADMAP.txt`.
   user's ladders and profiles; an error names the file to move them to.
   Refused even when the section's own file exists, so there is one place
   for each.
+- **Bench arms can turn official skills off (`skills_off`), with no
+  setting** (2026-10-27). Every new skill must be measured on a local
+  and a cloud model, and nothing could run "without it" before. Names
+  are checked against the official catalog (a typo would silently
+  measure nothing). Only the official layer is filtered: a third-party
+  skill of the same name replaces it and stays. Not a user setting yet:
+  turning official skills off for users is a separate TODO item with
+  its own design (globally or per project).
 
 - **The tool-call reminder stays on by default, though it saved no run**
   (2026-10-27, after `docs/benchmark/reminders-0.1.26.md`). qwen3.8 made

@@ -29,6 +29,7 @@ from .model_catalog import (
     ModelCatalogError,
 )
 from .model_files import example_path, find, missing_message
+from .skill_library import official_skills
 
 DEFAULT_BENCH_FILE = "bench.yaml"
 _TOP_LEVEL_KEYS = {
@@ -98,6 +99,7 @@ _ARM_OPTIONS = (
     "context_tokens",
     "max_task_seconds",
     "tool_call_reminders",
+    "skills_off",
 )
 
 
@@ -203,6 +205,7 @@ def _arms(raw: Any, catalog: dict[str, ModelCatalogEntry], where: str) -> list[A
             raise BenchConfigError(
                 f"{arm_where}: 'tool_call_reminders' must be a whole number, at least 0."
             )
+        skills_off = _skills_off(item.get("skills_off"), arm_where)
         rest = {k: v for k, v in item.items() if k not in _ARM_OPTIONS}
         params = STRATEGIES[strategy].parse(rest, catalog, arm_where)
         if independent:
@@ -215,8 +218,27 @@ def _arms(raw: Any, catalog: dict[str, ModelCatalogEntry], where: str) -> list[A
             params["max_task_seconds"] = budget
         if reminders is not None:
             params["tool_call_reminders"] = reminders
+        if skills_off:
+            params["skills_off"] = skills_off
         arms.append(Arm(name=name, strategy=strategy, params=params))
     return arms
+
+
+def _skills_off(raw: Any, where: str) -> list[str]:
+    """An arm's `skills_off`: names of official skills, checked against
+    the catalog so a typo fails before the benchmark starts."""
+    if raw is None:
+        return []
+    if not isinstance(raw, list) or not all(isinstance(n, str) for n in raw):
+        raise BenchConfigError(f"{where}: 'skills_off' must be a list of skill names.")
+    known = {s.name for s in official_skills()}
+    unknown = [n for n in raw if n not in known]
+    if unknown:
+        raise BenchConfigError(
+            f"{where}: 'skills_off' names no official skill: {', '.join(unknown)}. "
+            f"Official skills: {', '.join(sorted(known))}."
+        )
+    return sorted(set(raw))
 
 
 def load_bench_config(path: str = DEFAULT_BENCH_FILE) -> BenchConfig:

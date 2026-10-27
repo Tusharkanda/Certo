@@ -58,6 +58,7 @@ Every arm can also have:
 | `condense` | Optional, `true` (default) or `false`. With `false`, the run doesn't summarize older steps when the context window nearly fills (`CERTO_CONDENSE=no`), to measure what condensing changes. Each run's record counts its condensations. |
 | `max_task_seconds` | Optional, any strategy: each run's time budget in seconds, as `CERTO_MAX_TASK_SECONDS` (default 1800, 30 minutes). Give a slow local model more time without changing it for the cloud arms. For an `escalate` arm it is one budget for all the rungs together. |
 | `tool_call_reminders` | Optional, any strategy: how many times a run that ends on a tool call written as text is sent back, as `CERTO_TOOL_CALL_REMINDERS` (default 3). `0` turns it off, to measure what the reminders change. |
+| `skills_off` | Optional, any strategy: a list of Certo's own skills this arm's runs don't get, such as `[security-review]`. Next to an arm without it, it measures what those skills change. A name that isn't one of Certo's skills stops the benchmark before it starts; `certo skills` lists them. Your own skills are never loaded in a benchmark anyway. |
 | `context_tokens` | Optional, strategy `single` only: the model's context window for this arm, at least 16,384, as `CERTO_LLM_CONTEXT_TOKENS`. For an Ollama model it is asked from the server, so one machine can benchmark a small window without restarting Ollama. |
 
 The other keys depend on the strategy. An unknown strategy, or a key the

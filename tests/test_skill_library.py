@@ -240,3 +240,25 @@ def test_a_run_gets_the_global_skill(home):
     agent = build_agent(cfg)
 
     assert "my-style" in {s.name for s in agent.agent_context.skills}
+
+
+def test_skills_off_leaves_out_official_skills_only(home):
+    # A bench arm's skills_off: the official skill goes; a third-party one
+    # of the same name, which replaces it, stays.
+    _write(lib.global_dir(), "pytest-conventions", "Mine.")
+
+    found = lib.collect(_cfg(home), None)
+    kept = {s.name: s for s in found.without_official(["pytest-conventions", "security-review"])}
+
+    assert "security-review" not in kept
+    assert kept["pytest-conventions"].content.strip() == "Mine."
+    assert "testing-and-verification" in kept
+
+
+def test_an_agent_with_skills_off_does_not_get_them(home):
+    cfg = replace(_cfg(home), skills_off=("security-review",))
+
+    names = {s.name for s in build_agent(cfg).agent_context.skills}
+
+    assert "security-review" not in names
+    assert "testing-and-verification" in names

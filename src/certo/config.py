@@ -113,6 +113,10 @@ class Config:
     # `skills/`. No setting reads it; `certo bench` points it at an empty
     # folder so a user's own skills never change benchmark results.
     global_skills_dir: str = ""
+    # Official skills a run doesn't get, by name. No setting reads it; a
+    # `certo bench` arm sets it (`skills_off`) to measure what a skill
+    # changes (agent.py).
+    skills_off: tuple[str, ...] = ()
 
     # Only consulted when execution == "docker" (see workspace.py).
     docker_image: str = DEFAULT_DOCKER_IMAGE

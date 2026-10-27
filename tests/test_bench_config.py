@@ -587,6 +587,48 @@ def test_tool_call_reminders_is_an_arm_option(tmp_path):
     assert seen == [0, DEFAULT_TOOL_CALL_REMINDERS]
 
 
+def test_skills_off_is_an_arm_option(tmp_path):
+    bench = (
+        "arms:\n"
+        "  - {name: bare, strategy: single, model: cloud, skills_off: [security-review]}\n"
+        "  - {name: plain, strategy: single, model: cloud}\n"
+    )
+    cfg = load_bench_config(_write(tmp_path, bench))
+    bare, plain = cfg.arms
+    assert bare.params == {"model": "cloud", "skills_off": ["security-review"]}
+    assert plain.params == {"model": "cloud"}  # left out when empty, for --resume
+    seen = []
+
+    def fake_stream(task, *, cfg, ladder=None):
+        seen.append(cfg.skills_off)
+        return SimpleNamespace(
+            verification_state="verified",
+            retries_used=0,
+            run_summary=None,
+            rungs=(),
+            final_rung=None,
+        )
+
+    ctx = RunContext("do it", "/ws", cfg.catalog, "/iso", fake_stream, cfg.model_catalog)
+    for arm in cfg.arms:
+        STRATEGIES[arm.strategy].run(ctx, arm.params)
+    assert seen == [("security-review",), ()]
+
+
+@pytest.mark.parametrize(
+    ("value", "message"),
+    [
+        ("[no-such-skill]", "names no official skill: no-such-skill"),
+        ("security-review", "must be a list of skill names"),
+        ("[1]", "must be a list of skill names"),
+    ],
+)
+def test_a_bad_skills_off_is_refused(tmp_path, value, message):
+    bench = f"arms:\n  - {{name: a, strategy: single, model: cloud, skills_off: {value}}}\n"
+    with pytest.raises(BenchConfigError, match=message):
+        load_bench_config(_write(tmp_path, bench))
+
+
 @pytest.mark.parametrize("value", ["-1", "'3'", "true", "1.5"])
 def test_a_bad_tool_call_reminders_is_refused(tmp_path, value):
     bench = (

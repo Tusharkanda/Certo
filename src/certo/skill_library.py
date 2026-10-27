@@ -122,6 +122,17 @@ class SkillSet:
         to the SDK, which loads them from the workspace itself."""
         return [r.skill for r in self.rows if r.active and r.layer != OWN]  # type: ignore[misc]
 
+    def without_official(self, names: Iterable[str]) -> list[Skill]:
+        """`skills`, minus the official skills named in `names` (a bench
+        arm's `skills_off`). A third-party skill of the same name, which
+        replaces the official one, stays."""
+        off = set(names)
+        return [
+            r.skill  # type: ignore[misc]
+            for r in self.rows
+            if r.active and r.layer != OWN and not (r.layer == OFFICIAL and r.name in off)
+        ]
+
 
 def untrusted(skill: Skill) -> Skill:
     return skill.model_copy(update={"content": tps.neutralize_inline_commands(skill.content)})
