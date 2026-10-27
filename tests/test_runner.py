@@ -2275,11 +2275,10 @@ task_profiles:
 
 
 def _catalog_files(tmp_path) -> dict[str, str]:
-    """Config fields naming both model files, written from the catalog."""
-    from model_file_helpers import write_model_files
+    """Config fields naming the model files, written from the catalog."""
+    from model_file_helpers import model_file_config
 
-    list_path, models_path = write_model_files(tmp_path, _MODEL_CATALOG_YAML)
-    return {"models_file": models_path, "models_list_file": list_path}
+    return model_file_config(tmp_path, _MODEL_CATALOG_YAML)
 
 
 def _stub_stream_task_dependencies(monkeypatch, conversation, tmp_path):
@@ -2445,11 +2444,10 @@ def test_api_failure_triggers_a_switch_to_the_next_candidate(monkeypatch, tmp_pa
 def _pinned_catalog_files(tmp_path) -> dict[str, str]:
     """The test catalog, with `default` pinned to `strong` (which the
     weights rank last)."""
-    from model_file_helpers import write_model_files
+    from model_file_helpers import model_file_config
 
     yaml_text = _MODEL_CATALOG_YAML.replace("  default:\n", "  default:\n    model: strong\n")
-    list_path, models_path = write_model_files(tmp_path, yaml_text)
-    return {"models_file": models_path, "models_list_file": list_path}
+    return model_file_config(tmp_path, yaml_text)
 
 
 def test_auto_mode_runs_the_profiles_pinned_model_first(monkeypatch, tmp_path):

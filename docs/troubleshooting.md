@@ -599,6 +599,7 @@ way, and stops on an error. The errors and their fixes:
 | `escalation.cost_axis is '...', but no model has a rating with that name` | Set `cost_axis` to the rating you use for cost-effectiveness, usually `cost`. |
 | `Ladder '...' has no usable rung` | Enable at least one of its models in `models.yaml`, or fix the names. |
 | `Task profile '...': there is no model named '...'` | The profile's `model:` names a model that isn't in `models_list.yaml`. Fix the spelling, or remove `model:`. |
+| `.../models_list.yaml has the 'task_profiles:' section. Since 0.1.20 it belongs in its own file` (or `'escalation:'`) | Your `models_list.yaml` is from before 0.1.20. Cut the section, with its key, into `task_profiles.yaml` (or `escalation.yaml`) next to it, or delete it if that file already has it. Nothing inside changes. See [Moving from one file](reference/models-yaml.md#moving-from-one-file-0119-and-earlier). |
 | `... may only contain 'task_profiles:'` (or `'escalation:'`) | `task_profiles.yaml` and `escalation.yaml` each hold one section. Move anything else to `models_list.yaml` or `models.yaml`. |
 | `CERTO_TASK_PROFILES_FILE names ..., which doesn't exist` (or `CERTO_ESCALATION_FILE`) | Fix the path, or clear the setting to let Certo look for the file. |
 | `models.yaml: '...' has api_key ${NAME}, which isn't set in your settings file or the environment` (a warning; the model is left out) | Add `NAME=...` with the key to your settings file (`~/.config/certo/.env`, or `.env` in the project folder), or export it. Check the spelling of the variable in `models.yaml`. |
@@ -619,8 +620,6 @@ once.
 | `Model '...' has no rating for ..., which task profile(s) ... weigh: it counts as 0` | Add the missing ratings, or the model ranks lower than it should. |
 | `Model '...' has no api_key and no base_url` | It works only if the provider's own key variable (such as `OPENAI_API_KEY`) is set. Add `api_key` in `models.yaml` otherwise. |
 | `... (capability ...) comes after ... but is rated less capable` | Your explicit ladder climbs to a weaker model. Allowed, if that's what you meant. |
-| `.../models_list.yaml has the 'task_profiles:' section. Since 0.1.20 it belongs in its own file` (or `'escalation:'`) | Your `models_list.yaml` is from before 0.1.20. Cut the section, with its key, into `task_profiles.yaml` (or `escalation.yaml`) next to it. Nothing inside changes. See [Moving from one file](reference/models-yaml.md#moving-from-one-file-0119-and-earlier). |
-| `... still has the '...:' section; it is ignored` | You already have the new file, so the old section in `models_list.yaml` isn't read. Delete it. |
 | `Task profile '...': ... isn't enabled in models.yaml` | The profile's `model:` can't run, so the weights pick the model. Enable it, or remove `model:`. |
 
 ### `--escalate` refuses to start

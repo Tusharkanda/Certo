@@ -554,7 +554,7 @@ def init_models_main(
     folder = os.path.dirname(settings_path)
     list_source = find(LIST_FILE) or example_path(LIST_FILE)
     try:
-        listed, _profiles, _escalation = _parse_list(list_source)
+        listed = _parse_list(list_source)
     except ModelCatalogError as exc:
         print(f"Error: {exc}", file=sys.stderr)
         return 1

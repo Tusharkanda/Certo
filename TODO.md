@@ -338,10 +338,6 @@ database).
 - **`certo skills suggest`** (later, agreed 2026-10-22): match a
   project's files against an index of vetted third-party skills shipped
   with Certo, and print `add` commands; never install by itself.
-- **Stop reading `task_profiles:` / `escalation:` in `models_list.yaml`.**
-  Since 0.1.20 they have their own files; the old sections are still read
-  with a warning. Remove that path (and the tests that use the old layout
-  through `write_model_files`) a version or two later.
 - **Third-party skills: narrow license detection, `SKILL.md` only.** Eight
   permissive licenses are recognised; anything else is `unknown` and needs
   acknowledgement. Legacy single-file upstream skills can't be installed.

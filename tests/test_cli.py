@@ -1287,11 +1287,10 @@ models:
 
 
 def _auto_model_cfg(tmp_path, **overrides):
-    from model_file_helpers import write_model_files
+    from model_file_helpers import model_file_config
 
-    list_path, models_path = write_model_files(tmp_path, _AUTO_MODEL_CATALOG)
     return _cfg(
-        workspace=str(tmp_path), models_file=models_path, models_list_file=list_path, **overrides
+        workspace=str(tmp_path), **model_file_config(tmp_path, _AUTO_MODEL_CATALOG), **overrides
     )
 
 
@@ -2057,11 +2056,10 @@ escalation:
 
 
 def _escalation_cfg(tmp_path, **overrides):
-    from model_file_helpers import write_model_files
+    from model_file_helpers import model_file_config
 
-    list_path, models_path = write_model_files(tmp_path, _ESCALATION_CATALOG)
     return _cfg(
-        workspace=str(tmp_path), models_file=models_path, models_list_file=list_path, **overrides
+        workspace=str(tmp_path), **model_file_config(tmp_path, _ESCALATION_CATALOG), **overrides
     )
 
 

@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import pytest
-from model_file_helpers import write_model_files, write_split_model_files
+from model_file_helpers import write_split_model_files
 
 from certo.catalog_check import check_catalog, load_checked_catalog, usable_rungs
 from certo.model_catalog import ModelCatalogError, load_model_catalog
@@ -146,13 +146,15 @@ def test_no_active_model_at_all(tmp_path):
 
 
 def test_load_checked_catalog_lists_every_error(tmp_path):
-    list_path, models_path = write_model_files(
+    files = write_split_model_files(
         tmp_path,
         _MODELS.replace("name: mid", "name: local")
         + "escalation:\n  ladders:\n    x:\n      - model: nope\n",
     )
     with pytest.raises(ModelCatalogError) as caught:
-        load_checked_catalog(models_path, list_path)
+        load_checked_catalog(
+            files["models_path"], files["list_path"], escalation_file=files["escalation_path"]
+        )
     message = str(caught.value)
     assert "have 4 problem(s)" in message
     assert "models.yaml lists 'local' twice." in message
@@ -313,17 +315,20 @@ def test_warnings_reach_the_callback(tmp_path):
 def test_a_rung_on_a_model_not_in_models_yaml_is_skipped(tmp_path):
     from certo.model_catalog import load_model_catalog as load
 
-    list_path, models_path = write_model_files(
+    files = write_split_model_files(
         tmp_path,
         _MODELS + "escalation:\n  ladders:\n    x:\n      - model: local\n      - model: strong\n"
         "      - model: mid\n",
     )
+    list_path, models_path = files["list_path"], files["models_path"]
     # Drop 'mid' from models.yaml: it stays in the list only.
     from pathlib import Path
 
     personal = Path(models_path)
     personal.write_text(personal.read_text().replace("- name: mid\n  api_key: sk-fake\n", ""))
-    report = check_catalog(load(list_path, models_path, strict=False))
+    report = check_catalog(
+        load(list_path, models_path, escalation_path=files["escalation_path"], strict=False)
+    )
     assert "Ladder 'x', rung 3: mid isn't in models.yaml, so this rung is skipped." in (
         report.warnings
     )

@@ -31,6 +31,15 @@ record the digest of the model's build, next to the Ollama version and
 the context window, so two benchmarks of the same model name can be told
 apart when it was pulled again in between.
 
+## Changed: old sections in `models_list.yaml` are no longer read
+
+Since 0.1.20, task profiles and escalation ladders have their own files,
+`task_profiles.yaml` and `escalation.yaml`. A `task_profiles:` or
+`escalation:` section still in `models_list.yaml` was read with a
+warning; now Certo stops and says where to move it. Nothing inside the
+section changes. See
+[Moving from one file](../reference/models-yaml.md#moving-from-one-file-0119-and-earlier).
+
 ## Fixed: a benchmark run that fails keeps its usage
 
 A `certo bench` run that ends with an error, for example when the model

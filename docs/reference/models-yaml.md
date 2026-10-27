@@ -241,21 +241,21 @@ A rung whose model isn't enabled in `models.yaml` is skipped.
 ## Moving from one file (0.1.19 and earlier)
 
 Up to 0.1.19, the task profiles and the ladders were sections of
-`models_list.yaml`. Certo still reads them there, and says so at every
-run and in `certo check`:
+`models_list.yaml`. Up to 0.1.25 Certo still read them there, with a
+warning. Since 0.1.26 it stops instead, at every run and in
+`certo check`:
 
 ```text
   Task profiles: none (optional, for --auto-model)
   Escalation: none (optional, for --escalate)
-  Warning: .../models_list.yaml has the 'task_profiles:' section. Since 0.1.20 it belongs in its own file, task_profiles.yaml, next to models_list.yaml: move the section there as it is. It is still read for now.
-  Warning: .../models_list.yaml has the 'escalation:' section. Since 0.1.20 it belongs in its own file, escalation.yaml, next to models_list.yaml: move the section there as it is. It is still read for now.
+  Error: .../models_list.yaml has the 'task_profiles:' section. Since 0.1.20 it belongs in its own file, task_profiles.yaml, next to models_list.yaml, and since 0.1.26 it is no longer read here: move the section there as it is. See docs/reference/models-yaml.md#moving-from-one-file-0119-and-earlier.
 ```
 
 To move, cut the whole `task_profiles:` section, with its key, into a new
 `task_profiles.yaml`, and the `escalation:` section into `escalation.yaml`,
-next to your `models_list.yaml`. Nothing inside a section changes. When
-both are there, the new file is used, and a warning says the section left
-in `models_list.yaml` is ignored.
+next to your `models_list.yaml`. Nothing inside a section changes, and
+neither section may stay in `models_list.yaml`, even when its own file is
+there.
 
 ## Checks
 
@@ -269,7 +269,9 @@ Errors:
   anything but its one key, `models` is missing or empty, an
   entry has no `name` (or, in the list, no `model`), a rating or weight is
   not a number, or a field has the wrong type or an unknown name;
-- `models_list.yaml` has an `api_key`, `base_url` or `activated`;
+- `models_list.yaml` has an `api_key`, `base_url` or `activated`, or a
+  `task_profiles:` or `escalation:` section (see
+  [Moving from one file](#moving-from-one-file-0119-and-earlier));
 - `models.yaml` is in the old single-file format;
 - two models in the list share a name, or `models.yaml` lists one twice;
 - `models.yaml` names a model the list doesn't have;
@@ -292,8 +294,6 @@ as errors.
 
 Warnings:
 
-- `models_list.yaml` still has a `task_profiles:` or `escalation:`
-  section (see [Moving from one file](#moving-from-one-file-0119-and-earlier));
 - a task profile's `model` isn't enabled in `models.yaml`: the weights
   pick the model instead;
 - a rung names a model that isn't in `models.yaml`, or has

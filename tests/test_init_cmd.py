@@ -1175,10 +1175,10 @@ def _check_with_catalog(tmp_path, monkeypatch, catalog, argv=()):
     monkeypatch.chdir(tmp_path)
     monkeypatch.setenv("CERTO_LLM_MODEL", "openai/main")
     monkeypatch.setenv("CERTO_LLM_API_KEY", "k")
-    from model_file_helpers import write_model_files
+    from model_file_helpers import write_split_model_files
 
-    # In the project folder: the lookup finds both files there.
-    write_model_files(tmp_path, catalog)
+    # In the project folder: the lookup finds the files there.
+    write_split_model_files(tmp_path, catalog)
     out = io.StringIO()
     code = init_cmd.check_main(list(argv), out=out)
     return code, out.getvalue()
@@ -1364,12 +1364,12 @@ def test_certo_check_without_a_catalog_prints_no_report(tmp_path, monkeypatch, c
 def test_certo_check_names_both_files_and_counts_unused_list_models(tmp_path, monkeypatch, checks):
     from pathlib import Path
 
-    from model_file_helpers import write_model_files
+    from model_file_helpers import write_split_model_files
 
     monkeypatch.chdir(tmp_path)
     monkeypatch.setenv("CERTO_LLM_MODEL", "openai/main")
     monkeypatch.setenv("CERTO_LLM_API_KEY", "k")
-    _, models_path = write_model_files(tmp_path, _CATALOG)
+    models_path = write_split_model_files(tmp_path, _CATALOG)["models_path"]
     personal = Path(models_path)
     personal.write_text(
         "models:\n  - name: qwen-local\n  - name: gpt-luna\n    api_key: sk-x\n"
@@ -1389,12 +1389,12 @@ def test_certo_check_names_both_files_and_counts_unused_list_models(tmp_path, mo
 def test_certo_check_with_only_the_list_says_to_create_models_yaml(tmp_path, monkeypatch, checks):
     from pathlib import Path
 
-    from model_file_helpers import write_model_files
+    from model_file_helpers import write_split_model_files
 
     monkeypatch.chdir(tmp_path)
     monkeypatch.setenv("CERTO_LLM_MODEL", "openai/main")
     monkeypatch.setenv("CERTO_LLM_API_KEY", "k")
-    _, models_path = write_model_files(tmp_path, _CATALOG)
+    models_path = write_split_model_files(tmp_path, _CATALOG)["models_path"]
     Path(models_path).unlink()
     out = io.StringIO()
 

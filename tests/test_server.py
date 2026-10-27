@@ -1158,9 +1158,9 @@ escalation:
 
 
 def _escalation_app(monkeypatch, tmp_path, calls):
-    from model_file_helpers import write_model_files
+    from model_file_helpers import model_file_config
 
-    list_path, models_path = write_model_files(tmp_path, _LADDER_CATALOG)
+    files = model_file_config(tmp_path, _LADDER_CATALOG)
 
     def _fake_stream_task(task, cfg=None, on_message=None, acceptance_checks=None, **kwargs):
         calls.append({"cfg": cfg, **kwargs})
@@ -1169,7 +1169,7 @@ def _escalation_app(monkeypatch, tmp_path, calls):
     monkeypatch.setattr(
         server,
         "load_config",
-        lambda: _cfg(models_file=models_path, models_list_file=list_path),
+        lambda: _cfg(**files),
     )
     monkeypatch.setattr(server, "stream_task", _fake_stream_task)
     return TestClient(server.create_app())

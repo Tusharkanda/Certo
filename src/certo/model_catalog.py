@@ -341,7 +341,7 @@ LIST_FILE = "models_list.yaml"
 MODELS_FILE = "models.yaml"
 # Optional, one per mode that reads them (0.1.20): --auto-model's task
 # profiles, and --escalate's ladders. Before 0.1.20 both were sections of
-# models_list.yaml, which is still read, with a warning.
+# models_list.yaml; read there with a warning until 0.1.25, refused since.
 PROFILES_FILE = "task_profiles.yaml"
 ESCALATION_FILE = "escalation.yaml"
 # Personal settings: they live in models.yaml, never in the shared list.
@@ -399,11 +399,23 @@ def _read_section_file(path: str, key: str) -> Any:
     return raw.get(key)
 
 
-def _parse_list(path: str) -> tuple[list[ModelCatalogEntry], list[TaskProfile], EscalationSettings]:
-    """models_list.yaml: the models (ids, descriptions, ratings). Task
-    profiles and escalation settings are still read from it when present,
-    the layout before 0.1.20. No personal settings."""
+# The sections models_list.yaml had before 0.1.20, and their own files.
+_MOVED_SECTIONS = {"task_profiles": PROFILES_FILE, "escalation": ESCALATION_FILE}
+
+
+def _parse_list(path: str) -> list[ModelCatalogEntry]:
+    """models_list.yaml: the models (ids, descriptions, ratings). No
+    personal settings, and no task profiles or escalation settings, which
+    have their own files since 0.1.20."""
     raw = _read_mapping(path)
+    for key, own_file in _MOVED_SECTIONS.items():
+        if raw.get(key) is not None:
+            raise ModelCatalogError(
+                f"{path} has the '{key}:' section. Since 0.1.20 it belongs in its own file, "
+                f"{own_file}, next to {LIST_FILE}, and since 0.1.26 it is no longer read "
+                "here: move the section there as it is. See "
+                "docs/reference/models-yaml.md#moving-from-one-file-0119-and-earlier."
+            )
     models_raw = raw.get("models")
     if not isinstance(models_raw, list) or not models_raw:
         raise ModelCatalogError(f"{path} must define a non-empty 'models' list.")
@@ -415,13 +427,7 @@ def _parse_list(path: str) -> tuple[list[ModelCatalogEntry], list[TaskProfile], 
                     f"{path}: model {data.get('name')!r} has {', '.join(personal)}. Those are "
                     f"personal settings and belong in {MODELS_FILE}, next to the model's name."
                 )
-    models = [_parse_model_entry(entry) for entry in models_raw]
-    profiles = _parse_profiles(raw.get("task_profiles"), path)
-    return models, profiles, _parse_escalation(raw.get("escalation"), path)
-
-
-def _list_has(path: str, key: str) -> bool:
-    return _read_mapping(path).get(key) is not None
+    return [_parse_model_entry(entry) for entry in models_raw]
 
 
 def _old_format_error(path: str, what: str) -> ModelCatalogError:
@@ -535,13 +541,10 @@ def load_model_catalog(
     `escalation.yaml`. Ratings in models.yaml replace the list's axis by
     axis. A model missing from models.yaml is never used.
 
-    A `task_profiles:` or `escalation:` section still in models_list.yaml
-    (the layout before 0.1.20) is used when its own file isn't given, with
-    a warning to move it; when the file is given, the file wins and the
-    section is ignored, also with a warning.
-
     Raises `ModelCatalogError` for a missing or malformed file, personal
-    settings in the list, and the pre-0.1.10 single-file models.yaml. With
+    settings in the list, a `task_profiles:` or `escalation:` section
+    still in the list (the layout before 0.1.20), and the pre-0.1.10
+    single-file models.yaml. With
     `strict=False`, duplicate names and names models.yaml gives that the
     list doesn't have are collected in `load_problems` for
     `catalog_check.py` to report with everything else; commands load
@@ -553,30 +556,16 @@ def load_model_catalog(
     whose variable is unset is left out, with a warning, rather than sent
     the literal text."""
     environ = os.environ if environ is None else environ
-    listed, profiles, escalation = _parse_list(list_path)
+    listed = _parse_list(list_path)
     warnings: list[str] = []
-    for key, own_path, own_file in (
-        ("task_profiles", profiles_path, PROFILES_FILE),
-        ("escalation", escalation_path, ESCALATION_FILE),
-    ):
-        in_list = _list_has(list_path, key)
-        if own_path:
-            section = _read_section_file(own_path, key)
-            if key == "task_profiles":
-                profiles = _parse_profiles(section, own_path)
-            else:
-                escalation = _parse_escalation(section, own_path)
-            if in_list:
-                warnings.append(
-                    f"{list_path} still has the '{key}:' section; it is ignored, because "
-                    f"{own_path} is used instead. Delete the section from {LIST_FILE}."
-                )
-        elif in_list:
-            warnings.append(
-                f"{list_path} has the '{key}:' section. Since 0.1.20 it belongs in its own "
-                f"file, {own_file}, next to {LIST_FILE}: move the section there as it is. "
-                "It is still read for now."
-            )
+    profiles = _parse_profiles(
+        _read_section_file(profiles_path, "task_profiles") if profiles_path else None,
+        profiles_path or list_path,
+    )
+    escalation = _parse_escalation(
+        _read_section_file(escalation_path, "escalation") if escalation_path else None,
+        escalation_path or list_path,
+    )
     personal = _parse_personal(models_path)
     for data in personal:
         for key in ("api_key", "base_url"):

@@ -65,6 +65,12 @@ def _write(tmp_path, text: str) -> tuple[str, str]:
     return write_model_files(tmp_path, text)
 
 
+def _catalog_files(tmp_path, text: str) -> dict:
+    """`load_model_catalog` keywords for every file in `text`, task
+    profiles and escalation in their own files."""
+    return write_split_model_files(tmp_path, text)
+
+
 def _list_only(tmp_path, list_text: str) -> tuple[str, str]:
     """A hand-written models_list.yaml (for malformed lists), with a
     minimal models.yaml."""
@@ -77,7 +83,7 @@ def _list_only(tmp_path, list_text: str) -> tuple[str, str]:
 
 
 def test_loads_minimal_catalog_with_one_model_and_no_profiles(tmp_path):
-    catalog = load_model_catalog(*_write(tmp_path, _MINIMAL_YAML))
+    catalog = load_model_catalog(**_catalog_files(tmp_path, _MINIMAL_YAML))
 
     assert len(catalog.models) == 1
     assert catalog.models[0] == ModelCatalogEntry(
@@ -89,7 +95,7 @@ def test_loads_minimal_catalog_with_one_model_and_no_profiles(tmp_path):
 
 
 def test_loads_full_catalog_with_profiles(tmp_path):
-    catalog = load_model_catalog(*_write(tmp_path, _FULL_YAML))
+    catalog = load_model_catalog(**_catalog_files(tmp_path, _FULL_YAML))
 
     assert [m.name for m in catalog.models] == ["fast-cheap", "balanced", "deep-reasoner"]
     assert catalog.models[0].api_key == "sk-fake"
@@ -102,7 +108,7 @@ def test_loads_full_catalog_with_profiles(tmp_path):
 
 
 def test_activated_defaults_to_true_when_omitted(tmp_path):
-    catalog = load_model_catalog(*_write(tmp_path, _MINIMAL_YAML))
+    catalog = load_model_catalog(**_catalog_files(tmp_path, _MINIMAL_YAML))
 
     assert catalog.models[0].activated is True
 
@@ -168,7 +174,7 @@ def test_non_mapping_top_level_raises(tmp_path):
 
 
 def test_missing_models_key_raises(tmp_path):
-    path = _list_only(tmp_path, "task_profiles: {}\n")
+    path = _list_only(tmp_path, "description: no models\n")
     with pytest.raises(ModelCatalogError, match="non-empty 'models' list"):
         load_model_catalog(*path)
 
@@ -220,12 +226,12 @@ def test_ratings_not_a_mapping_raises(tmp_path):
 
 def test_task_profile_non_numeric_weight_raises(tmp_path):
     path = _list_only(
-        tmp_path,
-        "models:\n  - name: foo\n    model: openai/gpt-4o\n    ratings: {cost: 5}\n"
-        "task_profiles:\n  bogus:\n    weights: {cost: lots}\n",
+        tmp_path, "models:\n  - name: foo\n    model: openai/gpt-4o\n    ratings: {cost: 5}\n"
     )
+    profiles = tmp_path / "task_profiles.yaml"
+    profiles.write_text("task_profiles:\n  bogus:\n    weights: {cost: lots}\n")
     with pytest.raises(ModelCatalogError, match="weight"):
-        load_model_catalog(*path)
+        load_model_catalog(*path, profiles_path=str(profiles))
 
 
 # --- classify_task ---------------------------------------------------------
@@ -373,7 +379,7 @@ task_profiles:
 
 def _pinned(tmp_path, model):
     catalog = load_model_catalog(
-        *_write(tmp_path, _PINNED_YAML.replace("MODEL", model)), strict=False
+        **_catalog_files(tmp_path, _PINNED_YAML.replace("MODEL", model)), strict=False
     )
     return catalog, catalog.task_profiles[0]
 
@@ -386,7 +392,7 @@ def test_a_profile_can_name_a_model(tmp_path):
 
 def test_a_profile_model_must_be_a_name(tmp_path):
     with pytest.raises(ModelCatalogError, match="'model' must be the name of a model"):
-        load_model_catalog(*_write(tmp_path, _PINNED_YAML.replace("MODEL", "[a, b]")))
+        load_model_catalog(**_catalog_files(tmp_path, _PINNED_YAML.replace("MODEL", "[a, b]")))
 
 
 def test_the_pinned_model_goes_first_and_the_weights_order_the_rest(tmp_path):
@@ -414,7 +420,7 @@ def test_a_pinned_model_that_cant_run_falls_back_to_the_weights(tmp_path, model,
 
 def test_without_a_pinned_model_the_weights_decide(tmp_path):
     catalog = load_model_catalog(
-        *_write(tmp_path, _PINNED_YAML.replace("    model: MODEL\n", "")), strict=False
+        **_catalog_files(tmp_path, _PINNED_YAML.replace("    model: MODEL\n", "")), strict=False
     )
 
     ranked, how = rank_for_profile(catalog, catalog.task_profiles[0])
@@ -497,7 +503,7 @@ def test_rank_candidates_raises_when_every_model_is_deactivated():
 
 def test_timeout_seconds_defaults_to_300_and_can_be_set(tmp_path):
     catalog = load_model_catalog(
-        *_write(
+        **_catalog_files(
             tmp_path,
             """
 models:
@@ -520,7 +526,7 @@ models:
 def test_timeout_seconds_must_be_a_whole_number_of_seconds(tmp_path, value):
     text = f"models:\n  - name: m\n    model: openai/gpt-4o\n    timeout_seconds: {value}\n"
     with pytest.raises(ModelCatalogError, match="timeout_seconds"):
-        load_model_catalog(*_write(tmp_path, text))
+        load_model_catalog(**_catalog_files(tmp_path, text))
 
 
 # --- escalation section ----------------------------------------------------------
@@ -539,7 +545,7 @@ models:
 
 
 def test_no_escalation_section_gives_the_defaults(tmp_path):
-    settings = load_model_catalog(*_write(tmp_path, _TWO_MODELS)).escalation
+    settings = load_model_catalog(**_catalog_files(tmp_path, _TWO_MODELS)).escalation
 
     assert settings.cost_axis == "cost"
     assert settings.cost_axis_set is False
@@ -567,7 +573,7 @@ escalation:
           reasoning_effort: max
 """
     )
-    settings = load_model_catalog(*_write(tmp_path, text)).escalation
+    settings = load_model_catalog(**_catalog_files(tmp_path, text)).escalation
 
     assert (settings.cost_axis, settings.cost_axis_set, settings.max_rungs) == ("price", True, 4)
     default = settings.ladders["default"]
@@ -604,7 +610,7 @@ escalation:
 )
 def test_escalation_section_shape_errors(tmp_path, section, message):
     with pytest.raises(ModelCatalogError, match=message):
-        load_model_catalog(*_write(tmp_path, _TWO_MODELS + section + "\n"))
+        load_model_catalog(**_catalog_files(tmp_path, _TWO_MODELS + section + "\n"))
 
 
 def test_the_commented_ladders_in_the_escalation_example_parse(tmp_path):
@@ -807,31 +813,24 @@ def test_profiles_and_ladders_are_read_from_their_own_files(tmp_path):
     assert catalog.load_warnings == ()
 
 
-def test_sections_left_in_the_list_still_work_with_a_warning(tmp_path):
-    # The layout before 0.1.20: everything in models_list.yaml.
-    catalog = load_model_catalog(*_write(tmp_path, _LAYOUT_YAML))
+@pytest.mark.parametrize(
+    ("key", "own_file"),
+    [("task_profiles", "task_profiles.yaml"), ("escalation", "escalation.yaml")],
+)
+def test_a_section_left_in_the_list_is_refused(tmp_path, key, own_file):
+    # The layout before 0.1.20, read with a warning until 0.1.25.
+    files = write_split_model_files(tmp_path, _LAYOUT_YAML)
+    own = Path(files["profiles_path" if key == "task_profiles" else "escalation_path"])
+    listed = Path(files["list_path"])
+    listed.write_text(listed.read_text() + own.read_text())
 
-    assert [p.name for p in catalog.task_profiles] == ["debugging"]
-    assert catalog.escalation.max_rungs == 2
-    assert len(catalog.load_warnings) == 2
+    with pytest.raises(ModelCatalogError) as info:
+        load_model_catalog(**files)  # even with the section's own file there
+
     assert (
-        "has the 'task_profiles:' section. Since 0.1.20 it belongs in its own file, "
-        "task_profiles.yaml" in catalog.load_warnings[0]
-    )
-    assert "escalation.yaml" in catalog.load_warnings[1]
-
-
-def test_the_own_file_wins_over_a_section_left_in_the_list(tmp_path):
-    list_path, models_path = _write(tmp_path, _LAYOUT_YAML)
-    profiles = tmp_path / "task_profiles.yaml"
-    profiles.write_text("task_profiles:\n  scaffolding:\n    triggers: [scaffold]\n")
-
-    catalog = load_model_catalog(list_path, models_path, profiles_path=str(profiles))
-
-    assert [p.name for p in catalog.task_profiles] == ["scaffolding"]
-    assert any(
-        "still has the 'task_profiles:' section; it is ignored" in w for w in catalog.load_warnings
-    )
+        f"has the '{key}:' section. Since 0.1.20 it belongs in its own file, {own_file}, "
+        "next to models_list.yaml, and since 0.1.26 it is no longer read here"
+    ) in str(info.value)
 
 
 @pytest.mark.parametrize(

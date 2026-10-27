@@ -1286,4 +1286,10 @@ considered and live-verification detail: `docs/ROADMAP.txt`.
   a 32K context. Cause not settled (Ollama's template or parser vs the
   model): the reminder works either way. Benchmark before release: a
   local arm with and without, and a cloud check.
+- **Old `task_profiles:` / `escalation:` sections in `models_list.yaml`
+  are refused, not ignored** (2026-10-27, as planned at 0.1.20: read with
+  a warning "a version or two"). Ignoring them would silently change a
+  user's ladders and profiles; an error names the file to move them to.
+  Refused even when the section's own file exists, so there is one place
+  for each.
 

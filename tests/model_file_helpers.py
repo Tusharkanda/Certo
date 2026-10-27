@@ -6,14 +6,19 @@ import os
 
 
 def write_model_files(folder, combined: str) -> tuple[str, str]:
-    """Write a catalog given in one YAML text (the shape most tests read
-    best: models with their keys, task_profiles, escalation) as the two real
-    files, models_list.yaml and models.yaml, the way a user would split it:
-    every model goes into models.yaml with its api_key, base_url and
-    activated; the rest stays in the list. Returns (list path, models path)."""
+    """Write a catalog given in one YAML text of models with their keys as
+    the two real files, models_list.yaml and models.yaml, the way a user
+    would split it: every model goes into models.yaml with its api_key,
+    base_url and activated; the rest stays in the list. Returns (list
+    path, models path). A text with `task_profiles:` or `escalation:`
+    needs `write_split_model_files` or `model_file_config`: those
+    sections have their own files."""
     import yaml
 
     data = yaml.safe_load(combined)
+    moved = [key for key in ("task_profiles", "escalation") if key in data]
+    if moved:
+        raise ValueError(f"{', '.join(moved)}: use write_split_model_files or model_file_config")
     listed, personal = [], []
     for model in data.get("models") or []:
         model = dict(model)
@@ -53,3 +58,15 @@ def write_split_model_files(folder, combined: str) -> dict[str, str | None]:
             paths[arg] = path
     list_path, models_path = write_model_files(folder, yaml.safe_dump(data, sort_keys=False))
     return {"list_path": list_path, "models_path": models_path, **paths}
+
+
+def model_file_config(folder, combined: str) -> dict[str, str]:
+    """`write_split_model_files`, as the Config fields (and benchmark file
+    keys) that name the files: "" for a section the text doesn't have."""
+    paths = write_split_model_files(folder, combined)
+    return {
+        "models_list_file": paths["list_path"],
+        "models_file": paths["models_path"],
+        "task_profiles_file": paths["profiles_path"] or "",
+        "escalation_file": paths["escalation_path"] or "",
+    }
