@@ -129,8 +129,9 @@ def hardware_hint() -> dict[str, Any]:
 
 def model_servers(cfg: BenchConfig) -> dict[str, dict[str, Any]]:
     """For every Ollama model the arms use: the server's address (host and
-    port), its Ollama version and the context window it gives the model by
-    default, or None for what the server doesn't say. A local result can
+    port), its Ollama version, the digest of the model's build and the
+    context window it gives the model by default, or None for what the
+    server doesn't say. A local result can
     then be traced to its setup. Never raises: a server that doesn't answer
     is recorded as unknown, and its runs report the failure themselves."""
     servers: dict[str, dict[str, Any]] = {}
@@ -144,6 +145,9 @@ def model_servers(cfg: BenchConfig) -> dict[str, dict[str, Any]]:
                 "model": entry.model,
                 "server": context_window.server_address(entry.base_url),
                 "ollama_version": version,
+                "model_digest": context_window.ollama_model_digest(entry.model, entry.base_url)
+                if version
+                else None,
                 # Loading the model can take a while; a silent server is skipped.
                 "context_tokens": context_window.ollama_context_tokens(
                     entry.model, entry.base_url, entry.timeout_seconds or 300

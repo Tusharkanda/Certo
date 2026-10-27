@@ -636,6 +636,7 @@ def test_meta_records_each_ollama_models_server(tmp_path, monkeypatch):
         context_window, "ollama_version", lambda url, *a: asked.append(url) or "0.12.6"
     )
     monkeypatch.setattr(context_window, "ollama_context_tokens", lambda *a, **k: 131072)
+    monkeypatch.setattr(context_window, "ollama_model_digest", lambda *a, **k: "sha256:abc")
     arms = "  - {name: local, strategy: single, model: local-coder, context_tokens: 32768}\n"
     cfg = load_bench_config(_bench_file(tmp_path, arms + ONE_ARM))
 
@@ -648,6 +649,7 @@ def test_meta_records_each_ollama_models_server(tmp_path, monkeypatch):
             "model": "ollama/qwen3-coder:30b",
             "server": "localhost:11434",
             "ollama_version": "0.12.6",
+            "model_digest": "sha256:abc",
             "context_tokens": 131072,
             "context_tokens_set": None,
         }
@@ -665,6 +667,7 @@ def test_a_silent_ollama_server_is_recorded_as_unknown(tmp_path, monkeypatch):
     info = bench._meta(cfg)["model_servers"]["local-coder"]
 
     assert info["ollama_version"] is None and info["context_tokens"] is None
+    assert info["model_digest"] is None
     assert loaded == []  # no model load is tried on a server that didn't answer
 
 

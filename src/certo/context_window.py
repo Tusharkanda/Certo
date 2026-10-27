@@ -101,6 +101,24 @@ def ollama_version(base_url: str | None, timeout: float = 10) -> str | None:
     return version if isinstance(version, str) and version else None
 
 
+def ollama_model_digest(model: str, base_url: str | None, timeout: float = 10) -> str | None:
+    """The digest of the build of `model` (a LiteLLM name such as
+    `ollama/qwen3.8:27b`) the server has (`/api/tags`), or None when it
+    can't be learned. Two benchmarks with the same model name can then be
+    told apart when the model was pulled again in between. Doesn't load
+    the model."""
+    name = model.split("/", 1)[1]
+    base = (base_url or _DEFAULT_OLLAMA_URL).rstrip("/")
+    try:
+        for found in _get(f"{base}/api/tags", timeout).get("models", []):
+            if name in (found.get("name"), found.get("model")):
+                digest = found.get("digest")
+                return digest if isinstance(digest, str) and digest else None
+    except (OSError, ValueError, AttributeError, urllib.error.URLError):
+        return None
+    return None
+
+
 def server_address(base_url: str | None) -> str:
     """Host and port only: no scheme, path or credentials."""
     parsed = urllib.parse.urlsplit(base_url or _DEFAULT_OLLAMA_URL)

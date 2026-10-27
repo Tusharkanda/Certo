@@ -166,8 +166,8 @@ first item is the suggested next one.
   where it happened most (`todo-deps`, `ledger-transfers`,
   `library-loans`). Day: a cloud arm, to show nothing changes. Done when
   published as a benchmark page. Also still open: the cause (Ollama
-  template or parser, the model's build: record the Ollama model digest
-  from `/api/ps` in bench results).
+  template or parser, or the model's build: bench results record the
+  model digest from 0.1.26 on).
 - **Bench estimates from recorded cost.** The plan prices every run at a
   fixed ~500k input / ~20k output tokens (far too high: a cloud run used
   ~124k in the baseline). Use the per-model average from earlier

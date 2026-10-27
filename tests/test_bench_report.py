@@ -110,6 +110,7 @@ def test_header_names_each_ollama_server_and_window():
             "model": "ollama/qwen3-coder:30b",
             "server": "gpu-box:11434",
             "ollama_version": "0.12.6",
+            "model_digest": "sha256:a1b2c3d4e5f6a7b8c9d0",
             "context_tokens": 131072,
             "context_tokens_set": None,
         }
@@ -119,7 +120,7 @@ def test_header_names_each_ollama_server_and_window():
 
     assert (
         "- Model servers:\n  - qwen (`ollama/qwen3-coder:30b`): Ollama 0.12.6 at gpu-box:11434, "
-        "server window 131,072 tokens, arm local asks for 32,768\n"
+        "server window 131,072 tokens, model digest a1b2c3d4e5f6, arm local asks for 32,768\n"
     ) in markdown
 
 

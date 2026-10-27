@@ -41,6 +41,9 @@ class _FakeOllama(BaseHTTPRequestHandler):
         if self.path == "/api/version":
             self._reply({"version": "0.12.6"})
             return
+        if self.path == "/api/tags":
+            self._reply({"models": [{"name": "qwen3.8:27b", "digest": "a1b2c3d4e5f6a7b8"}]})
+            return
         models = [{"name": m, "model": m, "context_length": 32768} for m in type(self).loaded]
         self._reply({"models": models})
 
@@ -84,6 +87,19 @@ def test_the_version_is_read_from_ollama(fake_ollama):
     try:
         assert fresh.ollama_version(fake_ollama) == "0.12.6"
         assert fresh.ollama_version("http://127.0.0.1:9", 2) is None
+    finally:
+        reload(cw)
+
+
+def test_the_model_digest_is_read_from_ollama_without_loading_it(fake_ollama):
+    from importlib import reload
+
+    fresh = reload(cw)
+    try:
+        assert fresh.ollama_model_digest("ollama/qwen3.8:27b", fake_ollama) == "a1b2c3d4e5f6a7b8"
+        assert fresh.ollama_model_digest("ollama/not-pulled", fake_ollama) is None
+        assert fresh.ollama_model_digest("ollama/x", "http://127.0.0.1:9", 2) is None
+        assert _FakeOllama.loaded == []
     finally:
         reload(cw)
 

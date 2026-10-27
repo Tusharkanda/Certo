@@ -213,8 +213,11 @@ Each benchmark writes a folder, by default `bench-results/<date-time>/`:
 
 For each Ollama model, `meta.json` (`model_servers`) and the top of
 `results.md` record the server's address (host and port only), its Ollama
-version and the context window the server gives the model, so a local
-result can be traced to how the model was served. Certo loads the model to
+version, the digest of the model's build (`results.md` shows its first
+12 digits, as `ollama list` does) and the context window the server
+gives the model, so a local result can be traced to how the model was
+served, and two benchmarks with the same model name can be told apart
+when the model was pulled again in between. Certo loads the model to
 read the window. A server that doesn't answer is recorded as unknown and
 doesn't stop the benchmark; its runs then fail on their own.
 

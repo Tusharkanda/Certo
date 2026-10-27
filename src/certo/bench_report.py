@@ -281,6 +281,11 @@ def _hardware(hint: dict[str, Any]) -> str:
     return ", ".join(p for p in parts if p) or "unknown"
 
 
+def _short_digest(digest: str) -> str:
+    """The first 12 hex digits, as `ollama list` shows them."""
+    return digest.removeprefix("sha256:")[:12]
+
+
 def _model_servers(meta: dict[str, Any]) -> list[str]:
     """One line per Ollama model: its server and the context window."""
     windows = {
@@ -295,6 +300,8 @@ def _model_servers(meta: dict[str, Any]) -> list[str]:
             f"{server} at {info.get('server', 'unknown')}",
             f"server window {context:,} tokens" if context else "server window unknown",
         ]
+        if info.get("model_digest"):
+            parts.append(f"model digest {_short_digest(info['model_digest'])}")
         if info.get("context_tokens_set"):
             parts.append(f"models.yaml sets {info['context_tokens_set']:,}")
         arms = meta["config"].get("arm_models", {})

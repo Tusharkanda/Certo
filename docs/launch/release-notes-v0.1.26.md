@@ -24,6 +24,13 @@ escalation ladder;
 compare. A model that makes real tool calls is never sent a reminder.
 See [Troubleshooting](../troubleshooting.md#the-run-ends-at-once-with-a-tool-call-as-the-agents-last-message).
 
+## Benchmark: the Ollama model's build is recorded
+
+For each Ollama model, `meta.json` and the top of `results.md` now
+record the digest of the model's build, next to the Ollama version and
+the context window, so two benchmarks of the same model name can be told
+apart when it was pulled again in between.
+
 ## Fixed: a benchmark run that fails keeps its usage
 
 A `certo bench` run that ends with an error, for example when the model
