@@ -20,6 +20,7 @@ from certo.config import Config
 from certo.verification import CheckOutcome
 from certo.escalation import handoff_task, ladder_from_models, resolve_ladder
 from certo.model_catalog import load_model_catalog
+from certo.run_summary import RunSummary
 
 _REAL_AGENT_CHANGED_FILES = runner._agent_changed_files
 
@@ -386,6 +387,39 @@ def test_a_provider_failure_on_the_last_rung_is_raised(tmp_path, fake_run):
     fake_run.script[:] = [("no_progress", 0, {}), ("stuck", 0, {}), (_provider_failure(), 0, {})]
     with pytest.raises(ConversationRunError):
         _run(tmp_path, _ladder(tmp_path))
+
+
+def test_a_failed_escalation_carries_the_usage_of_every_rung_it_tried(tmp_path, fake_run):
+    # `certo bench` reads this attribute to record what a failed run spent
+    # (see bench.execute_run); an escalation that tried three models is the
+    # most expensive run a benchmark can have. See issue #37.
+    fake_run.script[:] = [
+        ("no_progress", 0.01, {}),
+        ("stuck", 0.02, {}),
+        (_provider_failure(), 0.03, {}),
+    ]
+
+    with pytest.raises(ConversationRunError) as info:
+        _run(tmp_path, _ladder(tmp_path))
+
+    summary = info.value.run_summary
+    assert isinstance(summary, RunSummary)
+    # The fake conversations record 1000 prompt + 100 completion tokens each.
+    assert summary.total_tokens == 3300
+    assert summary.total_cost == pytest.approx(0.06)
+    assert summary.condensations == 0
+
+
+def test_a_failed_escalation_before_any_model_call_carries_zeros(tmp_path, fake_run, monkeypatch):
+    monkeypatch.setattr(runner, "_per_model_metrics", lambda _conversation: {})
+    fake_run.script[:] = [(_provider_failure(), 0, {})]
+
+    with pytest.raises(ConversationRunError) as info:
+        _run(tmp_path, _ladder(tmp_path, models=["local"]))
+
+    summary = info.value.run_summary
+    assert isinstance(summary, RunSummary)
+    assert summary.total_tokens == 0 and summary.condensations == 0
 
 
 def test_any_other_run_error_is_raised_at_once_locally(tmp_path, fake_run):

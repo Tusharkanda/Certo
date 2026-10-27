@@ -2657,6 +2657,15 @@ def _stream_escalation(
         if written is not None:  # already gone after a normal finish
             shutil.rmtree(written.scratch, ignore_errors=True)
         write_model_decisions(cfg.workspace, decisions)
+        run_summary = summarize_run(
+            time.monotonic() - run_started, per_model_metrics, efforts, io.condensed[0]
+        )
+        if captured_error is not None:
+            # The exception is the only value that leaves this function on a
+            # failed escalation, so the usage of every rung that ran travels
+            # on it: `certo bench` records the tokens an escalation burned
+            # before it failed instead of zeros (see bench.execute_run).
+            _attach_run_summary(captured_error, run_summary)
         if cfg.artifacts_dir:
             final = final_outcome if captured_error is None else None
             write_run_artifacts(
@@ -2679,14 +2688,19 @@ def _stream_escalation(
                 error=str(captured_error) if captured_error is not None else None,
                 combined_metrics={},
                 per_model_metrics=per_model_metrics,
-                run_summary=summarize_run(
-                    time.monotonic() - run_started, per_model_metrics, efforts, io.condensed[0]
-                ).to_dict(),
+                run_summary=run_summary.to_dict(),
                 rungs=rung_dicts(rungs, final_rung if captured_error is None else None),
             )
 
     if final_outcome is None or final_rung != rungs[-1].number:
         # Every rung that ran ended in a provider failure, or the last one did.
+        if last_error is not None:
+            _attach_run_summary(
+                last_error,
+                summarize_run(
+                    time.monotonic() - run_started, per_model_metrics, efforts, io.condensed[0]
+                ),
+            )
         raise last_error  # type: ignore[misc]
     return replace(
         final_outcome,
