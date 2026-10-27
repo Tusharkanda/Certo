@@ -190,7 +190,7 @@ def execute_run(
         strategy = STRATEGIES[planned.arm.strategy]
         started_at = _now()
         start = time.monotonic()
-        attempt, error = None, None
+        attempt, error, failed_summary = None, None, None
         try:
             attempt = strategy.run(
                 RunContext(
@@ -205,6 +205,10 @@ def execute_run(
             )
         except Exception as exc:  # noqa: BLE001 - recorded; the benchmark goes on
             error = f"{type(exc).__name__}: {exc}"
+            # runner.stream_task puts the usage recorded up to the error on
+            # the exception it raises: a run that worked for 31 minutes and
+            # then lost its model server counts what it spent, not zeros.
+            failed_summary = getattr(exc, "run_summary", None)
         wall = time.monotonic() - start
         write_transcript(out_dir, planned.run_id, messages, seconds, started_at)
         graded = grade(planned.task, workspace)
@@ -217,7 +221,7 @@ def execute_run(
         shutil.rmtree(isolation, ignore_errors=True)
 
     verdict = attempt.verification_state if attempt else None
-    summary = attempt.run_summary if attempt else None
+    summary = attempt.run_summary if attempt else failed_summary
     claimed = attempt is not None and verdict not in _NO_CLAIM_VERDICTS
     names = list(attempt.models_used) if attempt else planned.arm.models
     record = {

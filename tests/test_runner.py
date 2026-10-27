@@ -26,6 +26,7 @@ from openhands.tools.task_tracker import TaskTrackerObservation, TaskTrackerTool
 from certo import runner
 from certo.acceptance import AcceptanceCheck
 from certo.config import Config, ConfigError, load_config
+from certo.run_summary import RunSummary
 from certo.verification import CheckOutcome, VerificationRun
 
 _REAL_AGENT_CHANGED_FILES = runner._agent_changed_files
@@ -2484,6 +2485,24 @@ def test_a_non_api_exception_never_triggers_a_model_switch(monkeypatch, tmp_path
         )
 
     assert conversation.switched_llms == []
+
+
+def test_a_failed_run_carries_the_usage_it_recorded_on_its_exception(monkeypatch, tmp_path):
+    # `certo bench` reads this attribute to record what an interrupted run
+    # spent; see bench.execute_run and issue #30.
+    conversation = _SwitchableConversation([RuntimeError("provider down")])
+    _stub_stream_task_dependencies(monkeypatch, conversation, tmp_path)
+
+    with pytest.raises(RuntimeError, match="provider down") as info:
+        runner.stream_task(
+            "do the thing",
+            cfg=_cfg(workspace=str(tmp_path), model_selection="auto", **_catalog_files(tmp_path)),
+        )
+
+    summary = info.value.run_summary
+    assert isinstance(summary, RunSummary)
+    # The fake conversation records no tokens: zeros, not a missing summary.
+    assert summary.total_tokens == 0 and summary.condensations == 0
 
 
 def test_quality_failure_escalates_during_verify_retry(monkeypatch, tmp_path):
