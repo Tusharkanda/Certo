@@ -213,7 +213,29 @@ def test_a_crashing_run_is_recorded_and_the_benchmark_goes_on(tmp_path, project_
     first, second = _records(tmp_path / "out")
     assert first["error"] == "RuntimeError: provider down"
     assert first["verdict"] is None and first["hidden_tests"]["passed"] is False
+    # It failed before any model call: nothing to count.
+    assert first["tokens_in"] == 0 and first["tokens_out"] == 0
+    assert first["cost"] == 0.0 and first["condensations"] == 0
     assert second["error"] is None and second["hidden_tests"]["passed"] is True
+
+
+def test_a_run_that_fails_after_model_calls_keeps_the_usage_it_used(tmp_path, project_venv):
+    # runner.stream_task puts the usage recorded up to the error on the
+    # exception it raises (issue #30: a 31-minute run recorded 0 tokens).
+    crashed = RuntimeError("provider down")
+    crashed.run_summary = RunSummary(
+        duration_seconds=1800.0,
+        models=(ModelUsage(model="m", prompt_tokens=120_000, completion_tokens=4_000, cost=0.4),),
+        condensations=2,
+    )
+    model = FakeModel(project_venv, raise_on={1: crashed})
+    assert _run(_bench_file(tmp_path, ONE_ARM), tmp_path / "out", model) == 0
+    (record,) = _records(tmp_path / "out")
+    assert record["error"] == "RuntimeError: provider down"
+    assert record["verdict"] is None
+    assert record["tokens_in"] == 120_000 and record["tokens_out"] == 4_000
+    assert record["cost"] == 0.4 and record["cost_known"] is True
+    assert record["condensations"] == 2
 
 
 def test_max_cost_stops_cleanly_and_keeps_results(tmp_path, project_venv, capsys):

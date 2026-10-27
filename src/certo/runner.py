@@ -1752,6 +1752,14 @@ def stream_task(
             run_summary = summarize_run(
                 time.monotonic() - run_started, per_model_metrics, efforts, condensed[0]
             )
+            if captured_error is not None:
+                # The exception is the only value that leaves this function
+                # on a failed run, so the usage recorded up to the error
+                # travels on it: `certo bench` records the tokens an
+                # interrupted run really used instead of zeros (see
+                # bench.execute_run). Plain attribute, so the exception's
+                # type and message stay exactly what the caller expects.
+                _attach_run_summary(captured_error, run_summary)
             if cfg.artifacts_dir:
                 stats = conversation.conversation_stats
                 write_run_artifacts(
@@ -1784,6 +1792,20 @@ def stream_task(
             state_writer.finish(outcome)
         _checkpoint(cfg, f"finished: {outcome.verification_state}")
         return replace(outcome, run_summary=run_summary)
+
+
+def _attach_run_summary(error: BaseException, summary: RunSummary) -> None:
+    """Carry a failed run's partial usage on its exception.
+
+    `certo bench` reads `run_summary` off the exception to record the
+    tokens a run used before it failed (see bench.execute_run). An
+    exception class that refuses attributes just keeps the old zeros,
+    never hides the run's own error.
+    """
+    try:
+        setattr(error, "run_summary", summary)
+    except Exception:  # noqa: BLE001 - the run's error must win
+        pass
 
 
 def _checkpoint(cfg: Config, label: str) -> None:
