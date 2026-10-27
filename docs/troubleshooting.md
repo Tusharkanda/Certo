@@ -347,7 +347,10 @@ models never did.
 **Fix:** Certo sends the call back to the agent, up to
 `CERTO_TOOL_CALL_REMINDERS` times per run (default 3, see
 [Configuration](reference/configuration.md#limits-and-verification)).
-If runs still end this way, raise the context window (see
+In Certo's [reminder benchmark](benchmark/reminders-0.1.26.md),
+`qwen3.8` made one real call after most reminders, then went back to
+writing calls as text, so no run was saved. If runs still end this way,
+raise the context window (see
 [The agent behaves erratically with Ollama](#the-agent-behaves-erratically-with-ollama)),
 update Ollama, and run `certo check`, which fails when the answer isn't a
 real tool call. If it keeps happening, use another model.

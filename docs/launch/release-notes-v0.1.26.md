@@ -22,6 +22,9 @@ Certo: the agent wrote a tool call as text instead of making it, so nothing ran.
 escalation ladder;
 `0` turns it off), and a benchmark arm can set `tool_call_reminders` to
 compare. A model that makes real tool calls is never sent a reminder.
+Measured in [a benchmark](../benchmark/reminders-0.1.26.md): `claude-haiku-5-5`
+got none and passed 13 of 13; `qwen3.8` made one real call after most
+reminders, then went back to text, so the reminder didn't save its runs.
 See [Troubleshooting](../troubleshooting.md#the-run-ends-at-once-with-a-tool-call-as-the-agents-last-message).
 
 ## Benchmark: the Ollama model's build is recorded

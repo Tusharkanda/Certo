@@ -158,16 +158,12 @@ first item is the suggested next one.
   task and Haiku for a `default` one, both verified. Left: a full run of
   an `auto` arm next to its models alone (cloud, or local plus cloud at
   night), so the README can show a number instead of "unmeasured".
-- **Measure the tool-call reminder before 0.1.26** (built 2026-10-27,
-  `CERTO_TOOL_CALL_REMINDERS`). Saved runs: `qwen3.8` ended on a tool
-  call written as text in 22 of 151, cloud models in 0 of 178; 4 of 8
-  in the 60-minute budget benchmark. Night: a `qwen3.8` arm with
-  `tool_call_reminders: 0` next to one with the default, on the tasks
-  where it happened most (`todo-deps`, `ledger-transfers`,
-  `library-loans`). Day: a cloud arm, to show nothing changes. Done when
-  published as a benchmark page. Also still open: the cause (Ollama
-  template or parser, or the model's build: bench results record the
-  model digest from 0.1.26 on).
+- **Why `qwen3.8` writes tool calls as text in some runs.** The
+  reminder doesn't fix it (`docs/benchmark/reminders-0.1.26.md`: one
+  real call, then back to text). Open: Ollama's template or parser, or
+  the model's build (bench results record the digest from 0.1.26 on).
+  Done when the cause is known, or a setting that avoids it is
+  measured.
 - **Bench estimates from recorded cost.** The plan prices every run at a
   fixed ~500k input / ~20k output tokens (far too high: a cloud run used
   ~124k in the baseline). Use the per-model average from earlier

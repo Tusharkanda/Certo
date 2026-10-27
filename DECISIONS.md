@@ -1293,3 +1293,11 @@ considered and live-verification detail: `docs/ROADMAP.txt`.
   Refused even when the section's own file exists, so there is one place
   for each.
 
+- **The tool-call reminder stays on by default, though it saved no run**
+  (2026-10-27, after `docs/benchmark/reminders-0.1.26.md`). qwen3.8 made
+  one real call after 4 of 6 reminders, then went back to text: both
+  runs still ended `inconclusive`, only later. Haiku got none and passed
+  13/13. Kept on because it costs a model that makes real calls nothing
+  and shows the failure in the conversation; not raised above 3, since
+  more reminders only add time. The "works either way" hope in the
+  entry above didn't hold for qwen3.8.
