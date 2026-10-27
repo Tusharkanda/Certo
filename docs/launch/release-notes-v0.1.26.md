@@ -23,3 +23,12 @@ escalation ladder;
 `0` turns it off), and a benchmark arm can set `tool_call_reminders` to
 compare. A model that makes real tool calls is never sent a reminder.
 See [Troubleshooting](../troubleshooting.md#the-run-ends-at-once-with-a-tool-call-as-the-agents-last-message).
+
+## Fixed: a benchmark run that fails keeps its usage
+
+A `certo bench` run that ends with an error, for example when the model
+server goes away, now records the tokens, cost and condensations it
+used up to the error, instead of zeros. Thanks to @bfs2021 (#30, #36).
+For now this covers `single` and `auto` arms; `escalate` arms are
+[#37](https://github.com/alessioricco/certo/issues/37).
+

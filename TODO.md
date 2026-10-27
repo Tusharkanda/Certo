@@ -299,9 +299,9 @@ database).
 
 ## Smaller bugs
 
-- **A bench run that ends with an error records 0 tokens**, cost and
-  condensations, however long it worked (a 31-minute run, 2026-10-26).
-  Open for contributors: [#30](https://github.com/alessioricco/certo/issues/30).
+- **A failed `escalate` bench run still records 0 tokens**, cost and
+  condensations: #36 fixed it for `single` and `auto` arms only. Open
+  for contributors: [#37](https://github.com/alessioricco/certo/issues/37).
 - **`certo skills`: turn an official skill off**, globally or for one
   project (later, agreed 2026-10-22). Today a third-party skill can only
   replace one.
