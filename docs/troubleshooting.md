@@ -325,23 +325,32 @@ app's settings. `ollama ps` shows the context a loaded model got.
 
 ### The run ends at once, with a tool call as the agent's last message
 
-**You see:** with a local model, a run ends within a minute with
-`inconclusive` or `unchanged`, and the agent's last message is a tool
-call written as text, such as
-`{"command": "view", "path": "..."}`.
+**You see:** with a local model, the agent's answer is a tool call
+written as text, such as `{"command": "view", "path": "..."}`, and
+Certo prints:
+
+```
+Certo: the agent wrote a tool call as text instead of making it, so nothing ran. Asking it to make the call (1 of 3).
+```
+
+When the model keeps doing it, the run ends after the last reminder,
+often within a minute, with `inconclusive` or `unchanged`.
 
 **Cause:** the model wrote its tool call as plain text instead of making
 a real tool call, so the agent framework took it as the final answer.
-This usually comes from the model's chat template in Ollama, or from a
-context window too small for the tool definitions. In Certo's
-[0.1.15 benchmark](benchmark/baseline-0.1.15.md), `qwen3.6:35b-a3b`
-did this in every run and `devstral-small-2:24b` in most.
+It depends on the model: in Certo's saved benchmark runs,
+`qwen3.6:35b-a3b` did it in 28 of 28 runs, `devstral-small-2:24b` in 18
+of 27 and `qwen3.8:27b` in about 1 run in 7, also with a 32,768-token
+context window; `gemma4:31b-it-qat`, `qwen3-coder:30b` and the cloud
+models never did.
 
-**Fix:** raise the context window first (see
+**Fix:** Certo sends the call back to the agent, up to
+`CERTO_TOOL_CALL_REMINDERS` times per run (default 3, see
+[Configuration](reference/configuration.md#limits-and-verification)).
+If runs still end this way, raise the context window (see
 [The agent behaves erratically with Ollama](#the-agent-behaves-erratically-with-ollama)),
 update Ollama, and run `certo check`, which fails when the answer isn't a
-real tool call. If it keeps happening, use another model: in the same benchmark,
-`qwen3.8:27b` did it in 3 runs of 27, and `gemma4:31b-it-qat` never.
+real tool call. If it keeps happening, use another model.
 
 ### Every step is very slow
 

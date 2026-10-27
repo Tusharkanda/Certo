@@ -465,6 +465,18 @@ given design was chosen.
   adds `changes_note()` to the contract's limitations, plus
   `TaskOutcome.check_file_changes`. Pre-existing files only; report only.
 - **`deadline.py`** — `stop_at_deadline()`, see `runner.py` above.
+- **`text_tool_calls.py`** — stdlib only. `looks_like_tool_call(text,
+  tools)` recognises a final message that is, as a whole, a tool call
+  written as JSON (shapes from saved transcripts: bare arguments, the
+  tool named under `name`/`tool_name`/`tool`/`tool_use`, OpenAI's
+  `function` object, the tool's name as the key, cut-off JSON).
+  `runner._remind_text_tool_call`, called in `_run_conversation_once`
+  after each `conversation.run()`, sends `REMINDER` and runs again when
+  the run FINISHED on such a `MessageEvent`: at most
+  `CERTO_TOOL_CALL_REMINDERS` per conversation (`_TOOL_CALL_REMINDERS`,
+  weak-keyed), once per event id, never past the deadline or the cost
+  limit. Tool parameters come from `agent.tools_map[*].action_type`
+  (initialized after a run), `DEFAULT_TOOLS` when unreadable.
 - **`cost_limit.py`** — `CERTO_MAX_TASK_COST` during a run: a per-conversation
   limit (`set_cost_limit`, counting what was spent before), and
   `pause_at_cost_limit()`, a watcher that reads the SDK's

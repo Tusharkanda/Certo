@@ -92,7 +92,13 @@ class BenchConfig:
 # Options every arm may have, whatever its strategy (bench_strategies.arm_config).
 # Each is kept out of params at its default, so results folders from before
 # it still match on --resume.
-_ARM_OPTIONS = ("independent_tests", "condense", "context_tokens", "max_task_seconds")
+_ARM_OPTIONS = (
+    "independent_tests",
+    "condense",
+    "context_tokens",
+    "max_task_seconds",
+    "tool_call_reminders",
+)
 
 
 def _load_yaml(path: Path) -> dict[str, Any]:
@@ -190,6 +196,13 @@ def _arms(raw: Any, catalog: dict[str, ModelCatalogEntry], where: str) -> list[A
             raise BenchConfigError(
                 f"{arm_where}: 'max_task_seconds' must be a whole number of seconds, at least 1."
             )
+        reminders = item.get("tool_call_reminders")
+        if reminders is not None and (
+            isinstance(reminders, bool) or not isinstance(reminders, int) or reminders < 0
+        ):
+            raise BenchConfigError(
+                f"{arm_where}: 'tool_call_reminders' must be a whole number, at least 0."
+            )
         rest = {k: v for k, v in item.items() if k not in _ARM_OPTIONS}
         params = STRATEGIES[strategy].parse(rest, catalog, arm_where)
         if independent:
@@ -200,6 +213,8 @@ def _arms(raw: Any, catalog: dict[str, ModelCatalogEntry], where: str) -> list[A
             params["context_tokens"] = context
         if budget is not None:
             params["max_task_seconds"] = budget
+        if reminders is not None:
+            params["tool_call_reminders"] = reminders
         arms.append(Arm(name=name, strategy=strategy, params=params))
     return arms
 

@@ -996,3 +996,10 @@ def test_strict_independent_tests_are_off_by_default_and_turn_the_tests_on():
     assert cfg.independent_tests_strict is False and cfg.independent_tests is False
     cfg = load_config(_base_env(CERTO_INDEPENDENT_TESTS_STRICT="yes"))
     assert cfg.independent_tests_strict is True and cfg.independent_tests is True
+
+
+def test_tool_call_reminders_default_to_3_and_0_turns_them_off():
+    assert load_config(_base_env()).tool_call_reminders == 3
+    assert load_config(_base_env(CERTO_TOOL_CALL_REMINDERS="0")).tool_call_reminders == 0
+    with pytest.raises(ConfigError, match="TOOL_CALL_REMINDERS"):
+        load_config(_base_env(CERTO_TOOL_CALL_REMINDERS="-1"))

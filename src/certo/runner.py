@@ -31,7 +31,7 @@ from openhands.sdk import (
 )
 from openhands.sdk.conversation import ConversationState
 from openhands.sdk.conversation.exceptions import ConversationRunError
-from openhands.sdk.event import ActionEvent, Condensation, ObservationEvent
+from openhands.sdk.event import ActionEvent, Condensation, MessageEvent, ObservationEvent
 from openhands.sdk.event.conversation_error import ConversationErrorEvent
 from openhands.sdk.llm.exceptions.types import LLMError
 from openhands.sdk.security.confirmation_policy import AlwaysConfirm
@@ -123,6 +123,8 @@ from .project_state import (
     save_record,
 )
 from .run_summary import RunSummary, summarize_run
+from .text_tool_calls import REMINDER as TOOL_CALL_REMINDER
+from .text_tool_calls import looks_like_tool_call
 from .workspace import build_workspace
 
 logger = logging.getLogger(__name__)
@@ -683,6 +685,71 @@ def _outcome_for_run_result(
     )
 
 
+# Per conversation: how many tool-call reminders were sent, and the id of
+# the last message reminded about (`_remind_text_tool_call`).
+_TOOL_CALL_REMINDERS: weakref.WeakKeyDictionary[Any, tuple[int, str]] = weakref.WeakKeyDictionary()
+
+
+def _remind_text_tool_call(
+    conversation: Conversation,
+    cfg: Config,
+    emit: Callable[[Message], None],
+    deadline: float,
+) -> bool:
+    """When the run just ended on a tool call the model wrote as text
+    (text_tool_calls.py), tell the agent to make it as a real call and
+    return True, so the caller runs the conversation again. At most
+    `CERTO_TOOL_CALL_REMINDERS` times per conversation, once per message,
+    and never past the deadline or the cost limit. A model that makes real
+    tool calls never gets here: the last message must be text that is, as
+    a whole, a call to one of the agent's tools."""
+    sent, last_id = _TOOL_CALL_REMINDERS.get(conversation, (0, ""))
+    if sent >= cfg.tool_call_reminders:
+        return False
+    try:
+        if conversation.state.execution_status != ConversationExecutionStatus.FINISHED:
+            return False
+        event = _last_agent_event(conversation.state.events)
+        if not isinstance(event, MessageEvent) or event.id == last_id:
+            return False
+        text = "".join(c.text for c in event.llm_message.content if isinstance(c, TextContent))
+        if not looks_like_tool_call(text, _tool_parameters(conversation)):
+            return False
+    except Exception:  # noqa: BLE001 - an event log that can't be read (Docker) means no reminder
+        return False
+    if time.monotonic() >= deadline or cost_limit_reached(conversation):
+        return False
+    sent += 1
+    _TOOL_CALL_REMINDERS[conversation] = (sent, event.id)
+    _emit_notice(
+        emit,
+        "Certo: the agent wrote a tool call as text instead of making it, so "
+        f"nothing ran. Asking it to make the call ({sent} of {cfg.tool_call_reminders}).",
+    )
+    conversation.send_message(TOOL_CALL_REMINDER)
+    return True
+
+
+def _last_agent_event(events: Sequence[Event]) -> Event | None:
+    """The agent's most recent message or action."""
+    for event in reversed(events):
+        if isinstance(event, (MessageEvent, ActionEvent)) and event.source == "agent":
+            return event
+    return None
+
+
+def _tool_parameters(conversation: Conversation) -> dict[str, set[str]] | None:
+    """Each of the agent's tools with its parameter names, or None (then
+    text_tool_calls.DEFAULT_TOOLS) when they can't be read."""
+    try:
+        return {
+            name: set(tool.action_type.model_fields)
+            for name, tool in conversation.agent.tools_map.items()
+        }
+    except Exception:  # noqa: BLE001 - e.g. a remote conversation's agent
+        return None
+
+
 def _run_conversation_once(
     conversation: Conversation,
     cfg: Config,
@@ -736,6 +803,8 @@ def _run_conversation_once(
             if found is not None and not found.announced and found.reached(conversation):
                 found.announced = True
                 _emit_notice(emit, _cost_limit_notice(conversation, cfg))
+            if _remind_text_tool_call(conversation, cfg, emit, deadline):
+                continue
             return
         except ConversationRunError as exc:
             if time.monotonic() >= deadline and isinstance(exc.original_exception, LLMError):

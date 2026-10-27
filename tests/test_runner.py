@@ -716,6 +716,101 @@ def test_a_model_error_before_the_deadline_still_raises():
     assert conversation not in runner._CUT_AT_DEADLINE
 
 
+def _agent_says(text: str):
+    from openhands.sdk import Message, TextContent
+    from openhands.sdk.event import MessageEvent
+
+    return MessageEvent(
+        source="agent", llm_message=Message(role="assistant", content=[TextContent(text=text)])
+    )
+
+
+_TEXT_CALL = '{"command": "view", "path": "/tmp/project"}'
+
+
+def _notice_texts(notices: list) -> list[str]:
+    return ["".join(c.text for c in m.content) for m in notices]
+
+
+def test_a_run_that_ends_on_a_tool_call_written_as_text_is_sent_back_once():
+    # The model's first answer is a tool call as text; after the reminder
+    # it works and ends with prose.
+    conversation = _FakeConversation(
+        events_after_run=[_agent_says(_TEXT_CALL), _agent_says("Done, all tests pass.")]
+    )
+    notices: list = []
+
+    runner._run_conversation_once(conversation, _cfg(), notices.append, None)
+
+    assert conversation.run_calls == 2
+    assert conversation.sent_messages == [runner.TOOL_CALL_REMINDER]
+    assert any("tool call as text" in n and "(1 of 3)" in n for n in _notice_texts(notices))
+
+
+def test_tool_call_reminders_stop_at_the_limit():
+    conversation = _FakeConversation(events_after_run=[_agent_says(_TEXT_CALL) for _ in range(5)])
+
+    runner._run_conversation_once(conversation, _cfg(tool_call_reminders=2), lambda _m: None, None)
+
+    assert conversation.run_calls == 3
+    assert len(conversation.sent_messages) == 2
+
+
+def test_tool_call_reminders_0_turns_them_off():
+    conversation = _FakeConversation(events_after_run=[_agent_says(_TEXT_CALL)])
+
+    runner._run_conversation_once(conversation, _cfg(tool_call_reminders=0), lambda _m: None, None)
+
+    assert conversation.run_calls == 1
+    assert conversation.sent_messages == []
+
+
+def test_the_same_text_call_is_not_reminded_twice():
+    # After the reminder the run adds nothing: the last agent message is
+    # still the one already reminded about.
+    conversation = _FakeConversation(events_after_run=[_agent_says(_TEXT_CALL)])
+
+    runner._run_conversation_once(conversation, _cfg(), lambda _m: None, None)
+
+    assert conversation.run_calls == 2
+    assert len(conversation.sent_messages) == 1
+
+
+@pytest.mark.parametrize(
+    "status", [ConversationExecutionStatus.STUCK, ConversationExecutionStatus.PAUSED]
+)
+def test_no_reminder_unless_the_run_finished(status):
+    conversation = _FakeConversation(
+        statuses_after_run=[status], events_after_run=[_agent_says(_TEXT_CALL)]
+    )
+
+    runner._run_conversation_once(conversation, _cfg(), lambda _m: None, None)
+
+    assert conversation.sent_messages == []
+
+
+def test_no_reminder_for_a_prose_answer_or_after_the_deadline():
+    prose = _FakeConversation(events_after_run=[_agent_says("All done.")])
+    runner._run_conversation_once(prose, _cfg(), lambda _m: None, None)
+    assert prose.sent_messages == []
+
+    late = _FakeConversation(events_after_run=[_agent_says(_TEXT_CALL)])
+    late.pause = lambda: None  # deadline.py pauses it at once
+    runner._run_conversation_once(late, _cfg(), lambda _m: None, None, deadline=-1.0)
+    assert late.sent_messages == []
+
+
+def test_the_reminder_uses_the_agents_own_tools():
+    # A call to a tool this agent doesn't have is not a call.
+    tool = SimpleNamespace(action_type=SimpleNamespace(model_fields={"query": None}))
+    conversation = _FakeConversation(events_after_run=[_agent_says(_TEXT_CALL)])
+    conversation.agent = SimpleNamespace(tools_map={"search": tool})
+
+    runner._run_conversation_once(conversation, _cfg(), lambda _m: None, None)
+
+    assert conversation.sent_messages == []
+
+
 def test_verify_and_report_reports_budget_exhausted_mid_retry(monkeypatch):
     # deadline is still valid at entry (the first time.monotonic() call
     # returns a value below it) but exhausted by the time the retry loop's

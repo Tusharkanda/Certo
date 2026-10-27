@@ -1273,3 +1273,17 @@ considered and live-verification detail: `docs/ROADMAP.txt`.
   can't tell a task's size in advance, so a threshold the user sets is
   more honest than a guess. Cloud windows aren't checked (unknown to
   Certo, and far larger). The 16,384 refusal stays (the SDK's minimum).
+- **Tool calls written as text get a reminder, on by default**
+  (2026-10-27). When a run FINISHES on a text message that is a call to
+  one of the agent's tools, Certo sends it back (`CERTO_TOOL_CALL_REMINDERS`,
+  default 3, `0` = off; bench arm option `tool_call_reminders`). Gated by
+  the model's own behaviour rather than a tier: the detector, replayed on
+  every saved transcript, fires on 68 final messages, all from qwen3.8,
+  qwen3.6 and devstral, and on none of 178 cloud runs, so a model that
+  makes real calls never pays for it. Chosen over the SDK's prompt-based
+  tool calling (`LLM.native_tool_calling=False`), which would change every
+  call of a model that mostly makes real ones, and add tool examples to
+  a 32K context. Cause not settled (Ollama's template or parser vs the
+  model): the reminder works either way. Benchmark before release: a
+  local arm with and without, and a cloud check.
+

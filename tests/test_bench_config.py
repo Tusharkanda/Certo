@@ -12,7 +12,7 @@ from certo import bench_strategies
 from certo.bench_config import BenchConfigError, load_bench_config
 from certo.bench_strategies import STRATEGIES, AttemptResult, RunContext, run_config
 from certo.bench_tasks import load_tasks
-from certo.config import DEFAULT_MAX_TASK_SECONDS
+from certo.config import DEFAULT_MAX_TASK_SECONDS, DEFAULT_TOOL_CALL_REMINDERS
 from certo.model_files import example_path
 
 _REPO = Path(__file__).resolve().parent.parent
@@ -557,6 +557,43 @@ def test_max_task_seconds_is_an_arm_option_for_every_strategy(tmp_path):
     for arm in cfg.arms:
         STRATEGIES[arm.strategy].run(ctx, arm.params)
     assert seen == [3600, 5400, DEFAULT_MAX_TASK_SECONDS]
+
+
+def test_tool_call_reminders_is_an_arm_option(tmp_path):
+    bench = (
+        "arms:\n"
+        "  - {name: no-reminders, strategy: single, model: cloud, tool_call_reminders: 0}\n"
+        "  - {name: plain, strategy: single, model: cloud}\n"
+    )
+    cfg = load_bench_config(_write(tmp_path, bench))
+    off, plain = cfg.arms
+    assert off.params == {"model": "cloud", "tool_call_reminders": 0}
+    assert plain.params == {"model": "cloud"}  # left out at its default, for --resume
+    seen = []
+
+    def fake_stream(task, *, cfg, ladder=None):
+        seen.append(cfg.tool_call_reminders)
+        return SimpleNamespace(
+            verification_state="verified",
+            retries_used=0,
+            run_summary=None,
+            rungs=(),
+            final_rung=None,
+        )
+
+    ctx = RunContext("do it", "/ws", cfg.catalog, "/iso", fake_stream, cfg.model_catalog)
+    for arm in cfg.arms:
+        STRATEGIES[arm.strategy].run(ctx, arm.params)
+    assert seen == [0, DEFAULT_TOOL_CALL_REMINDERS]
+
+
+@pytest.mark.parametrize("value", ["-1", "'3'", "true", "1.5"])
+def test_a_bad_tool_call_reminders_is_refused(tmp_path, value):
+    bench = (
+        f"arms:\n  - {{name: a, strategy: single, model: cloud, tool_call_reminders: {value}}}\n"
+    )
+    with pytest.raises(BenchConfigError, match="'tool_call_reminders' must be a whole number"):
+        load_bench_config(_write(tmp_path, bench))
 
 
 @pytest.mark.parametrize("value", ["0", "-5", "'1h'", "true", "1.5"])

@@ -158,14 +158,16 @@ first item is the suggested next one.
   task and Haiku for a `default` one, both verified. Left: a full run of
   an `auto` arm next to its models alone (cloud, or local plus cloud at
   night), so the README can show a number instead of "unmeasured".
-- **Tool calls written as text.** In the 0.1.15 local benchmark, every
-  failed `qwen3.6` and `qwen3.8` run and 18 of 22 failed `devstral` runs
-  ended because the model wrote its tool call as JSON in a text answer;
-  the SDK took it as the final message. First find the cause (Ollama chat
-  template, or context too small for the tool definitions): rerun one
-  task with a known `OLLAMA_CONTEXT_LENGTH`. Then consider a harness fix:
-  when the final message parses as a tool call, send it back once as a
-  correction. Gated by tier or opt-in, and benchmarked local and cloud.
+- **Measure the tool-call reminder before 0.1.26** (built 2026-10-27,
+  `CERTO_TOOL_CALL_REMINDERS`). Saved runs: `qwen3.8` ended on a tool
+  call written as text in 22 of 151, cloud models in 0 of 178; 4 of 8
+  in the 60-minute budget benchmark. Night: a `qwen3.8` arm with
+  `tool_call_reminders: 0` next to one with the default, on the tasks
+  where it happened most (`todo-deps`, `ledger-transfers`,
+  `library-loans`). Day: a cloud arm, to show nothing changes. Done when
+  published as a benchmark page. Also still open: the cause (Ollama
+  template or parser, the model's build: record the Ollama model digest
+  from `/api/ps` in bench results).
 - **Bench estimates from recorded cost.** The plan prices every run at a
   fixed ~500k input / ~20k output tokens (far too high: a cloud run used
   ~124k in the baseline). Use the per-model average from earlier
@@ -300,15 +302,6 @@ database).
 - **A bench run that ends with an error records 0 tokens**, cost and
   condensations, however long it worked (a 31-minute run, 2026-10-26).
   Open for contributors: [#30](https://github.com/alessioricco/certo/issues/30).
-- **Tool calls written as text rose in the 0.1.23 baseline**: 7 of 39
-  `qwen3.8` runs, against 1 of 27 in 0.1.22, with the same prompt, SDK,
-  LiteLLM and Ollama settings; 3 of 3 on `ledger-transfers`. Find out
-  whether it is chance, the model's build (record the Ollama model digest
-  in the bench results; it is in `/api/ps`) or the larger task, and
-  whether Certo could recover (for example, send the text back as a
-  reminder to make the call). 2026-10-26: 4 of 8 runs in the 60-minute
-  budget benchmark ended this way (1 of 8 in the 30-minute one). Done
-  when the cause is known.
 - **`certo skills`: turn an official skill off**, globally or for one
   project (later, agreed 2026-10-22). Today a third-party skill can only
   replace one.
