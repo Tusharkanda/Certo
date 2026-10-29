@@ -1,6 +1,17 @@
 # Certo v0.1.26
 
-Not released yet.
+This release is about local models that stop early, and programs
+Certo couldn't check:
+
+- **Tool calls written as text:** when a model writes a tool call as
+  text instead of making it, Certo tells it to make the call instead of
+  ending the run.
+- **A skill for terminal programs:** games, menus and other interactive
+  programs now get tests, so Certo can say `verified`.
+- **Benchmark arms without a skill**, to measure what a skill changes,
+  and the build of each Ollama model recorded in the results.
+- **A failed benchmark run keeps the tokens and cost it used**, thanks
+  to @bfs2021.
 
 ## New: a tool call written as text no longer ends the run
 
