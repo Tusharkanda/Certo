@@ -267,7 +267,13 @@ given design was chosen.
   `load_state`: with a saved plan it becomes `restart=` (fresh run whose
   text ends with `render_status(record)`), without one it is refused.
   Independent tests need nothing extra: each `run_task` writes them from
-  that milestone's text.
+  that milestone's text. `certo bench` has its own small loop in
+  `bench.execute_run` (`milestones: true`): `strategy.run` once per
+  milestone with a `RunContext` whose text is `milestone_task()`, the
+  checks injected by `recording_stream`; `_combined_attempt` adds up the
+  results. A one-go arm on such a task gets `whole_task()` and every
+  check. `_default_stream` must forward `acceptance_checks` (it didn't at
+  first: the fakes in the tests took it, the real stream raised).
 - **`console.py`** — what a run prints. `QuietVisualizer` subclasses the
   SDK's `DefaultConversationVisualizer` and overrides only `on_event`:
   the `SystemPromptEvent` and the first user `MessageEvent` (the task

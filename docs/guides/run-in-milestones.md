@@ -161,7 +161,9 @@ milestones.
 ## Not yet
 
 - Certo doesn't plan milestones for you: they come from the task file.
-- Not in server mode or in `certo bench` yet.
+- Not in server mode yet. In `certo bench`, an arm with
+  `milestones: true` runs tasks this way; see
+  [the benchmark file reference](../reference/bench-yaml.md#arms).
 
 ## Related
 

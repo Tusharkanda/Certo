@@ -176,6 +176,17 @@ Then read the results:
 - **Some do, some don't:** a good task. Note which models, for the pull
   request.
 
+## A bigger task, in milestones
+
+A task for an app, too big to build in one go, can be written in
+milestones, as for [`certo --milestones`](run-in-milestones.md): `##
+Milestone N: title` sections, each with an optional ` ```acceptance `
+block. In a benchmark, an arm with `milestones: true` runs it milestone
+by milestone; any other arm gets the whole task at once. So one task
+measures both ways. Start each hidden test's name with its milestone
+(`test_m1_...`), to see which milestone a failure belongs to. An
+example is `app-tasks/spreadsheet` in the repository.
+
 ## 7. Send it to the bundled set
 
 From a checkout (see [CONTRIBUTING.md](../../CONTRIBUTING.md)):

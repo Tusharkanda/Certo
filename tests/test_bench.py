@@ -861,3 +861,136 @@ def test_a_saved_workspace_leaves_out_the_checkpoint_repository(tmp_path):
     assert (copy / ".certo" / "STATUS.md").exists()
     assert not (copy / ".certo" / "checkpoints").exists()
     assert (copy / "checkpoints").exists()
+
+
+# --- tasks written in milestones ---------------------------------------------
+
+_MILESTONE_TASK = """A tiny module.
+
+## Milestone 1: add
+Write add(a, b) in calc.py.
+```acceptance
+[{"kind": "file_exists", "path": "calc.py"}]
+```
+
+## Milestone 2: sub
+Write sub(a, b) in calc.py.
+```acceptance
+[{"kind": "file_contains", "path": "calc.py", "contains": "def sub"}]
+```
+"""
+
+
+def _milestone_tasks(tmp_path: Path) -> Path:
+    root = tmp_path / "tasks"
+    task = root / "calc"
+    (task / "hidden_tests").mkdir(parents=True)
+    (task / "reference").mkdir()
+    (task / "task.md").write_text(_MILESTONE_TASK)
+    (task / "hidden_tests" / "test_calc.py").write_text(
+        "from calc import add, sub\n\n\ndef test_both():\n"
+        "    assert add(1, 2) == 3 and sub(3, 1) == 2\n"
+    )
+    (task / "reference" / "calc.py").write_text(
+        "def add(a, b):\n    return a + b\n\n\ndef sub(a, b):\n    return a - b\n"
+    )
+    return root
+
+
+def _milestone_bench(tmp_path: Path, arms: str) -> str:
+    path = _bench_file(tmp_path, arms, tasks="[calc]")
+    text = Path(path).read_text()
+    Path(path).write_text(f"tasks_dir: {_milestone_tasks(tmp_path)}\n{text}")
+    return path
+
+
+class FakeMilestoneModel:
+    """runner.stream_task for a milestone task: every call writes the
+    reference solution and gives the next verdict."""
+
+    def __init__(self, make_venv, tmp_path, verdicts=("verified",)):
+        self.make_venv = make_venv
+        self.reference = tmp_path / "tasks" / "calc" / "reference" / "calc.py"
+        self.verdicts = list(verdicts)
+        self.calls: list[SimpleNamespace] = []
+
+    def __call__(self, task_text, *, cfg, on_message=None, acceptance_checks=None):
+        self.calls.append(SimpleNamespace(task=task_text, cfg=cfg, checks=acceptance_checks))
+        workspace = Path(cfg.workspace)
+        shutil.copy(self.reference, workspace / "calc.py")
+        self.make_venv(workspace)
+        verdict = self.verdicts[(len(self.calls) - 1) % len(self.verdicts)]
+        return SimpleNamespace(
+            verification_state=verdict, retries_used=0, run_summary=_summary(0.1)
+        )
+
+
+def test_a_milestones_arm_runs_each_milestone_with_its_checks(tmp_path, project_venv, capsys):
+    arms = "  - {name: m, strategy: single, model: cloud-a, milestones: true}\n"
+    out = tmp_path / "out"
+    model = FakeMilestoneModel(project_venv, tmp_path)
+    assert _run(_milestone_bench(tmp_path, arms), out, model) == 0
+
+    assert "(in milestones: the time budget and limits apply to each one)" in (
+        capsys.readouterr().out
+    )
+    assert len(model.calls) == 2
+    assert "milestone 1 of 2: add" in model.calls[0].task
+    assert "milestone 2 of 2: sub" in model.calls[1].task
+    assert [c.path for c in model.calls[0].checks] == ["calc.py"]
+    assert [c.path for c in model.calls[1].checks] == ["calc.py", "calc.py"]
+    (record,) = _records(out)
+    assert record["verdict"] == "verified"
+    assert record["hidden_tests"]["passed"] is True
+    assert [(m["number"], m["verdict"]) for m in record["milestones"]] == [
+        (1, "verified"),
+        (2, "verified"),
+    ]
+    assert record["cost"] == pytest.approx(0.2)  # both milestones
+
+
+def test_a_milestones_arm_stops_at_the_first_milestone_not_verified(tmp_path, project_venv):
+    arms = "  - {name: m, strategy: single, model: cloud-a, milestones: true}\n"
+    out = tmp_path / "out"
+    model = FakeMilestoneModel(project_venv, tmp_path, verdicts=("retry_exhausted",))
+    _run(_milestone_bench(tmp_path, arms), out, model)
+
+    assert len(model.calls) == 1
+    (record,) = _records(out)
+    assert record["verdict"] == "retry_exhausted"
+    assert [m["verdict"] for m in record["milestones"]] == ["retry_exhausted"]
+
+
+def test_an_arm_without_milestones_gets_the_whole_task_and_every_check(tmp_path, project_venv):
+    out = tmp_path / "out"
+    model = FakeMilestoneModel(project_venv, tmp_path)
+    assert _run(_milestone_bench(tmp_path, ONE_ARM), out, model) == 0
+
+    (call,) = model.calls
+    assert "## Milestone 1: add" in call.task and "## Milestone 2: sub" in call.task
+    assert "acceptance" not in call.task
+    assert [c.path for c in call.checks] == ["calc.py", "calc.py"]
+    assert _records(out)[0]["milestones"] is None
+
+
+def test_a_milestones_arm_needs_tasks_written_in_milestones(tmp_path):
+    arms = "  - {name: m, strategy: single, model: cloud-a, milestones: true}\n"
+    with pytest.raises(Exception, match="can't be run in milestones: no milestone found"):
+        load_bench_config(_bench_file(tmp_path, arms))
+
+
+def test_milestones_must_be_true_or_false(tmp_path):
+    arms = "  - {name: m, strategy: single, model: cloud-a, milestones: 1}\n"
+    with pytest.raises(Exception, match="'milestones' must be true or false"):
+        load_bench_config(_bench_file(tmp_path, arms))
+
+
+def test_the_real_stream_passes_acceptance_checks_on(monkeypatch):
+    """A milestone task's checks reach runner.stream_task (seen failing live:
+    the fakes took the argument, the real stream didn't)."""
+    from certo import runner
+
+    seen = {}
+    monkeypatch.setattr(runner, "stream_task", lambda task, **kwargs: seen.update(kwargs))
+    bench._default_stream("t", cfg=None, acceptance_checks=["check"])
+    assert seen["acceptance_checks"] == ["check"]

@@ -36,7 +36,7 @@ from .banner import _duration
 from .bench_config import DEFAULT_BENCH_FILE, Arm, BenchConfig, BenchConfigError, load_bench_config
 from .bench_report import arm_rows, cost_line, cost_summary, write_report
 from .independent_tests import failing_tests
-from .bench_strategies import STRATEGIES, RunContext, auto_catalog
+from .bench_strategies import STRATEGIES, AttemptResult, RunContext, auto_catalog
 from .bench_tasks import (
     BUILTIN_TASKS_DIR,
     BenchTask,
@@ -47,6 +47,15 @@ from .bench_tasks import (
     task_set_hash,
     task_set_version,
 )
+from .milestones import (
+    MilestoneError,
+    MilestonePlan,
+    checks_up_to,
+    milestone_task,
+    parse_milestones,
+    whole_task,
+)
+from .run_summary import combine_summaries
 from .escalation import ESCALATING_VERDICTS, EscalationError, derive_ladder
 from .model_catalog import ModelCatalogError, classify_task, rank_for_profile
 from .model_pricing import (
@@ -170,24 +179,71 @@ def _now() -> str:
     return datetime.now(UTC).isoformat(timespec="seconds")
 
 
+def _milestone_plan(task: BenchTask) -> MilestonePlan | None:
+    """The task's milestones, or None for a task not written in milestones."""
+    try:
+        return parse_milestones(task.prompt)
+    except MilestoneError:
+        return None
+
+
+def _combined_attempt(attempts: list[AttemptResult]) -> AttemptResult:
+    """One result for a task run in milestones: the last milestone's verdict,
+    everything spent added up."""
+    last = attempts[-1]
+    summaries = [a.run_summary for a in attempts if a.run_summary is not None]
+    return AttemptResult(
+        verification_state=last.verification_state,
+        retries_used=sum(a.retries_used for a in attempts),
+        run_summary=combine_summaries(summaries) if summaries else None,
+        models_used=tuple(dict.fromkeys(m for a in attempts for m in a.models_used)),
+        rungs=tuple(r for a in attempts for r in a.rungs),
+        final_rung=last.final_rung,
+        independent_tests=last.independent_tests,
+        task_profile=last.task_profile,
+    )
+
+
 def execute_run(
     planned: PlannedRun,
     cfg: BenchConfig,
     out_dir: Path,
     stream: Callable[..., Any],
 ) -> dict[str, Any]:
-    """One isolated run: prepare, run the strategy, grade, record."""
+    """One isolated run: prepare, run the strategy, grade, record.
+
+    A task written in milestones runs in them when the arm has
+    `milestones: true`: the strategy once per milestone, in the same
+    folder, until one isn't `verified` (as `certo --milestones`). Any other
+    arm gets the whole task at once, without its acceptance blocks, and
+    all of their checks."""
     workspace = tempfile.mkdtemp(prefix="certo-bench-")
     isolation = tempfile.mkdtemp(prefix="certo-bench-iso-")
     messages: list[Any] = []
     seconds: list[float] = []
+    plan = _milestone_plan(planned.task)
+    in_milestones = plan is not None and bool(planned.arm.params.get("milestones"))
+    checks: dict[str, Any] = {"now": None}
+    milestone_records: list[dict[str, Any]] = []
 
     def keep(message: Any) -> None:
         messages.append(message)
         seconds.append(round(time.monotonic() - start, 1))
 
     def recording_stream(task: str, **kwargs: Any) -> Any:
+        if checks["now"]:
+            kwargs.setdefault("acceptance_checks", checks["now"])
         return stream(task, on_message=keep, **kwargs)
+
+    def context(text: str) -> RunContext:
+        return RunContext(
+            text,
+            workspace,
+            cfg.catalog,
+            isolation,
+            recording_stream,
+            model_catalog=cfg.model_catalog,
+        )
 
     try:
         prepare_workspace(planned.task, workspace)
@@ -196,17 +252,31 @@ def execute_run(
         start = time.monotonic()
         attempt, error, failed_summary = None, None, None
         try:
-            attempt = strategy.run(
-                RunContext(
-                    planned.task.prompt,
-                    workspace,
-                    cfg.catalog,
-                    isolation,
-                    recording_stream,
-                    model_catalog=cfg.model_catalog,
-                ),
-                planned.arm.params,
-            )
+            if in_milestones:
+                attempts = []
+                for milestone in plan.milestones:
+                    checks["now"] = checks_up_to(plan, milestone.number)
+                    one = strategy.run(
+                        context(milestone_task(plan, milestone.number)), planned.arm.params
+                    )
+                    attempts.append(one)
+                    milestone_records.append(
+                        {
+                            "number": milestone.number,
+                            "title": milestone.label,
+                            "verdict": one.verification_state,
+                            "independent_tests": _independent_record(one.independent_tests),
+                        }
+                    )
+                    if one.verification_state != "verified":
+                        break
+                attempt = _combined_attempt(attempts)
+            else:
+                text = planned.task.prompt
+                if plan is not None:
+                    text = whole_task(plan)
+                    checks["now"] = checks_up_to(plan, len(plan))
+                attempt = strategy.run(context(text), planned.arm.params)
         except Exception as exc:  # noqa: BLE001 - recorded; the benchmark goes on
             error = f"{type(exc).__name__}: {exc}"
             # runner.stream_task puts the usage recorded up to the error on
@@ -272,6 +342,8 @@ def execute_run(
         "task_profile": attempt.task_profile if attempt else None,
         # Arms with independent_tests: their result (report only), or None.
         "independent_tests": _independent_record(attempt.independent_tests if attempt else None),
+        # Arms with milestones: true: each milestone that ran, in order.
+        "milestones": milestone_records if in_milestones else None,
         "error": error,
         "started_at": started_at,
         "finished_at": _now(),
@@ -484,6 +556,8 @@ def _print_plan(
             note += " (no condensing)"
         if arm.params.get("max_task_seconds"):
             note += f" (time budget {_duration(arm.params['max_task_seconds'])} per run)"
+        if arm.params.get("milestones"):
+            note += " (in milestones: the time budget and limits apply to each one)"
         if arm.params.get("handoff") == "restart":
             note += " (each rung restarts from the original files)"
         print(f"  {arm.name}: {arm.strategy}, {'; '.join(parts)}, {runs} run(s){note}")
@@ -601,11 +675,18 @@ def _init_out_dir(cfg: BenchConfig, out_dir: Path, estimate: dict[str, Any]) -> 
         _write_json(out_dir / "meta.json", {**_meta(cfg), "estimate": estimate})
 
 
-def _default_stream(task: str, *, cfg, ladder=None, on_message=None, model_catalog=None) -> Any:
+def _default_stream(
+    task: str, *, cfg, ladder=None, on_message=None, model_catalog=None, acceptance_checks=None
+) -> Any:
     from .runner import stream_task
 
     return stream_task(
-        task, cfg=cfg, ladder=ladder, on_message=on_message, model_catalog=model_catalog
+        task,
+        cfg=cfg,
+        ladder=ladder,
+        on_message=on_message,
+        model_catalog=model_catalog,
+        acceptance_checks=acceptance_checks,
     )
 
 

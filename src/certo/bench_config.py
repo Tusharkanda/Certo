@@ -100,6 +100,7 @@ _ARM_OPTIONS = (
     "max_task_seconds",
     "tool_call_reminders",
     "skills_off",
+    "milestones",
 )
 
 
@@ -206,6 +207,9 @@ def _arms(raw: Any, catalog: dict[str, ModelCatalogEntry], where: str) -> list[A
                 f"{arm_where}: 'tool_call_reminders' must be a whole number, at least 0."
             )
         skills_off = _skills_off(item.get("skills_off"), arm_where)
+        milestones = item.get("milestones", False)
+        if not isinstance(milestones, bool):
+            raise BenchConfigError(f"{arm_where}: 'milestones' must be true or false.")
         rest = {k: v for k, v in item.items() if k not in _ARM_OPTIONS}
         params = STRATEGIES[strategy].parse(rest, catalog, arm_where)
         if independent:
@@ -220,8 +224,27 @@ def _arms(raw: Any, catalog: dict[str, ModelCatalogEntry], where: str) -> list[A
             params["tool_call_reminders"] = reminders
         if skills_off:
             params["skills_off"] = skills_off
+        if milestones:
+            params["milestones"] = True
         arms.append(Arm(name=name, strategy=strategy, params=params))
     return arms
+
+
+def _check_milestone_tasks(arms: list[Arm], tasks: list[BenchTask], where: str) -> None:
+    """An arm with `milestones: true` needs tasks written in milestones,
+    and each such task must be readable: checked before any run starts."""
+    from .milestones import MilestoneError, parse_milestones
+
+    if not any(arm.params.get("milestones") for arm in arms):
+        return
+    for task in tasks:
+        try:
+            parse_milestones(task.prompt)
+        except MilestoneError as exc:
+            raise BenchConfigError(
+                f"{where}: an arm has 'milestones: true', but task {task.name!r} can't be "
+                f"run in milestones: {exc}"
+            ) from exc
 
 
 def _skills_off(raw: Any, where: str) -> list[str]:
@@ -298,12 +321,15 @@ def load_bench_config(path: str = DEFAULT_BENCH_FILE) -> BenchConfig:
     if not available:
         raise BenchConfigError(f"{where}: no tasks found in {tasks_dir}.")
 
+    tasks = _tasks(raw.get("tasks"), available, where)
+    arms = _arms(raw.get("arms"), catalog, where)
+    _check_milestone_tasks(arms, tasks, where)
     return BenchConfig(
         path=str(bench_path.resolve()),
         tasks_dir=str(Path(tasks_dir).resolve()),
-        tasks=_tasks(raw.get("tasks"), available, where),
+        tasks=tasks,
         repeats=_repeats(raw.get("repeats"), where),
-        arms=_arms(raw.get("arms"), catalog, where),
+        arms=arms,
         models_file=str(Path(files["models_file"]).resolve()),
         models_list_file=str(Path(files["models_list_file"]).resolve()),
         escalation_file=str(Path(escalation_file).resolve()) if escalation_file else "",

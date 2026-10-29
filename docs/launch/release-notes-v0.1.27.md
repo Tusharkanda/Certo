@@ -27,6 +27,13 @@ checks, because the agent can read that folder.
 With `--escalate`, each milestone climbs its own ladder from the first
 rung, and `certo --resume --escalate` starts a failed milestone again on
 the first rung, told how the last try ended. With `--independent-tests`,
-each milestone gets its own tests, written before it starts. Not
-benchmarked yet. See
+each milestone gets its own tests, written before it starts. See
 [Run a task in milestones](../guides/run-in-milestones.md).
+
+## Benchmark: tasks in milestones
+
+A benchmark arm with `milestones: true` runs a task written in
+milestones milestone by milestone; any other arm gets the same task in
+one go, so one task compares the two ways. Each run's record lists the
+milestones' verdicts. See
+[the benchmark file reference](../reference/bench-yaml.md#arms).

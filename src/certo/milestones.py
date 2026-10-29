@@ -180,6 +180,17 @@ def milestone_task(plan: MilestonePlan, number: int) -> str:
     return "\n\n".join(parts)
 
 
+def whole_task(plan: MilestonePlan) -> str:
+    """The task in one go: the context and every milestone under its
+    heading, without the acceptance blocks (`certo bench` gives a one-go
+    arm the same checks through `acceptance_checks` instead)."""
+    parts = [plan.context] if plan.context else []
+    for m in plan.milestones:
+        heading = f"## Milestone {m.number}" + (f": {m.title}" if m.title else "")
+        parts.append(f"{heading}\n\n{m.text}")
+    return "\n\n".join(parts)
+
+
 def checks_up_to(plan: MilestonePlan, number: int) -> list[AcceptanceCheck]:
     """The acceptance checks of milestones 1 to `number`: an earlier
     milestone's check that stops passing is a regression."""

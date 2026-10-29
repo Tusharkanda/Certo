@@ -1,0 +1,12 @@
+# How hard is app-tasks/spreadsheet in one go (Certo 0.1.27)? One run
+# each of claude-haiku-5-5 and claude-sonnet-5-5, the whole task at once.
+# Run it from the repository root with:
+#   certo bench --config docs/benchmark/bench-0.1.27-spreadsheet-calibrate.yaml
+# Every model below must be enabled in your models.yaml; see
+# docs/guides/write-a-benchmark-file.md.
+tasks_dir: app-tasks
+tasks: [spreadsheet]
+repeats: 1
+arms:
+  - {name: haiku-whole, strategy: single, model: claude-haiku-5-5}
+  - {name: sonnet-whole, strategy: single, model: claude-sonnet-5-5}
