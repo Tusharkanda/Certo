@@ -1,0 +1,14 @@
+# The testable-interactive-apps skill on a local model (Certo 0.1.26):
+# qwen3.8 on hangman-cli, a terminal game whose task never asks for
+# tests, with the skill and without it (skills_off). Without it, qwen3.8
+# solved the game 3 of 3 times and wrote no tests, so none was verified.
+# Run it from the repository root with:
+#   certo bench --config docs/benchmark/bench-0.1.26-interactive-local.yaml
+# Every model below must be enabled in your models.yaml; see
+# docs/guides/write-a-benchmark-file.md.
+tasks_dir: skill-tasks
+tasks: [hangman-cli]
+repeats: 3
+arms:
+  - {name: qwen-no-skill, strategy: single, model: qwen3.8-27b-local, context_tokens: 32768, skills_off: [testable-interactive-apps]}
+  - {name: qwen-skill, strategy: single, model: qwen3.8-27b-local, context_tokens: 32768}

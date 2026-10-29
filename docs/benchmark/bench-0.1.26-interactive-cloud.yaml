@@ -1,0 +1,12 @@
+# The testable-interactive-apps skill on a cloud model (Certo 0.1.26):
+# claude-haiku-5-5 on hangman-cli with the skill and without it
+# (skills_off). Run it from the repository root with:
+#   certo bench --config docs/benchmark/bench-0.1.26-interactive-cloud.yaml
+# Every model below must be enabled in your models.yaml; see
+# docs/guides/write-a-benchmark-file.md.
+tasks_dir: skill-tasks
+tasks: [hangman-cli]
+repeats: 3
+arms:
+  - {name: haiku-no-skill, strategy: single, model: claude-haiku-5-5, skills_off: [testable-interactive-apps]}
+  - {name: haiku-skill, strategy: single, model: claude-haiku-5-5}

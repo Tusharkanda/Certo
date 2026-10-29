@@ -1309,6 +1309,7 @@ considered and live-verification detail: `docs/ROADMAP.txt`.
   and shows the failure in the conversation; not raised above 3, since
   more reminders only add time. The "works either way" hope in the
   entry above didn't hold for qwen3.8.
+
 - **`testable-interactive-apps` is keyword-triggered, and asks for tests
   the task didn't** (2026-10-27). An interactive program has no path to
   trigger on, and the gap is the agent's: qwen3.8 solved `hangman-cli`

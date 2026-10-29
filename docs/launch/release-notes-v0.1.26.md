@@ -42,7 +42,12 @@ the rules apart from input and output, to make randomness controllable,
 and to test the rules and the whole program with its input piped in.
 Without tests, Certo can't say such a program works: `qwen3.8` wrote a
 working Hangman game in 3 of 3 runs, and none was `verified`, because it
-wrote no tests. See [Manage skills](../guides/manage-skills.md).
+wrote no tests. With the skill it wrote tests in 3 of 3 runs, and all 3
+were `verified`, though one of them was wrong: its tests missed a rule.
+Runs took about three times longer. `claude-haiku-5-5` already wrote
+tests, so the skill changed little there. Measured in
+[a benchmark](../benchmark/interactive-0.1.26.md). See
+[Manage skills](../guides/manage-skills.md).
 
 ## Benchmark: arms without some of Certo's skills
 
