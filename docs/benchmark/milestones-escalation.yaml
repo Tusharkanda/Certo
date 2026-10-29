@@ -1,0 +1,13 @@
+# The Haiku -> Sonnet ladder of the 0.1.27 milestone runs
+# (docs/benchmark/milestones-live-0.1.27.md). Use it with
+#   CERTO_ESCALATION_FILE=docs/benchmark/milestones-escalation.yaml
+# Both models must be enabled in your models.yaml.
+escalation:
+  ladders:
+    cloud:
+      escalate_on_acceptance_failed: true
+      rungs:
+        - model: claude-haiku-5-5
+          retries: 1
+        - model: claude-sonnet-5-5
+          retries: 1

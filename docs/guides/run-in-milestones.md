@@ -13,6 +13,7 @@ it works, but hasn't been benchmarked yet.
 Start each milestone with a `## Milestone N: title` heading, numbered
 1, 2, 3 in order. The text before the first heading is the context that
 every milestone gets: what the project is, its language, its rules.
+This example is [a file in the repository](../benchmark/milestones-temperature.task.md):
 
 ````markdown
 # Temperature converter
@@ -165,6 +166,8 @@ milestones.
 ## Related
 
 - [Commands](../reference/commands.md#certo): `--milestones`, `--resume`
+- [The first live milestone runs](../benchmark/milestones-live-0.1.27.md): this guide's
+  example task, and what was tested
 - [Acceptance checks](acceptance-checks.md)
 - [Escalate between models](escalate-between-models.md)
 - [Independent tests](independent-tests.md)
