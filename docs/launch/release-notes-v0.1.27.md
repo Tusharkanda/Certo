@@ -22,6 +22,11 @@ Verification: verified
 
 The time, cost and step limits apply to each milestone. Certo keeps only
 the milestones' titles and verdicts in `.certo/`, never their acceptance
-checks, because the agent can read that folder. Not combined with
-`--escalate` or independent tests yet, and not benchmarked yet. See
+checks, because the agent can read that folder.
+
+With `--escalate`, each milestone climbs its own ladder from the first
+rung, and `certo --resume --escalate` starts a failed milestone again on
+the first rung, told how the last try ended. With `--independent-tests`,
+each milestone gets its own tests, written before it starts. Not
+benchmarked yet. See
 [Run a task in milestones](../guides/run-in-milestones.md).

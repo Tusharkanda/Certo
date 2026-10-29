@@ -1365,3 +1365,13 @@ considered and live-verification detail: `docs/ROADMAP.txt`.
   "keeps the plan" line of the design entry above. So `--milestones`
   needs a local file (no text, no URL). The loop lives in the CLI, one
   `run_task` per milestone, so the runner stays unchanged.
+
+- **Milestones with a ladder and independent tests** (2026-10-29, the
+  Author's three choices). Each milestone starts on rung 1 (climb only
+  when that milestone needs it). `--resume --escalate` is allowed after
+  `--milestones`: the milestone restarts on rung 1 in a fresh
+  conversation with `STATUS.md`'s record, since a resume continues one
+  model's conversation and can't climb; a single run's resume still
+  refuses `--escalate`. Independent tests are written per milestone from
+  its text; earlier milestones' sets aren't re-run (they'd need keeping);
+  a resumed milestone gets none, as any resume.

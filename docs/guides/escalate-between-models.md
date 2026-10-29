@@ -326,7 +326,8 @@ task moves to the next one, recorded as a "provider or run failure".
 ## Settings and requests
 
 - **CLI:** `--escalate [LADDER]`. It can't be combined with
-  `--auto-model`, `--model` or `--resume`.
+  `--auto-model`, `--model` or `--resume`, except for a task run in
+  milestones: see [Run a task in milestones](run-in-milestones.md#with-a-ladder-of-models).
 - **Settings:** `CERTO_MODEL_SELECTION=escalate`, and optionally
   `CERTO_ESCALATION_LADDER=NAME` and `CERTO_ESCALATION_HANDOFF=restart`
   (see [Configuration](../reference/configuration.md)).

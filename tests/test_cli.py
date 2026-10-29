@@ -2456,21 +2456,61 @@ def test_a_task_file_without_milestones_is_refused(monkeypatch, tmp_path, capsys
     assert "no milestone found" in capsys.readouterr().err
 
 
-@pytest.mark.parametrize(
-    ("overrides", "flags", "message"),
-    [
-        ({}, ["--escalate"], "escalation yet"),
-        ({}, ["--independent-tests"], "independent tests yet"),
-    ],
-)
-def test_milestones_refuse_what_they_dont_support_yet(
-    monkeypatch, tmp_path, capsys, overrides, flags, message
-):
-    monkeypatch.setattr(cli, "load_config", lambda: _milestone_cfg(tmp_path, **overrides))
-    monkeypatch.setattr(cli, "run_task", _fail_if_called)
+def test_milestones_climb_a_ladder_each_from_its_first_rung(monkeypatch, tmp_path):
+    from model_file_helpers import model_file_config
 
-    assert cli.main(["--milestones", *flags, _milestone_file(tmp_path)]) == 1
-    assert message in capsys.readouterr().err
+    calls: list = []
+    monkeypatch.setattr(
+        cli,
+        "load_config",
+        lambda: _milestone_cfg(tmp_path, **model_file_config(tmp_path, _ESCALATION_CATALOG)),
+    )
+    monkeypatch.setattr(cli, "run_task", _milestone_run_task(calls, ["verified", "verified"]))
+
+    assert cli.main(["--milestones", "--escalate", _milestone_file(tmp_path)]) == 0
+
+    # One escalation per milestone: run_task starts each on the ladder's rung 1.
+    assert [call["ladder"].name for call in calls] == ["default", "default"]
+    assert all(call["resume_from"] is None for call in calls)
+
+
+def test_milestones_pass_independent_tests_on_to_each_milestone(monkeypatch, tmp_path):
+    calls: list = []
+    monkeypatch.setattr(cli, "load_config", lambda: _milestone_cfg(tmp_path))
+    monkeypatch.setattr(cli, "run_task", _milestone_run_task(calls, ["verified", "verified"]))
+
+    argv = ["--milestones", "--independent-tests-strict", _milestone_file(tmp_path)]
+    assert cli.main(argv) == 0
+
+    assert len(calls) == 2
+    assert all(c["cfg"].independent_tests and c["cfg"].independent_tests_strict for c in calls)
+
+
+def test_resume_with_escalate_restarts_the_milestone_on_the_first_rung(monkeypatch, tmp_path):
+    from model_file_helpers import model_file_config
+
+    from certo.milestones import milestone_task
+
+    workspace, plan = _saved_milestones(tmp_path, {1: "verified", 2: "retry_exhausted"}, 2)
+    _saved_run(workspace, task=milestone_task(plan, 2))
+    calls: list = []
+    monkeypatch.setattr(
+        cli,
+        "load_config",
+        lambda: _milestone_cfg(tmp_path, **model_file_config(tmp_path, _ESCALATION_CATALOG)),
+    )
+    monkeypatch.setattr(cli, "run_task", _milestone_run_task(calls, ["verified"]))
+
+    assert cli.main(["--resume", "use sqlite", "--escalate"]) == 0
+
+    assert len(calls) == 1
+    assert calls[0]["resume_from"] is None  # a fresh conversation on rung 1
+    assert calls[0]["ladder"].name == "default"
+    text = calls[0]["task"]
+    assert text.startswith(milestone_task(plan, 2))
+    assert "An earlier try at this milestone didn't pass" in text
+    assert "verdict `retry_exhausted`" in text
+    assert text.endswith("Additional instruction from the user:\nuse sqlite")
 
 
 def test_resume_with_milestones_and_no_plan_is_an_error(monkeypatch, tmp_path, capsys):
@@ -2499,16 +2539,3 @@ def test_milestones_need_a_task_file(monkeypatch, tmp_path, capsys):
 
     assert cli.main(["--milestones", "## Milestone 1: a\nDo it."]) == 1
     assert "--milestones needs a task file" in capsys.readouterr().err
-
-
-def test_a_resume_of_milestones_refuses_independent_tests_from_the_settings(
-    monkeypatch, tmp_path, capsys
-):
-    _saved_milestones(tmp_path, {1: "verified"})
-    monkeypatch.setattr(
-        cli, "load_config", lambda: _milestone_cfg(tmp_path, independent_tests=True)
-    )
-    monkeypatch.setattr(cli, "run_task", _fail_if_called)
-
-    assert cli.main(["--resume"]) == 1
-    assert "independent tests yet" in capsys.readouterr().err

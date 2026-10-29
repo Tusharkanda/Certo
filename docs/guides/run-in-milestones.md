@@ -6,7 +6,7 @@ before the next starts. When one fails, Certo stops there, keeps the
 work done so far, and `certo --resume` continues from that milestone.
 
 Milestone mode is [experimental](../README.md#experimental-features):
-it works with one model, but hasn't been benchmarked yet.
+it works, but hasn't been benchmarked yet.
 
 ## Write the task file
 
@@ -113,6 +113,39 @@ refuses: a plan in progress doesn't change. To use an edited file, run
 When every milestone is already `verified`, `--resume` says so and does
 nothing.
 
+## With a ladder of models
+
+```bash
+certo --milestones --escalate task.md --project temps
+```
+
+Each milestone climbs its own [ladder](escalate-between-models.md),
+starting on the first rung: a milestone that the first model solves
+never costs a bigger one, even when an earlier milestone needed it.
+
+`certo --resume --escalate` starts the first milestone not `verified`
+again on the first rung, in a fresh conversation, with the files as
+they are and Certo's record of how the last try ended (its verdict and
+failing checks). Put an instruction before `--escalate`, or it is read
+as a ladder name: `certo --resume "use sqlite" --escalate`. Plain
+`certo --resume`, without `--escalate`, continues the last model's
+conversation, as for any run.
+
+## With independent tests
+
+```bash
+certo --milestones --independent-tests task.md --project temps
+```
+
+Before each milestone, [independent tests](independent-tests.md) are
+written from the context and that milestone's text, and run after it.
+Certo prints their result under each milestone's verdict. With
+`--independent-tests-strict`, a milestone whose tests mostly fail ends
+`independent_failed`, and the task stops there. Earlier milestones'
+independent tests aren't run again. A milestone continued with
+`--resume` gets none, as for any resumed run; the milestones after it
+do.
+
 ## What Certo keeps
 
 `.certo/milestones.json` holds the task file's path, a fingerprint of
@@ -126,12 +159,13 @@ milestones.
 
 ## Not yet
 
-- `--escalate` and `--independent-tests` can't be combined with
-  `--milestones` yet.
 - Certo doesn't plan milestones for you: they come from the task file.
+- Not in server mode or in `certo bench` yet.
 
 ## Related
 
 - [Commands](../reference/commands.md#certo): `--milestones`, `--resume`
 - [Acceptance checks](acceptance-checks.md)
+- [Escalate between models](escalate-between-models.md)
+- [Independent tests](independent-tests.md)
 - [Go back to an earlier point](checkpoints.md)

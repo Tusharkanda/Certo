@@ -182,7 +182,8 @@ where a later task's agent could see them.
   Their tokens and cost are part of the run summary. In the run above,
   the whole task cost $0.073.
 - **Not on `--resume`**: the project already holds earlier work, so it
-  isn't "before the build" any more.
+  isn't "before the build" any more. In [milestone mode](run-in-milestones.md#with-independent-tests),
+  each milestone gets its own tests.
 - **Not with `--execution docker`**, and not in server mode yet.
 - **Vague tasks get none.** The writer only tests what the task or the
   existing code names; it doesn't guess. See

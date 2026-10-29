@@ -262,6 +262,12 @@ given design was chosen.
   `project_state.save_record` adds `status_lines()` to `STATUS.md`
   (lazy import: milestones.py imports project_state). Checkpoints `before
   milestone N` use `always=True`, or an unchanged folder would skip them.
+  `--escalate` passes the ladder to each `run_task` (rung 1 every
+  milestone). `--resume --escalate` is checked right after
+  `load_state`: with a saved plan it becomes `restart=` (fresh run whose
+  text ends with `render_status(record)`), without one it is refused.
+  Independent tests need nothing extra: each `run_task` writes them from
+  that milestone's text.
 - **`console.py`** — what a run prints. `QuietVisualizer` subclasses the
   SDK's `DefaultConversationVisualizer` and overrides only `on_event`:
   the `SystemPromptEvent` and the first user `MessageEvent` (the task

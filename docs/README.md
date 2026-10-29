@@ -142,7 +142,7 @@ between minor versions. Fixes to the core come first.
 | [Docker execution](guides/run-in-docker.md) (`--execution docker`) | Verification has never run inside a real container, only in tests with a fake workspace. The image must be built from a source checkout. Automatic model selection can't switch models during a run. |
 | [Server task stores](guides/run-as-a-server.md#keep-task-records) other than `memory` (`sqlite`, `mysql`, `postgres`, `redis`) | `sqlite` is tested on a real file. `mysql` and `postgres` share its code and were checked live once, not in the test suite. `redis` is tested only where `redis-server` is installed. |
 | [The OpenAI-compatible endpoint](guides/run-as-a-server.md#use-it-from-an-openai-compatible-client) (`/v1/chat/completions`) | The answer has no verdict, and earlier messages aren't replayed. |
-| [Milestone mode](guides/run-in-milestones.md) (`--milestones`) | Not benchmarked yet; one model only (no `--escalate`, no independent tests), and Certo doesn't plan the milestones itself. |
+| [Milestone mode](guides/run-in-milestones.md) (`--milestones`) | Not benchmarked yet, not in server mode or `certo bench`, and Certo doesn't plan the milestones itself. A climb inside a milestone hasn't been seen live. |
 | [Skills downloaded from git](guides/manage-skills.md#download-a-skill-from-git) (`certo skills add github:...`) | Licenses are detected with a text match, only `SKILL.md` folders can be installed, and no third-party skill has been benchmarked. |
 
 The rest of server mode (`POST /tasks`, the WebSocket stream, the memory

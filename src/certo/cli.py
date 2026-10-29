@@ -42,7 +42,13 @@ from .milestones import (
 )
 from .milestones import load_state as load_milestones
 from .milestones import save_state as save_milestones
-from .project_state import ensure_state_dir, load_record, save_record, status_path
+from .project_state import (
+    ensure_state_dir,
+    load_record,
+    render_status,
+    save_record,
+    status_path,
+)
 from .run_history import RunEntry, append_run, note_models_in_readme
 from .run_summary import combine_summaries, model_label
 from .worktree import record_created_project, was_created_by_certo, worktree_warning
@@ -613,20 +619,6 @@ def main(argv: list[str] | None = None) -> int:
             file=sys.stderr,
         )
         return 1
-    if args.milestones and cfg.model_selection == "escalate":
-        print(
-            "Error: --milestones can't be combined with escalation yet; run it with one model.",
-            file=sys.stderr,
-        )
-        return 1
-    if cfg.model_selection == "escalate" and args.resume:
-        print(
-            "Error: --resume can't be combined with escalation. Resume continues one "
-            "model's conversation; run it without --escalate.",
-            file=sys.stderr,
-        )
-        return 1
-
     if args.agents_md is not None and args.project is None:
         print("Error: --agents-md requires --project", file=sys.stderr)
         return 1
@@ -644,7 +636,18 @@ def main(argv: list[str] | None = None) -> int:
 
     resume_from = None
     milestone_state: MilestoneState | None = None
+    milestone_restart = None  # the last run of a milestone --escalate starts again
     saved_milestones = load_milestones(cfg.workspace) if args.resume else None
+    # Milestones restart a milestone on the ladder's first rung; a single
+    # run's resume can't climb.
+    if cfg.model_selection == "escalate" and args.resume and saved_milestones is None:
+        print(
+            "Error: --resume can't be combined with escalation. Resume continues one "
+            "model's conversation; run it without --escalate (after --milestones, it "
+            "can).",
+            file=sys.stderr,
+        )
+        return 1
     if args.milestones and not args.resume:
         # A file, not text or a URL: --resume reads it again.
         if not os.path.isfile(args.task):
@@ -682,7 +685,12 @@ def main(argv: list[str] | None = None) -> int:
         # The saved run continues only if it was this milestone's: otherwise
         # (stopped before it began) the milestone starts afresh.
         if record is not None and record.task == milestone_task(milestone_state.plan, number):
-            resume_from = record
+            if cfg.model_selection == "escalate":
+                # A ladder starts the milestone again on its first rung, in
+                # a fresh conversation told how the last try ended.
+                milestone_restart = record
+            else:
+                resume_from = record
     elif args.resume:
         resume_from = load_record(cfg.workspace)
         if resume_from is None:
@@ -701,12 +709,6 @@ def main(argv: list[str] | None = None) -> int:
             return 0
 
     # After the plan is known: a resume of milestones counts too.
-    if milestone_state is not None and cfg.independent_tests:
-        print(
-            "Error: --milestones can't be combined with independent tests yet.",
-            file=sys.stderr,
-        )
-        return 1
 
     ladder = None
     if cfg.model_selection == "escalate":
@@ -844,6 +846,7 @@ def main(argv: list[str] | None = None) -> int:
                 cfg,
                 run_one,
                 resume_from=resume_from,
+                restart=milestone_restart,
                 instruction=task if args.resume else None,
                 acceptance_checks=acceptance_checks,
                 history=history,
@@ -933,6 +936,7 @@ def _run_milestones(
     run_one,
     *,
     resume_from,
+    restart=None,
     instruction: str | None,
     acceptance_checks,
     history: dict,
@@ -961,6 +965,12 @@ def _run_milestones(
         text = milestone_task(state.plan, number)
         resume = resume_from if first else None
         extra = instruction if first else None
+        if first and restart is not None:
+            text += (
+                "\n\nAn earlier try at this milestone didn't pass. Certo's record of how "
+                "it ended is below; the files it left are in the folder.\n\n"
+                + render_status(restart)
+            )
         if extra and resume is None:
             text += f"\n\nAdditional instruction from the user:\n{extra.strip()}"
             extra = None
@@ -981,6 +991,10 @@ def _run_milestones(
                 pass
         record_run(outcome.verification_state, outcome)
         print(f"Milestone {number} of {total}: {outcome.verification_state}", flush=True)
+        if outcome.independent_tests is not None:
+            from .independent_tests import report_line
+
+            print(report_line(outcome.independent_tests, strict=cfg.independent_tests_strict))
         if outcome.verification_state != "verified":
             break
         number = state.next_number()
