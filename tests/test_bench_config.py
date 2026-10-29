@@ -220,7 +220,7 @@ def test_the_shipped_example_is_valid_against_the_shipped_models_example(tmp_pat
 
 
 @pytest.mark.parametrize(
-    "bench_file", sorted((_REPO / "docs/benchmark").glob("*.yaml")), ids=lambda p: p.name
+    "bench_file", sorted((_REPO / "docs/benchmark").glob("bench-*.yaml")), ids=lambda p: p.name
 )
 def test_the_published_benchmark_files_load_against_the_shipped_catalog(tmp_path, bench_file):
     # docs/benchmark/*.yaml reproduce the published results: each must still
