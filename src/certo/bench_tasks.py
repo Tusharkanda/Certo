@@ -36,7 +36,7 @@ import json
 import os
 import re
 import shutil
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from pathlib import Path
 
 from .project_env import (
@@ -168,6 +168,9 @@ class GradeResult:
     summary: str
     command: str = ""
     output: str = ""
+    # Python tasks whose hidden tests are named `test_mN_...` (a task in
+    # milestones): milestone number -> (passed, total). None otherwise.
+    by_milestone: dict[int, tuple[int, int]] | None = None
 
     @property
     def passed(self) -> bool:
@@ -217,6 +220,8 @@ def _grade_python(tests_dir: Path, workspace: Path, runner: CommandRunner) -> Gr
         # One test file that can't import (a module the work never wrote)
         # must not hide the others' results.
         "--continue-on-collection-errors",
+        # Every test's outcome on its own line, for the count per milestone.
+        "-rA",
         "-c",
         str(ini),
         "--rootdir",
@@ -229,7 +234,8 @@ def _grade_python(tests_dir: Path, workspace: Path, runner: CommandRunner) -> Gr
         "PYTHONDONTWRITEBYTECODE": "1",
     }
     result = runner.run(command, cwd=str(workspace), env=extra, timeout=GRADE_TIMEOUT_SECONDS)
-    return _result(command, result, failed_codes=(1, 2))
+    graded = _result(command, result, failed_codes=(1, 2))
+    return replace(graded, by_milestone=milestone_counts(result.output or ""))
 
 
 def _declares_packages(workspace: Path) -> bool:
@@ -354,6 +360,24 @@ def _counts(output: str) -> tuple[int, int] | None:
     if go_pass or go_fail or "[no test files]" in output or "no tests to run" in output:
         return go_pass, go_fail
     return None
+
+
+# `-rA` lines of a test named for its milestone: "PASSED path::test_m3_..."
+_MILESTONE_TEST = re.compile(r"^(PASSED|FAILED|ERROR) \S+::test_m(\d+)_", re.MULTILINE)
+
+
+def milestone_counts(output: str) -> dict[int, tuple[int, int]] | None:
+    """Passed and total hidden tests per milestone, from pytest's `-rA`
+    report, for tests named `test_mN_...`; None when no test is."""
+    counts: dict[int, list[int]] = {}
+    for outcome, number in _MILESTONE_TEST.findall(output):
+        passed_total = counts.setdefault(int(number), [0, 0])
+        passed_total[1] += 1
+        if outcome == "PASSED":
+            passed_total[0] += 1
+    if not counts:
+        return None
+    return {n: (p, t) for n, (p, t) in sorted(counts.items())}
 
 
 def _summary(output: str) -> str:

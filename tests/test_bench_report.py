@@ -344,3 +344,25 @@ def test_the_cost_table_names_each_models_reasoning_effort():
     markdown = render_markdown(META, [record, unset])
     assert "| sonnet | `anthropic/claude-sonnet-5-5` | high |" in markdown
     assert "| qwen | `ollama/qwen3-coder:30b` | default |" in markdown
+
+
+def test_hidden_tests_per_milestone_add_up_each_arms_runs():
+    records = [
+        _record("local", "page-ranges", 1, verdict="verified", passed=True),
+        _record("local", "page-ranges", 2, verdict="retry_exhausted", passed=False),
+        _record("cloud", "page-ranges", 1, verdict="verified", passed=True),
+    ]
+    records[0]["hidden_tests"]["by_milestone"] = {"1": [3, 3], "2": [2, 2]}
+    records[1]["hidden_tests"]["by_milestone"] = {"1": [3, 3], "2": [0, 2]}
+    records[2]["hidden_tests"]["by_milestone"] = {"1": [3, 3], "2": [2, 2]}
+
+    markdown = render_markdown(META, records)
+
+    assert "## Hidden tests passed per milestone: page-ranges" in markdown
+    assert "| Arm | Milestone 1 | Milestone 2 |" in markdown
+    assert "| local | 6/6 | 2/4 |" in markdown
+    assert "| cloud | 3/3 | 2/2 |" in markdown
+
+
+def test_no_milestone_section_without_counts():
+    assert "per milestone" not in render_markdown(META, RECORDS)

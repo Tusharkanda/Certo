@@ -41,6 +41,7 @@ from .bench_tasks import (
     BUILTIN_TASKS_DIR,
     BenchTask,
     BenchTaskError,
+    GradeResult,
     grade,
     load_tasks,
     prepare_workspace,
@@ -179,6 +180,19 @@ def _now() -> str:
     return datetime.now(UTC).isoformat(timespec="seconds")
 
 
+def hidden_record(graded: GradeResult) -> dict[str, Any]:
+    """A run record's `hidden_tests`; `by_milestone` only for a task whose
+    hidden tests are named by milestone (milestone -> [passed, total])."""
+    record: dict[str, Any] = {
+        "status": graded.status,
+        "passed": graded.passed,
+        "summary": graded.summary,
+    }
+    if graded.by_milestone:
+        record["by_milestone"] = {str(n): list(pt) for n, pt in graded.by_milestone.items()}
+    return record
+
+
 def _milestone_plan(task: BenchTask) -> MilestonePlan | None:
     """The task's milestones, or None for a task not written in milestones."""
     try:
@@ -314,11 +328,7 @@ def execute_run(
         "repeat": planned.repeat,
         "verdict": verdict,
         "agent_claimed_done": claimed,
-        "hidden_tests": {
-            "status": graded.status,
-            "passed": graded.passed,
-            "summary": graded.summary,
-        },
+        "hidden_tests": hidden_record(graded),
         # Certo said verified, but the hidden tests failed.
         "fooled": verdict == "verified" and not graded.passed,
         # The agent claimed it was done, and Certo did not say verified.

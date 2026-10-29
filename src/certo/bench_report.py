@@ -314,6 +314,37 @@ def _model_servers(meta: dict[str, Any]) -> list[str]:
     return ["- Model servers:", *lines] if lines else []
 
 
+def _per_milestone_lines(config: dict[str, Any], records: list[dict[str, Any]]) -> list[str]:
+    """For tasks whose hidden tests are named by milestone: the hidden tests
+    passed per milestone, added up over each arm's runs."""
+    lines: list[str] = []
+    arms = [a["name"] for a in config["arms"]]
+    for task in config["tasks"]:
+        mine = [r for r in records if r["task"] == task and r["hidden_tests"].get("by_milestone")]
+        if not mine:
+            continue
+        numbers = sorted({int(n) for r in mine for n in r["hidden_tests"]["by_milestone"]})
+        rows = []
+        for arm in arms:
+            runs = [r for r in mine if r["arm"] == arm]
+            if not runs:
+                continue
+            cells = [arm]
+            for n in numbers:
+                counts = [r["hidden_tests"]["by_milestone"].get(str(n)) for r in runs]
+                passed = sum(c[0] for c in counts if c)
+                total = sum(c[1] for c in counts if c)
+                cells.append(f"{passed}/{total}" if total else "-")
+            rows.append(cells)
+        lines += ["", f"## Hidden tests passed per milestone: {task}", ""]
+        lines += [
+            "Each cell adds up the arm's runs: hidden tests passed / hidden tests run.",
+            "",
+        ]
+        lines += _table(["Arm", *[f"Milestone {n}" for n in numbers]], rows)
+    return lines
+
+
 def render_markdown(meta: dict[str, Any], records: list[dict[str, Any]]) -> str:
     config = meta["config"]
     planned = len(config["tasks"]) * len(config["arms"]) * config["repeats"]
@@ -353,6 +384,8 @@ def render_markdown(meta: dict[str, Any], records: list[dict[str, Any]]) -> str:
             cells.append(f"{passed}/{len(mine)}" if mine else "-")
         task_rows.append(cells)
     lines += _table(["Task", *arms], task_rows)
+
+    lines += _per_milestone_lines(config, records)
 
     escalate_arms = [a["name"] for a in config["arms"] if a["strategy"] == "escalate"]
     if escalate_arms:

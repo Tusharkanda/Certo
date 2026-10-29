@@ -278,3 +278,37 @@ def test_a_node_package_that_wont_install_is_an_error(tmp_path):
         result.summary == "could not install the project's packages for grading: npm ERR! missing"
     )
     assert result.command == "npm install --ignore-scripts --no-audit --no-fund"
+
+
+def test_milestone_counts_read_pytests_report_of_every_test():
+    from certo.bench_tasks import milestone_counts
+
+    output = (
+        "PASSED .certo_hidden_tests/test_a.py::test_m1_numbers[42-42]\n"
+        "PASSED .certo_hidden_tests/test_a.py::test_m1_text\n"
+        "FAILED .certo_hidden_tests/test_a.py::test_m1_cells - assert 1 == 2\n"
+        "FAILED .certo_hidden_tests/test_b.py::test_m3_sum - boom\n"
+        "PASSED .certo_hidden_tests/test_b.py::test_other\n"
+        "ERROR .certo_hidden_tests/test_c.py - ImportError\n"
+    )
+
+    assert milestone_counts(output) == {1: (2, 3), 3: (0, 1)}
+    assert milestone_counts("PASSED x.py::test_plain\n") is None
+
+
+def test_a_task_in_milestones_is_graded_per_milestone(tmp_path, project_venv):
+    from certo.bench_tasks import load_task
+
+    task = load_task(Path(__file__).resolve().parent.parent / "app-tasks" / "spreadsheet")
+    result = grade(task, _workspace(tmp_path, task, project_venv, solved=True))
+
+    assert result.status == "passed", result.summary
+    assert sorted(result.by_milestone) == [1, 2, 3, 4, 5]
+    assert all(passed == total for passed, total in result.by_milestone.values())
+    assert sum(total for _, total in result.by_milestone.values()) == 111
+
+
+def test_a_bundled_task_has_no_count_per_milestone(tmp_path, project_venv):
+    task = next(t for t in TASKS if t.name == "slugify")
+    result = grade(task, _workspace(tmp_path, task, project_venv, solved=True))
+    assert result.by_milestone is None

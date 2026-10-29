@@ -252,6 +252,15 @@ A per-task table shows where each arm passes and fails. For `escalate`
 arms, a section shows how often each rung produced the final result,
 for example `rung 1 (qwen-local): 4/9, rung 2 (gpt-luna): 5/9`.
 
+For a Python task whose hidden tests are named by milestone
+(`test_m1_...`, as in a [task in milestones](contribute-a-benchmark-task.md#a-bigger-task-in-milestones)),
+a table shows the hidden tests passed per milestone, added up over each
+arm's runs, such as `37/37` for milestone 1 and `12/29` for milestone 4.
+Each run's counts are in `runs/*.json`, under `hidden_tests.by_milestone`.
+A results folder made before Certo 0.1.27 can get them with
+`uv run python scripts/regrade_bench.py <results folder>`, from a
+checkout: it grades the saved projects again, with no model.
+
 **The real cost.** The **Cost** section of `results.md` (and `cost.json`)
 gives what the benchmark really spent, from the recorded runs, next to what
 the plan estimated, and one row per model: its runs, its cost, and its

@@ -35,5 +35,8 @@ each milestone gets its own tests, written before it starts. See
 A benchmark arm with `milestones: true` runs a task written in
 milestones milestone by milestone; any other arm gets the same task in
 one go, so one task compares the two ways. Each run's record lists the
-milestones' verdicts. See
-[the benchmark file reference](../reference/bench-yaml.md#arms).
+milestones' verdicts. For a task whose hidden tests are named by
+milestone (`test_m1_...`), `results.md` shows the hidden tests passed
+per milestone. See
+[the benchmark file reference](../reference/bench-yaml.md#arms) and
+[Benchmark models and strategies](../guides/benchmark.md).
