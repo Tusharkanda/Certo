@@ -81,7 +81,8 @@ Per local run (verdict, hidden tests, time):
   instead of `Word: ...`. The hidden test reads only lines that begin
   with `Word:`. The task asks for the board as its own line, but
   doesn't mention a prompt, so this one is as much the hidden test's
-  strictness as the program's bug.
+  strictness as the program's bug. Since task set `skills-2`, the task says each board line
+  stands alone, with no prompt before it.
 - **Small sample:** 3 runs per arm. A difference of one run between
   arms can be chance.
 

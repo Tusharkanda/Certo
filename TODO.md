@@ -269,11 +269,6 @@ Today there are 13 (eight `lifecycle/`, `git/commit-conventions`,
 `testing/pytest-conventions` and `testable-interactive-apps`).
 
 **Make a project verifiable** (first; suggested order: the first three):
-- `skill-tasks/hangman-cli` hidden tests read only lines that begin
-  with `Word:`, so a `Guess: ` prompt without a new line fails them
-  (Haiku's fooled run in `docs/benchmark/interactive-0.1.26.md`).
-  Decide: say "no prompt on the board line" in the task, or let the
-  test accept a prompt. Done with the next skill-tasks version.
 - `python-environment`: use the project's `.venv`; never install into
   Certo's interpreter or with `pip install --user`; declare dependencies
   in `pyproject.toml` first.

@@ -11,7 +11,9 @@ library. People play it with `python hangman.py`.
   letters `a` to `z` (any case) is refused: print an error to standard
   error and exit with code 2, before the game starts.
 - The player may make 6 wrong guesses.
-- At the start and after every guess, print two lines:
+- At the start and after every guess, print two lines, each a whole
+  line of its own with nothing before it (no prompt such as `Guess: `
+  on the same line):
   - `Word: ` and the word with each letter not yet guessed shown as `_`,
     the letters separated by single spaces, such as `Word: _ a _ _ m a _`;
   - `Misses left: ` and the number of wrong guesses the player has left.
