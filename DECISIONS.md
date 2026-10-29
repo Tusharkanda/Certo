@@ -1316,3 +1316,43 @@ considered and live-verification detail: `docs/ROADMAP.txt`.
   3/3 but wrote no tests, so 0/3 `verified`. Asking for tests is what
   "verifiable" needs (golden rule 7). Triggers kept to six words; on the
   bundled set only `wordle-score` matches ("game").
+
+- **Milestone mode: the design** (2026-10-29, the Author chose the four
+  open points; builds on the 2026-10-25 entry above).
+  - *Form, opt-in:* `certo --milestones task.md`. Each `## Milestone N:
+    title` heading starts a milestone; text before the first is shared
+    context. A milestone may hold one fenced `acceptance` block with the
+    same JSON as `--acceptance-checks`. Without the flag a task file is
+    sent as it is, so no existing task changes meaning. A file with no
+    milestone heading, or a malformed block, is refused before any model
+    call.
+  - *A fresh conversation per milestone:* the agent gets the shared
+    context, the titles of the milestones done, and the current one in
+    full. Keeps a 32K local model's context small; the agent reads the
+    files for the rest.
+  - *Limits per milestone:* `CERTO_MAX_TASK_SECONDS`, `CERTO_MAX_TASK_COST`
+    and `CERTO_MAX_ITERATIONS` apply to each milestone, as to a task
+    today. The run summary gives the total.
+  - *Checks:* each milestone runs the project's checks plus the
+    acceptance checks of every milestone so far (file checks are cheap;
+    an earlier one breaking is a regression). `--acceptance-checks`
+    applies to the last milestone.
+  - *Order of a milestone:* checkpoint "before milestone N", the run with
+    the usual fix attempts, verdict. Only `verified` starts the next
+    one. Any other verdict stops the task with that verdict and exit
+    code, reported as "milestone N of M"; earlier work is kept and
+    nothing is rolled back.
+  - *State:* `.certo/milestones.json` keeps the plan (parsed from the
+    file at the start) and each milestone's verdict; `run.json` stays
+    the current milestone's run; `STATUS.md` gains a milestones list.
+    `--resume` continues the first milestone not `verified`, from its
+    saved conversation, using the saved plan: an edited task file doesn't
+    change a plan in progress (start again to change it).
+  - *Verdict of the task:* `verified` only when every milestone is; no
+    new verdict or exit code.
+  - *Later steps, before Phase 3 counts as done:* escalation per
+    milestone (today `--resume` refuses `--escalate`); independent tests
+    per milestone; a bench arm option so one task runs as milestones
+    against the same task in one go. Certo planning the milestones
+    itself (decision 1) comes after the task-file form. Server mode: not
+    now.

@@ -65,9 +65,12 @@ first item is the suggested next one.
 - **Milestone mode.** Split a big task into milestones, each with its own
   acceptance checks, run and verified one at a time, building on
   `--resume`/`STATUS.md`. The main step from "small task" to "app". The
-  Author's decisions are in DECISIONS.md (2026-10-25); next is the
-  design, then the task-file form, a bench task run as milestones
-  against the same task in one go (local and cloud), and a docs article.
+  Author's decisions and the design are in DECISIONS.md (2026-10-25,
+  2026-10-29). Steps: (1) the task-file form with one model
+  (`--milestones`, `.certo/milestones.json`, `--resume`); (2) escalation
+  and independent tests per milestone; (3) a bench arm running a task as
+  milestones against the same task in one go (local and cloud); (4) the
+  docs article; (5) Certo planning the milestones itself.
   Done when an app-sized task ends `verified` in milestone mode on a
   local model, with a published record.
 - **Independent tests: the rest** (0.1.24: `--independent-tests`, three
