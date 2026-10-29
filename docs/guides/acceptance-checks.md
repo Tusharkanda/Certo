@@ -65,5 +65,6 @@ folder, don't have this problem.
 
 ## Related
 
+- [Run a task in milestones](run-in-milestones.md): an `acceptance` block per milestone
 - [Verdicts](../reference/verdicts.md)
 - [Safety](../concepts/safety.md)

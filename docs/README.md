@@ -92,6 +92,7 @@ takes you from install to your first verified project.
 | Call Certo over HTTP | [Run as a server](guides/run-as-a-server.md) |
 | See what a run did and what it cost | [Run records and costs](guides/run-records-and-costs.md) |
 | Continue a task after an interruption or a failed verdict | [Resume an interrupted run](guides/resume-a-run.md) |
+| Build something bigger in steps, each checked before the next | [Run a task in milestones](guides/run-in-milestones.md) |
 | Undo what the agent did, back to an earlier point | [Go back to an earlier point](guides/checkpoints.md) |
 | Teach the agent my conventions, for every project or one | [Manage skills](guides/manage-skills.md) |
 | Give the agent a new action, in Python | [Add custom tools](guides/add-custom-tools.md) |
@@ -131,7 +132,7 @@ how handoff decides, what the next model gets, and verdicts in CI.
 
 ## Experimental features
 
-Four features are **experimental**: they work and have tests, but haven't
+Five features are **experimental**: they work and have tests, but haven't
 been proven in real use the way the core has (verification, escalation and
 the benchmark). Use them, report what breaks, and expect them to change
 between minor versions. Fixes to the core come first.
@@ -141,6 +142,7 @@ between minor versions. Fixes to the core come first.
 | [Docker execution](guides/run-in-docker.md) (`--execution docker`) | Verification has never run inside a real container, only in tests with a fake workspace. The image must be built from a source checkout. Automatic model selection can't switch models during a run. |
 | [Server task stores](guides/run-as-a-server.md#keep-task-records) other than `memory` (`sqlite`, `mysql`, `postgres`, `redis`) | `sqlite` is tested on a real file. `mysql` and `postgres` share its code and were checked live once, not in the test suite. `redis` is tested only where `redis-server` is installed. |
 | [The OpenAI-compatible endpoint](guides/run-as-a-server.md#use-it-from-an-openai-compatible-client) (`/v1/chat/completions`) | The answer has no verdict, and earlier messages aren't replayed. |
+| [Milestone mode](guides/run-in-milestones.md) (`--milestones`) | Not benchmarked yet; one model only (no `--escalate`, no independent tests), and Certo doesn't plan the milestones itself. |
 | [Skills downloaded from git](guides/manage-skills.md#download-a-skill-from-git) (`certo skills add github:...`) | Licenses are detected with a text match, only `SKILL.md` folders can be installed, and no third-party skill has been benchmarked. |
 
 The rest of server mode (`POST /tasks`, the WebSocket stream, the memory

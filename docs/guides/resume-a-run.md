@@ -62,6 +62,7 @@ my-project/
     STATUS.md        the last run, for you to read
     run.json         the same, for Certo
     RUNS.md          every run, oldest first: date, model, verdict, cost
+    milestones.json  with --milestones: the task file, titles and verdicts
     conversations/   the agent's saved conversation
 ```
 
@@ -129,6 +130,13 @@ Certo prints a note saying so. This happens:
 - `The last run here already ended with 'verified'`: there is nothing to
   fix. To keep working on the same project, give an instruction:
   `certo --resume "Now add a --hard mode"`, or start a new task.
+
+- `All N milestones here are already 'verified'`: the milestones are
+  done. Run a new task.
+- `the task file ... changed since its milestones started` or `can't
+  read the task file`: `--resume` reads the milestones' task file again,
+  and it was edited, moved or deleted. Put it back, or start again with
+  `certo --milestones`. See [Run a task in milestones](run-in-milestones.md).
 
 ## Related
 

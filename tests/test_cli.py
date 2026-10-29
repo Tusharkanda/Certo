@@ -2295,3 +2295,220 @@ def test_a_run_says_when_a_third_party_skill_replaces_an_official_one(
         "Certo: your global skill 'pytest-conventions' replaces the official one."
         in capsys.readouterr().out
     )
+
+
+# --- certo --milestones --------------------------------------------------------
+
+_MILESTONE_TASK = """A todo app.
+
+## Milestone 1: storage
+Save items.
+```acceptance
+[{"kind": "file_exists", "path": "todo.py"}]
+```
+
+## Milestone 2: due dates
+Add due dates.
+"""
+
+
+def _milestone_file(tmp_path, text=_MILESTONE_TASK):
+    path = tmp_path / "task.md"
+    path.write_text(text)
+    return str(path)
+
+
+def _milestone_run_task(calls, verdicts, summary=None):
+    """A fake run_task giving each call the next verdict in `verdicts`."""
+    states = iter(verdicts)
+
+    def fake(task, **kwargs):
+        calls.append({"task": task, **kwargs})
+        result = _fake_result([_FakeMessage("done")], verification_state=next(states))
+        if summary is not None:
+            result.outcome = replace(result.outcome, run_summary=summary)
+        return result
+
+    return fake
+
+
+def _saved_milestones(tmp_path, verdicts, current=None):
+    """A milestone plan started from task.md and saved in tmp_path/project."""
+    from certo.milestones import MilestoneState, save_state
+    from certo.project_state import ensure_state_dir
+
+    path = _milestone_file(tmp_path)
+    state = MilestoneState.from_text(_MILESTONE_TASK.strip(), path)
+    state.verdicts.update(verdicts)
+    state.current = current
+    workspace = tmp_path / "project"
+    ensure_state_dir(str(workspace))
+    save_state(str(workspace), state)
+    return workspace, state.plan
+
+
+def _milestone_cfg(tmp_path, **overrides):
+    return _cfg(workspace=str(tmp_path / "project"), checkpoints=False, **overrides)
+
+
+def test_milestones_run_one_at_a_time_with_their_checks_adding_up(monkeypatch, tmp_path, capsys):
+    from certo.milestones import load_state
+
+    calls: list = []
+    usage = RunSummary(5.0, (ModelUsage("openai/gpt-4o", 100, 10, cost=0.01),))
+    monkeypatch.setattr(cli, "load_config", lambda: _milestone_cfg(tmp_path))
+    monkeypatch.setattr(
+        cli, "run_task", _milestone_run_task(calls, ["verified", "verified"], usage)
+    )
+
+    assert cli.main(["--milestones", _milestone_file(tmp_path)]) == 0
+
+    assert len(calls) == 2
+    assert "milestone 1 of 2: storage" in calls[0]["task"]
+    assert "milestone 2 of 2: due dates" in calls[1]["task"]
+    assert all(call["resume_from"] is None and call["save_state"] for call in calls)
+    assert [c.path for c in calls[0]["acceptance_checks"]] == ["todo.py"]
+    assert [c.path for c in calls[1]["acceptance_checks"]] == ["todo.py"]
+    state = load_state(str(tmp_path / "project"))
+    assert state.verdicts == {1: "verified", 2: "verified"}
+    out = capsys.readouterr().out
+    assert "Milestones: 2, each verified before the next starts" in out
+    assert "1. storage: verified\n  2. due dates: verified" in out
+    assert "Total running time: 10.0s" in out  # both milestones' summaries
+    assert "Verification: verified" in out
+
+
+def test_milestones_stop_at_the_first_that_is_not_verified(monkeypatch, tmp_path, capsys):
+    calls: list = []
+    monkeypatch.setattr(cli, "load_config", lambda: _milestone_cfg(tmp_path))
+    monkeypatch.setattr(cli, "run_task", _milestone_run_task(calls, ["retry_exhausted"]))
+
+    assert cli.main(["--milestones", _milestone_file(tmp_path)]) == 1
+
+    assert len(calls) == 1
+    out = capsys.readouterr().out
+    assert "1. storage: retry_exhausted\n  2. due dates: not started" in out
+    assert "Verification: retry_exhausted" in out
+    assert "Continue with: certo --resume" in out
+
+
+def test_resume_continues_the_first_milestone_not_verified(monkeypatch, tmp_path):
+    from certo.milestones import milestone_task
+
+    workspace, plan = _saved_milestones(tmp_path, {1: "verified", 2: "retry_exhausted"}, 2)
+    _saved_run(workspace, task=milestone_task(plan, 2))
+    calls: list = []
+    monkeypatch.setattr(cli, "load_config", lambda: _milestone_cfg(tmp_path))
+    monkeypatch.setattr(cli, "run_task", _milestone_run_task(calls, ["verified"]))
+
+    assert cli.main(["--resume", "use sqlite"]) == 0
+
+    assert len(calls) == 1
+    assert calls[0]["task"] == milestone_task(plan, 2)
+    assert calls[0]["resume_from"].verdict == "retry_exhausted"
+    assert calls[0]["resume_instruction"] == "use sqlite"
+
+
+def test_resume_starts_a_milestone_afresh_when_the_saved_run_was_another(monkeypatch, tmp_path):
+    from certo.milestones import milestone_task
+
+    # Milestone 1 was verified, then the run stopped before milestone 2 began.
+    workspace, plan = _saved_milestones(tmp_path, {1: "verified"}, 1)
+    _saved_run(workspace, task=milestone_task(plan, 1), verdict="verified")
+    calls: list = []
+    monkeypatch.setattr(cli, "load_config", lambda: _milestone_cfg(tmp_path))
+    monkeypatch.setattr(cli, "run_task", _milestone_run_task(calls, ["verified"]))
+
+    assert cli.main(["--resume", "use sqlite"]) == 0
+
+    assert calls[0]["resume_from"] is None
+    assert calls[0]["task"].startswith(milestone_task(plan, 2))
+    assert calls[0]["task"].endswith("Additional instruction from the user:\nuse sqlite")
+
+
+def test_resume_when_every_milestone_is_verified_runs_nothing(monkeypatch, tmp_path, capsys):
+    _saved_milestones(tmp_path, {1: "verified", 2: "verified"})
+    (tmp_path / "task.md").unlink()  # not needed: nothing is left to run
+    monkeypatch.setattr(cli, "load_config", lambda: _milestone_cfg(tmp_path))
+    monkeypatch.setattr(cli, "run_task", _fail_if_called)
+
+    assert cli.main(["--resume"]) == 0
+    assert "All 2 milestones here are already 'verified'" in capsys.readouterr().out
+
+
+def test_a_new_task_forgets_the_old_milestones(monkeypatch, tmp_path):
+    from certo.milestones import load_state
+
+    workspace, _ = _saved_milestones(tmp_path, {})
+    calls: list = []
+    monkeypatch.setattr(cli, "load_config", lambda: _milestone_cfg(tmp_path))
+    monkeypatch.setattr(cli, "run_task", _recording_run_task(calls))
+
+    assert cli.main(["something else"]) == 0
+    assert load_state(str(workspace)) is None
+
+
+def test_a_task_file_without_milestones_is_refused(monkeypatch, tmp_path, capsys):
+    monkeypatch.setattr(cli, "load_config", lambda: _milestone_cfg(tmp_path))
+    monkeypatch.setattr(cli, "run_task", _fail_if_called)
+
+    assert cli.main(["--milestones", _milestone_file(tmp_path, "Just a task.")]) == 1
+    assert "no milestone found" in capsys.readouterr().err
+
+
+@pytest.mark.parametrize(
+    ("overrides", "flags", "message"),
+    [
+        ({}, ["--escalate"], "escalation yet"),
+        ({}, ["--independent-tests"], "independent tests yet"),
+    ],
+)
+def test_milestones_refuse_what_they_dont_support_yet(
+    monkeypatch, tmp_path, capsys, overrides, flags, message
+):
+    monkeypatch.setattr(cli, "load_config", lambda: _milestone_cfg(tmp_path, **overrides))
+    monkeypatch.setattr(cli, "run_task", _fail_if_called)
+
+    assert cli.main(["--milestones", *flags, _milestone_file(tmp_path)]) == 1
+    assert message in capsys.readouterr().err
+
+
+def test_resume_with_milestones_and_no_plan_is_an_error(monkeypatch, tmp_path, capsys):
+    (tmp_path / "project").mkdir()
+    _saved_run(tmp_path / "project")
+    monkeypatch.setattr(cli, "load_config", lambda: _milestone_cfg(tmp_path))
+    monkeypatch.setattr(cli, "run_task", _fail_if_called)
+
+    assert cli.main(["--milestones", "--resume"]) == 1
+    assert "no milestones to resume" in capsys.readouterr().err
+
+
+def test_resume_refuses_an_edited_task_file(monkeypatch, tmp_path, capsys):
+    _saved_milestones(tmp_path, {1: "verified"})
+    (tmp_path / "task.md").write_text(_MILESTONE_TASK + "\nMore.\n")
+    monkeypatch.setattr(cli, "load_config", lambda: _milestone_cfg(tmp_path))
+    monkeypatch.setattr(cli, "run_task", _fail_if_called)
+
+    assert cli.main(["--resume"]) == 1
+    assert "changed since its milestones started" in capsys.readouterr().err
+
+
+def test_milestones_need_a_task_file(monkeypatch, tmp_path, capsys):
+    monkeypatch.setattr(cli, "load_config", lambda: _milestone_cfg(tmp_path))
+    monkeypatch.setattr(cli, "run_task", _fail_if_called)
+
+    assert cli.main(["--milestones", "## Milestone 1: a\nDo it."]) == 1
+    assert "--milestones needs a task file" in capsys.readouterr().err
+
+
+def test_a_resume_of_milestones_refuses_independent_tests_from_the_settings(
+    monkeypatch, tmp_path, capsys
+):
+    _saved_milestones(tmp_path, {1: "verified"})
+    monkeypatch.setattr(
+        cli, "load_config", lambda: _milestone_cfg(tmp_path, independent_tests=True)
+    )
+    monkeypatch.setattr(cli, "run_task", _fail_if_called)
+
+    assert cli.main(["--resume"]) == 1
+    assert "independent tests yet" in capsys.readouterr().err

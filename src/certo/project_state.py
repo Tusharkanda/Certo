@@ -118,7 +118,9 @@ def save_record(workspace: str, record: RunRecord) -> None:
     path = ensure_state_dir(workspace)
     record.updated_at = now()
     _write_atomic(os.path.join(path, _RECORD_FILE), json.dumps(asdict(record), indent=2) + "\n")
-    _write_atomic(os.path.join(path, _STATUS_FILE), render_status(record))
+    from .milestones import status_lines  # milestones.py imports this module
+
+    _write_atomic(os.path.join(path, _STATUS_FILE), render_status(record, status_lines(workspace)))
 
 
 def drop_other_conversations(workspace: str, keep: str) -> None:
@@ -163,7 +165,8 @@ def _status_line(record: RunRecord) -> str:
     return f"finished, verdict `{record.verdict}`"
 
 
-def render_status(record: RunRecord) -> str:
+def render_status(record: RunRecord, milestones: list[str] | None = None) -> str:
+    """`STATUS.md`; `milestones` is the milestone list in milestone mode."""
     lines = [
         "# Certo run status",
         "",
@@ -180,7 +183,8 @@ def render_status(record: RunRecord) -> str:
     ]
     if record.resumes:
         lines.append(f"- Resumed: {record.resumes} time(s)")
-    lines += ["", "## Task", "", record.task.strip(), ""]
+    lines += [""] + list(milestones or ())
+    lines += ["## Task", "", record.task.strip(), ""]
     if record.checks:
         lines += ["## Last verification", ""]
         for check in record.checks:

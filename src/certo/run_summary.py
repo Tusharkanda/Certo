@@ -13,7 +13,7 @@ model name (auto model selection gives every candidate its own usage_id).
 
 from __future__ import annotations
 
-from collections.abc import Mapping
+from collections.abc import Mapping, Sequence
 from dataclasses import dataclass
 from typing import Any
 
@@ -212,3 +212,32 @@ def summarize_run(
         if t["prompt"] or t["completion"] or t["cost"]
     )
     return RunSummary(duration_seconds=duration_seconds, models=models, condensations=condensations)
+
+
+def combine_summaries(summaries: Sequence[RunSummary]) -> RunSummary:
+    """One summary for several runs (the milestones of a task): times,
+    tokens, costs and condensations added up, one entry per model and
+    effort, in the order they first ran."""
+    merged: dict[tuple[str, str | None], ModelUsage] = {}
+    for summary in summaries:
+        for m in summary.models:
+            key = (m.model, m.reasoning_effort)
+            seen = merged.get(key)
+            merged[key] = (
+                m
+                if seen is None
+                else ModelUsage(
+                    model=m.model,
+                    prompt_tokens=seen.prompt_tokens + m.prompt_tokens,
+                    completion_tokens=seen.completion_tokens + m.completion_tokens,
+                    cache_read_tokens=seen.cache_read_tokens + m.cache_read_tokens,
+                    reasoning_tokens=seen.reasoning_tokens + m.reasoning_tokens,
+                    cost=seen.cost + m.cost,
+                    reasoning_effort=m.reasoning_effort,
+                )
+            )
+    return RunSummary(
+        duration_seconds=sum(s.duration_seconds for s in summaries),
+        models=tuple(merged.values()),
+        condensations=sum(s.condensations for s in summaries),
+    )

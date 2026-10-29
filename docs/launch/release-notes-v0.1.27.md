@@ -1,0 +1,27 @@
+# Certo v0.1.27
+
+Not released yet.
+
+## New (experimental): run a task in milestones
+
+`certo --milestones task.md` splits a task file at its
+`## Milestone N: title` headings and runs the milestones one at a time,
+each in its own conversation. Each one must be `verified` before the
+next starts: its own work, the project's tests, and the acceptance
+checks of every milestone so far, written in an ` ```acceptance ` block
+inside the milestone. When one fails, Certo stops there and keeps the
+earlier work; `certo --resume` continues that milestone, then the rest.
+
+```text
+Milestones:
+  1. Celsius and Fahrenheit: verified
+  2. Kelvin: verified
+
+Verification: verified
+```
+
+The time, cost and step limits apply to each milestone. Certo keeps only
+the milestones' titles and verdicts in `.certo/`, never their acceptance
+checks, because the agent can read that folder. Not combined with
+`--escalate` or independent tests yet, and not benchmarked yet. See
+[Run a task in milestones](../guides/run-in-milestones.md).

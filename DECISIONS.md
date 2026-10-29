@@ -1356,3 +1356,12 @@ considered and live-verification detail: `docs/ROADMAP.txt`.
     against the same task in one go. Certo planning the milestones
     itself (decision 1) comes after the task-file form. Server mode: not
     now.
+
+- **Milestone plan file keeps no milestone text or checks** (2026-10-29,
+  the Author's choice after a live Haiku run read `.certo/milestones.json`
+  and reasoned from its acceptance checks). The file holds the task
+  file's path, a fingerprint, titles and verdicts; `--resume` reads the
+  task file again and refuses it when gone or edited. Supersedes the
+  "keeps the plan" line of the design entry above. So `--milestones`
+  needs a local file (no text, no URL). The loop lives in the CLI, one
+  `run_task` per milestone, so the runner stays unchanged.

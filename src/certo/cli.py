@@ -31,9 +31,20 @@ from .config import (
 from .verification import _build_completion_contract, detect_project, run_full_verification
 from .escalation import format_rung_lines, load_ladder
 from .model_catalog import ModelCatalogEntry
-from .project_state import load_record, status_path
+from .milestones import (
+    MilestoneError,
+    MilestoneState,
+    checks_up_to,
+    clear_state,
+    milestone_task,
+    reopen,
+    summary_lines,
+)
+from .milestones import load_state as load_milestones
+from .milestones import save_state as save_milestones
+from .project_state import ensure_state_dir, load_record, save_record, status_path
 from .run_history import RunEntry, append_run, note_models_in_readme
-from .run_summary import model_label
+from .run_summary import combine_summaries, model_label
 from .worktree import record_created_project, was_created_by_certo, worktree_warning
 
 if TYPE_CHECKING:
@@ -245,6 +256,17 @@ def _build_parser() -> argparse.ArgumentParser:
             "stopped, using the state Certo keeps in .certo/. The agent gets "
             "its earlier conversation back when it is saved, and Certo's "
             "record of the last verdict and failing checks."
+        ),
+    )
+    parser.add_argument(
+        "--milestones",
+        action="store_true",
+        help=(
+            "Run the task file milestone by milestone: each '## Milestone N: title' "
+            "heading starts one, run in its own conversation and verified before "
+            "the next starts. A milestone may hold an ```acceptance block, the same "
+            "JSON as --acceptance-checks. --resume continues the first milestone "
+            "not verified."
         ),
     )
     parser.add_argument(
@@ -591,6 +613,12 @@ def main(argv: list[str] | None = None) -> int:
             file=sys.stderr,
         )
         return 1
+    if args.milestones and cfg.model_selection == "escalate":
+        print(
+            "Error: --milestones can't be combined with escalation yet; run it with one model.",
+            file=sys.stderr,
+        )
+        return 1
     if cfg.model_selection == "escalate" and args.resume:
         print(
             "Error: --resume can't be combined with escalation. Resume continues one "
@@ -615,7 +643,47 @@ def main(argv: list[str] | None = None) -> int:
         cfg = replace(cfg, workspace=project_dir)
 
     resume_from = None
-    if args.resume:
+    milestone_state: MilestoneState | None = None
+    saved_milestones = load_milestones(cfg.workspace) if args.resume else None
+    if args.milestones and not args.resume:
+        # A file, not text or a URL: --resume reads it again.
+        if not os.path.isfile(args.task):
+            print(
+                f"Error: --milestones needs a task file; {args.task!r} isn't one.",
+                file=sys.stderr,
+            )
+            return 1
+        try:
+            milestone_state = MilestoneState.from_text(task or "", args.task)
+        except MilestoneError as exc:
+            print(f"Error: {args.task}: {exc}", file=sys.stderr)
+            return 1
+    if args.resume and saved_milestones is None and args.milestones:
+        print(
+            f"Error: no milestones to resume in {os.path.abspath(cfg.workspace)}: Certo "
+            "keeps them in .certo/milestones.json, and there is none here.",
+            file=sys.stderr,
+        )
+        return 1
+    if saved_milestones is not None:
+        if saved_milestones.next_number() is None:
+            print(
+                f"All {len(saved_milestones.titles)} milestones here are already "
+                "'verified'. For more work, run a new task: certo \"...\""
+            )
+            return 0
+        try:
+            milestone_state = reopen(saved_milestones)
+        except MilestoneError as exc:
+            print(f"Error: {exc}", file=sys.stderr)
+            return 1
+        number = milestone_state.next_number()
+        record = load_record(cfg.workspace)
+        # The saved run continues only if it was this milestone's: otherwise
+        # (stopped before it began) the milestone starts afresh.
+        if record is not None and record.task == milestone_task(milestone_state.plan, number):
+            resume_from = record
+    elif args.resume:
         resume_from = load_record(cfg.workspace)
         if resume_from is None:
             print(
@@ -631,6 +699,14 @@ def main(argv: list[str] | None = None) -> int:
                 'say what to do next: certo --resume "..."'
             )
             return 0
+
+    # After the plan is known: a resume of milestones counts too.
+    if milestone_state is not None and cfg.independent_tests:
+        print(
+            "Error: --milestones can't be combined with independent tests yet.",
+            file=sys.stderr,
+        )
+        return 1
 
     ladder = None
     if cfg.model_selection == "escalate":
@@ -689,7 +765,10 @@ def main(argv: list[str] | None = None) -> int:
     # that starts.
     for line in format_banner(cfg, ladder=ladder, project=args.project):
         print(line)
-    if resume_from is not None:
+    if milestone_state is not None:
+        count = len(milestone_state.plan)
+        print(f"Milestones: {count}, each verified before the next starts")
+    elif resume_from is not None:
         print(f"Resuming: {_first_line(resume_from.task)}")
     # A third-party skill replacing an official one is said before the run
     # (skill_library.py).
@@ -714,39 +793,62 @@ def main(argv: list[str] | None = None) -> int:
     on_model_choice = (
         _prompt_for_model_choice if (cfg.model_selection == "auto" and cfg.interactive) else None
     )
-    save_state = cfg.save_state or resume_from is not None
+    save_state = cfg.save_state or resume_from is not None or milestone_state is not None
     resume_hint = "certo --resume" + (f" --project {args.project}" if args.project else "")
     if cfg.projects_dir != DEFAULT_PROJECTS_DIR:
         resume_hint = f"CERTO_PROJECTS_DIR={shlex.quote(cfg.projects_dir)} {resume_hint}"
     started_at = datetime.now(UTC)
-    history_task = resume_from.task if resume_from is not None else (task or "")
+    history = {"task": resume_from.task if resume_from is not None else (task or "")}
 
     def record_run(ended: str, outcome=None) -> None:
         if not save_state:
             return
-        entry = _run_entry(cfg, ladder, history_task, ended, started_at, outcome)
+        entry = _run_entry(cfg, ladder, history["task"], ended, started_at, outcome)
         entry = replace(entry, resumed=resume_from is not None)
         try:
             append_run(cfg.workspace, entry)
         except OSError as exc:
             print(f"Warning: couldn't add this run to .certo/RUNS.md ({exc}).", file=sys.stderr)
 
-    try:
-        messages = run_task(
-            resume_from.task if resume_from is not None else task,
+    def run_one(text: str, resume, instruction: str | None, checks):
+        return run_task(
+            text,
             cfg=cfg,
             on_confirm=on_confirm,
-            acceptance_checks=acceptance_checks,
+            acceptance_checks=checks,
             on_awaiting_input=on_awaiting_input,
             on_model_choice=on_model_choice,
             project=args.project,
             save_state=save_state,
-            resume_from=resume_from,
-            resume_instruction=task if resume_from is not None else None,
+            resume_from=resume,
+            resume_instruction=instruction,
             ladder=ladder,
             on_escalate=_confirm_escalation if cfg.interactive else None,
             on_notice=_print_progress,
         )
+
+    if save_state and milestone_state is None and resume_from is None:
+        clear_state(cfg.workspace)  # a new task here isn't the old milestones
+    try:
+        if milestone_state is None:
+            messages = run_one(
+                resume_from.task if resume_from is not None else task,
+                resume_from,
+                task if resume_from is not None else None,
+                acceptance_checks,
+            )
+            outcome = messages.outcome
+        else:
+            outcome = _run_milestones(
+                milestone_state,
+                cfg,
+                run_one,
+                resume_from=resume_from,
+                instruction=task if args.resume else None,
+                acceptance_checks=acceptance_checks,
+                history=history,
+                record_run=record_run,
+            )
     except KeyboardInterrupt:
         record_run("interrupted")
         print("\nInterrupted.", file=sys.stderr)
@@ -778,8 +880,8 @@ def main(argv: list[str] | None = None) -> int:
     # treating "nothing was checked" as a failure too (off by default: this
     # is a real behavior change a caller must ask for, not a silent default
     # flip — see DECISIONS.md).
-    outcome = messages.outcome
-    record_run(outcome.verification_state, outcome)
+    if milestone_state is None:
+        record_run(outcome.verification_state, outcome)
     # Only in a project folder Certo created: it never edits the README of
     # a project you brought.
     if certo_made:
@@ -823,6 +925,72 @@ def main(argv: list[str] | None = None) -> int:
         if hint:
             print(hint)
     return 1 if failing else 0
+
+
+def _run_milestones(
+    state: MilestoneState,
+    cfg,
+    run_one,
+    *,
+    resume_from,
+    instruction: str | None,
+    acceptance_checks,
+    history: dict,
+    record_run,
+):
+    """Milestone mode: run each milestone not yet verified, in order, each
+    in its own conversation, and stop at the first that isn't `verified`.
+    Returns the last milestone's outcome with the run summary of all of
+    them. `.certo/milestones.json` records each verdict as it comes."""
+    from .checkpoints import safe_snapshot
+
+    workspace = cfg.workspace
+    ensure_state_dir(workspace)
+    total = len(state.plan)
+    summaries = []
+    number = state.next_number()
+    outcome = None
+    first = True
+    while number is not None:
+        milestone = state.plan.get(number)
+        state.current = number
+        save_milestones(workspace, state)
+        print(f"\nMilestone {number} of {total}: {milestone.label}", flush=True)
+        if cfg.checkpoints:
+            safe_snapshot(workspace, f"before milestone {number}", always=True)
+        text = milestone_task(state.plan, number)
+        resume = resume_from if first else None
+        extra = instruction if first else None
+        if extra and resume is None:
+            text += f"\n\nAdditional instruction from the user:\n{extra.strip()}"
+            extra = None
+        checks = checks_up_to(state.plan, number)
+        if number == total and acceptance_checks:
+            checks += list(acceptance_checks)
+        history["task"] = f"Milestone {number} of {total}: {milestone.label}"
+        outcome = run_one(text, resume, extra, checks or None).outcome
+        if outcome.run_summary is not None:
+            summaries.append(outcome.run_summary)
+        state.verdicts[number] = outcome.verification_state
+        save_milestones(workspace, state)
+        record = load_record(workspace)
+        if record is not None:  # STATUS.md shows the new verdict in its list
+            try:
+                save_record(workspace, record)
+            except OSError:
+                pass
+        record_run(outcome.verification_state, outcome)
+        print(f"Milestone {number} of {total}: {outcome.verification_state}", flush=True)
+        if outcome.verification_state != "verified":
+            break
+        number = state.next_number()
+        first = False
+    print("\nMilestones:")
+    for line in summary_lines(state):
+        print(f"  {line}")
+    if summaries:
+        outcome = replace(outcome, run_summary=combine_summaries(summaries))
+    return outcome
 
 
 def _checkpoints_hint(workspace: str) -> str | None:

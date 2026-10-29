@@ -5,7 +5,9 @@ live run).
 
 from __future__ import annotations
 
-from certo.run_summary import RunSummary, format_duration, summarize_run
+import pytest
+
+from certo.run_summary import ModelUsage, RunSummary, format_duration, summarize_run
 
 
 def _metrics(model, prompt, completion, cost, cache_read=0, reasoning=0):
@@ -143,3 +145,32 @@ def test_condensations_are_counted_and_shown():
         summary.format_lines()
     )
     assert not any("summarized" in line for line in summarize_run(1.0, {}).format_lines())
+
+
+def test_combine_summaries_adds_up_runs_and_merges_each_model():
+    from certo.run_summary import combine_summaries
+
+    first = RunSummary(
+        10.0,
+        (ModelUsage("openai/gpt-4o", 100, 10, cache_read_tokens=5, cost=0.5),),
+        condensations=1,
+    )
+    second = RunSummary(
+        20.0,
+        (
+            ModelUsage("openai/gpt-4o", 200, 20, cost=1.0),
+            ModelUsage("openai/gpt-4o", 1, 1, cost=0.1, reasoning_effort="high"),
+        ),
+    )
+
+    total = combine_summaries([first, second])
+
+    assert total.duration_seconds == 30.0
+    assert total.condensations == 1
+    assert [(m.model, m.reasoning_effort) for m in total.models] == [
+        ("openai/gpt-4o", None),
+        ("openai/gpt-4o", "high"),
+    ]
+    assert total.models[0].prompt_tokens == 300
+    assert total.models[0].cache_read_tokens == 5
+    assert total.total_cost == pytest.approx(1.6)

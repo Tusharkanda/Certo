@@ -22,7 +22,7 @@ certo TASK [--project NAME] [--execution {local,docker}] [--model MODEL]
            [--interactive] [--verbose]
            [--auto-model]
            [--require-verification] [--acceptance-checks JSON_OR_FILE]
-           [--escalate [LADDER]]
+           [--escalate [LADDER]] [--milestones]
 certo --resume [TASK] [same options]
 ```
 
@@ -55,7 +55,8 @@ current folder, the file is read instead.
 | `--require-verification` | off | Exit 1 for `inconclusive` and `unchanged` too. |
 | `--acceptance-checks JSON_OR_FILE` | none | Extra file checks for this task, as inline JSON or a JSON file. See [Acceptance checks](../guides/acceptance-checks.md). |
 | `--escalate [LADDER]` | off (`CERTO_MODEL_SELECTION`) | Start on the first rung of a ladder of models from `escalation.yaml`, and move to the next model only when Certo's verdict shows the model couldn't finish, or its provider fails (outage, rate limit, rejected key). The time budget (`budget_exhausted`) and `CERTO_MAX_TASK_COST` stop the climb. `LADDER` names a ladder; without it, the ladder named `default` is used, else one built from the ratings. With only one value after the flag, as in `certo --escalate "Fix the crash"`, that value is the task. Can't be combined with `--auto-model`, `--model` or `--resume`. A missing model file (the error says which example to copy) or an unknown ladder is a configuration error that lists the ladders found. See [Escalate between models](../guides/escalate-between-models.md). |
-| `--resume` | off | Continue the last run in this folder (or in `--project NAME`) from the state in its `.certo/` folder. `TASK` is optional and is sent as an extra instruction. Errors when there is no saved state; does nothing (exit 0) when the last run ended `verified` and no `TASK` is given. See [Resume an interrupted run](../guides/resume-a-run.md). |
+| `--milestones` | off | Run the task file milestone by milestone: each `## Milestone N: title` heading starts one, run in its own conversation and verified before the next starts; the first that isn't `verified` stops the task with its verdict. A milestone may hold an ` ```acceptance ` block, in the `--acceptance-checks` format. Needs a task file (not text or a URL). Can't be combined with `--escalate` or `--independent-tests` yet. A task file with no milestone heading, or a broken block, is an error before any model call. [Experimental](../README.md#experimental-features). See [Run a task in milestones](../guides/run-in-milestones.md). |
+| `--resume` | off | Continue the last run in this folder (or in `--project NAME`) from the state in its `.certo/` folder. `TASK` is optional and is sent as an extra instruction. Errors when there is no saved state; does nothing (exit 0) when the last run ended `verified` and no `TASK` is given. After `--milestones`, it continues the first milestone not `verified`, reading the task file again; it refuses when the file is gone or was edited, and does nothing (exit 0) when every milestone is `verified`. See [Resume an interrupted run](../guides/resume-a-run.md). |
 
 **Output.** A run starts with a banner: the Certo version, then one
 line each for the model (with `--auto-model` or `--escalate`, how it is
@@ -67,12 +68,16 @@ chosen, or the ladder), the project folder, where the commands run
 `--interactive` or `CERTO_CONFIRM_MODE=always`. For a local server, the
 model line shows its host and port; the API key is never shown. A run
 refused because of a wrong flag or setting prints only the error, no
-banner. With `--resume`, a `Resuming:` line follows. A warning about
+banner. With `--resume`, a `Resuming:` line follows; with
+`--milestones` (or a resume of milestones), a `Milestones: N` line, then
+a `Milestone N of M: title` line before each milestone and one with its
+verdict after it. A warning about
 uncommitted changes may follow (see [Work on an existing project](../guides/work-on-an-existing-project.md)).
 Then one line for the agent's system prompt and one for the task (the
 whole text with `--verbose`), the agent's actions and their results as
 they happen, and Certo's own notes (a failing check, a model switch, a
 step limit) as they happen. At the end: the
+`Milestones:` list with each milestone's verdict with `--milestones`, the
 `Model used:` line with `--auto-model`, then `Verification: <verdict>`,
 any limitations as `-` lines, and the run summary. After a failing
 verdict, a last line names `.certo/STATUS.md` and the `certo --resume`

@@ -247,6 +247,21 @@ given design was chosen.
   verification. When the conversation can't be reopened (Docker, folder
   gone, SDK refuses), a fresh conversation gets the task and `STATUS.md`
   instead. Server and bench never pass `save_state`.
+- **`milestones.py`** + `certo --milestones` — stdlib only. Parses a task
+  file into a `MilestonePlan` (`## Milestone N: title` headings outside
+  code fences; ` ```acceptance ` blocks taken out of the agent's text).
+  The loop is `cli._run_milestones`, not the runner: one ordinary
+  `run_task` per milestone, so each gets a fresh conversation, the usual
+  limits and `.certo/run.json` (always the current milestone's run);
+  acceptance checks of milestones 1..N are passed as `acceptance_checks`.
+  `.certo/milestones.json` holds only the source path, a sha256 of the
+  text, titles and verdicts, because the agent reads `.certo/` (seen
+  live: Haiku `cat`-ed the first version, checks included); `--resume`
+  calls `reopen()`, which re-reads and re-checks the file, and resumes
+  `run.json` only when its `task` equals that milestone's text.
+  `project_state.save_record` adds `status_lines()` to `STATUS.md`
+  (lazy import: milestones.py imports project_state). Checkpoints `before
+  milestone N` use `always=True`, or an unchanged folder would skip them.
 - **`console.py`** — what a run prints. `QuietVisualizer` subclasses the
   SDK's `DefaultConversationVisualizer` and overrides only `on_event`:
   the `SystemPromptEvent` and the first user `MessageEvent` (the task

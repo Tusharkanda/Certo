@@ -66,8 +66,8 @@ first item is the suggested next one.
   acceptance checks, run and verified one at a time, building on
   `--resume`/`STATUS.md`. The main step from "small task" to "app". The
   Author's decisions and the design are in DECISIONS.md (2026-10-25,
-  2026-10-29). Steps: (1) the task-file form with one model
-  (`--milestones`, `.certo/milestones.json`, `--resume`); (2) escalation
+  2026-10-29). Step 1, the task-file form with one model, is built
+  (0.1.27, `--milestones`; live Haiku runs only). Next: (2) escalation
   and independent tests per milestone; (3) a bench arm running a task as
   milestones against the same task in one go (local and cloud); (4) the
   docs article; (5) Certo planning the milestones itself.
