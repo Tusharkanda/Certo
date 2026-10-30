@@ -79,10 +79,16 @@ first item is the suggested next one.
   Step 3 is built (bench arm `milestones: true`, `app-tasks/spreadsheet`);
   its first local run (`docs/benchmark/milestones-0.1.27.md`) solved
   neither arm: in one go qwen3.8 gave only empty replies, in milestones
-  it built milestone 1 and ran out of time on milestone 2. Next: rerun
-  with more time per milestone or `--resume`, and find why the one-go
-  replies were empty; (4) the docs article; (5) Certo planning the
-  milestones itself.
+  it built milestone 1 and ran out of time on milestone 2. The second
+  run (`docs/benchmark/milestones-64k-0.1.27.md`, 64K window, 40 min per
+  milestone): milestones 1-2 `verified` in 2/3 runs, then out of time
+  planning milestone 3; one go wrote the whole engine in 2/3 runs (87
+  and 100/111 hidden) but no tests. Next: carry a short summary of the
+  code into each new milestone so it doesn't re-plan from nothing, and
+  a longer per-call limit for this model (7 calls hit 1200 s); with the
+  next `apps-` version, say in the task that a chain of 200 cells must
+  work (hidden `test_m2_a_long_chain` is stricter than the text); (4) the
+  docs article; (5) Certo planning the milestones itself.
   Done when an app-sized task ends `verified` in milestone mode on a
   local model, with a published record.
 - **Independent tests: the rest** (0.1.24: `--independent-tests`, three

@@ -105,6 +105,7 @@ Per local run (verdict, how far it got, time):
 
 ## Related
 
+- [The second run, with a 65,536-token window](milestones-64k-0.1.27.md)
 - [Run a task in milestones](../guides/run-in-milestones.md)
 - [The first live milestone runs](milestones-live-0.1.27.md): the same
   feature on Haiku, with the task files used
