@@ -934,6 +934,7 @@ def _verify_after_budget(
     runner: CommandRunner | None,
     on_verification: Callable[[VerificationRun], None] | None,
     state: str = _RUN_BUDGET_EXHAUSTED,
+    before: dict[str, tuple[int, int]] | None = None,
 ) -> TaskOutcome:
     """The time budget ran out while the agent's last run was still going
     (it is checked only between runs). The checks need no model, so they
@@ -943,7 +944,10 @@ def _verify_after_budget(
     were reported `budget_exhausted` unchecked. A run that ended in an
     error, or with checks turned off, stays `budget_exhausted` as before.
     The same when the cost limit stopped the agent (`state` is then
-    `cost_exhausted`): checks cost nothing."""
+    `cost_exhausted`): checks cost nothing. With `before` (the folder's
+    listing at the start), passing checks on a folder the agent didn't
+    change say nothing, so the verdict stays exhausted: there is no time
+    left to ask the agent, as `_require_a_change` would."""
     exhausted = TaskOutcome(
         verification_state=state,
         completion_contract=_exhausted_contract(state, task, cfg),
@@ -965,6 +969,14 @@ def _verify_after_budget(
         budget, setting = "cost limit was reached", f"CERTO_MAX_TASK_COST={cfg.max_task_cost:g}"
     else:
         budget, setting = "time budget ran out", f"CERTO_MAX_TASK_SECONDS={cfg.max_task_seconds}"
+    if before is not None and not _agent_changed_files(cfg.workspace, before):
+        _emit_notice(
+            emit,
+            f"Certo: the {budget} ({setting}) during the agent's last step. The "
+            "project's checks pass, but the agent changed no file in the project "
+            f"folder, so they say nothing about this task: the verdict stays {state}.",
+        )
+        return replace(exhausted, checks=tuple(run.checks))
     _emit_notice(
         emit,
         f"Certo: the {budget} ({setting}) during the agent's last step, but the "
@@ -995,6 +1007,7 @@ def _verify_and_report(
     model_chain: ModelChain | None = None,
     runner: CommandRunner | None = None,
     on_verification: Callable[[VerificationRun], None] | None = None,
+    before: dict[str, tuple[int, int]] | None = None,
 ) -> TaskOutcome:
     """Post-hoc safety net for agent.py's `_VERIFY_BEFORE_FINISH_SUFFIX`: run
     the project's own checks ourselves instead of trusting the agent's
@@ -1009,7 +1022,9 @@ def _verify_and_report(
     """
     spent = _budget_spent(conversation, deadline)
     if spent:
-        return _verify_after_budget(conversation, cfg, emit, task, runner, on_verification, spent)
+        return _verify_after_budget(
+            conversation, cfg, emit, task, runner, on_verification, spent, before
+        )
 
     status = conversation.state.execution_status
     step_limited = status in _ABORTED_STATUSES and _hit_step_limit(conversation)
@@ -2145,6 +2160,7 @@ def _run_stream_task_phases(
             model_chain,
             runner,
             on_verification,
+            before,
         )
     if before is not None and outcome.verification_state == "verified":
         outcome = _require_a_change(
@@ -2244,7 +2260,16 @@ def _require_a_change(
     if stopped is not None:
         return stopped
     again = _verify_and_report(
-        conversation, cfg, emit, task, on_confirm, deadline, model_chain, runner, on_verification
+        conversation,
+        cfg,
+        emit,
+        task,
+        on_confirm,
+        deadline,
+        model_chain,
+        runner,
+        on_verification,
+        before,
     )
     again = replace(again, retries_used=again.retries_used + retries_used)
     if again.verification_state != "verified" or _agent_changed_files(cfg.workspace, before):

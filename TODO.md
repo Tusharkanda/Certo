@@ -14,13 +14,6 @@ first item is the suggested next one.
 
 ## Before the next release
 
-- **Contradictory notices when time runs out with no change.** When the
-  time budget ends, the checks pass and no file changed (milestone 2 of
-  the 0.1.27 local milestone runs), Certo prints "the work is verified",
-  then "Asking it once…", sends the follow-up with no time left, and
-  ends `budget_exhausted`. The verdict is right; the two notices are
-  not. Done when that case skips the follow-up and says time ran out
-  with no change.
 - **A longer time budget from `certo init` for Ollama?** The mazeman
   sample took 41 minutes on `qwen3.8:27b` (2026-10-22), past the default
   30-minute `CERTO_MAX_TASK_SECONDS`; it ended `verified` only because the

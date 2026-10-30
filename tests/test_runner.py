@@ -3254,6 +3254,53 @@ def test_a_resumed_run_is_never_unchanged(monkeypatch, tmp_path):
     assert conversation.run_calls == 1
 
 
+def _phases_out_of_time(monkeypatch, tmp_path, writes):
+    """`_phases`, but the time budget is already spent when the run ends."""
+    monkeypatch.setattr(runner, "_agent_changed_files", _REAL_AGENT_CHANGED_FILES)
+    monkeypatch.setattr(
+        runner, "_run_verification", lambda _dir, *_a: _run(_check(summary="3 passed"))
+    )
+    (tmp_path / "app.py").write_text("print('starter')\n")
+    conversation = _EditingConversation(tmp_path, [writes])
+    looks = iter(["", *(["budget_exhausted"] * 10)])
+    # The run starts in time; every later look at the budget finds it spent.
+    monkeypatch.setattr(runner, "_budget_spent", lambda *_a: next(looks))
+    emitted: list = []
+    outcome = runner._run_stream_task_phases(
+        conversation,
+        _cfg(workspace=str(tmp_path), verify_tests="always"),
+        emitted.append,
+        "Fix the starter",
+        None,
+        None,
+        float("inf"),
+        None,
+        [],
+        check_changes=True,
+    )
+    return outcome, conversation, [m.content[0].text for m in emitted]
+
+
+def test_out_of_time_with_no_change_stays_budget_exhausted_with_no_follow_up(monkeypatch, tmp_path):
+    # Found by the 0.1.27 local milestone benchmark: Certo said "the work
+    # is verified", then asked the agent once with no time left.
+    outcome, conversation, notices = _phases_out_of_time(monkeypatch, tmp_path, {})
+
+    assert outcome.verification_state == "budget_exhausted"
+    assert len(outcome.checks) == 1
+    assert conversation.sent_messages == ["Fix the starter"]
+    assert not any("so the work is verified" in n for n in notices)
+    assert not any("Asking it once" in n for n in notices)
+    assert any("changed no file" in n and "stays budget_exhausted" in n for n in notices)
+
+
+def test_out_of_time_with_a_change_is_still_verified(monkeypatch, tmp_path):
+    outcome, _, notices = _phases_out_of_time(monkeypatch, tmp_path, {"app.py": "print('fixed')\n"})
+
+    assert outcome.verification_state == "verified"
+    assert any("so the work is verified" in n for n in notices)
+
+
 def test_only_a_verified_run_is_checked_for_changes(monkeypatch, tmp_path):
     monkeypatch.setattr(runner, "_agent_changed_files", _REAL_AGENT_CHANGED_FILES)
     monkeypatch.setattr(runner, "_run_verification", lambda _dir, *_a: _run())

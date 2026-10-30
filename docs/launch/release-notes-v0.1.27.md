@@ -40,3 +40,14 @@ milestone (`test_m1_...`), `results.md` shows the hidden tests passed
 per milestone. See
 [the benchmark file reference](../reference/bench-yaml.md#arms) and
 [Benchmark models and strategies](../guides/benchmark.md).
+
+## Fixed
+
+- When the time budget or cost limit ran out during the agent's last
+  step, the checks passed, and the agent had changed no file, Certo
+  printed "the work is verified", then asked the agent once more with
+  no time left, and ended `budget_exhausted`. It now says in one notice
+  that the checks pass but nothing changed, and the verdict stays
+  `budget_exhausted` (or `cost_exhausted`).
+- Security updates in the lock file: authlib 1.9.1, dnspython 2.9.1
+  and litellm 1.100.4.
