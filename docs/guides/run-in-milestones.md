@@ -170,6 +170,8 @@ milestones.
 - [Commands](../reference/commands.md#certo): `--milestones`, `--resume`
 - [The first live milestone runs](../benchmark/milestones-live-0.1.27.md): this guide's
   example task, and what was tested
+- [Milestones on a local model](../benchmark/milestones-0.1.27.md):
+  `qwen3.8:27b` on a spreadsheet task, in milestones and in one go
 - [Acceptance checks](acceptance-checks.md)
 - [Escalate between models](escalate-between-models.md)
 - [Independent tests](independent-tests.md)

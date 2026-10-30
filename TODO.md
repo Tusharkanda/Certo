@@ -14,6 +14,13 @@ first item is the suggested next one.
 
 ## Before the next release
 
+- **Contradictory notices when time runs out with no change.** When the
+  time budget ends, the checks pass and no file changed (milestone 2 of
+  the 0.1.27 local milestone runs), Certo prints "the work is verified",
+  then "Asking it once…", sends the follow-up with no time left, and
+  ends `budget_exhausted`. The verdict is right; the two notices are
+  not. Done when that case skips the follow-up and says time ran out
+  with no change.
 - **A longer time budget from `certo init` for Ollama?** The mazeman
   sample took 41 minutes on `qwen3.8:27b` (2026-10-22), past the default
   30-minute `CERTO_MAX_TASK_SECONDS`; it ended `verified` only because the
@@ -69,9 +76,13 @@ first item is the suggested next one.
   2026-10-29). Steps 1 and 2 are built (0.1.27,
   `--milestones`, with `--escalate` and independent tests per milestone;
   live Haiku runs only, no climb inside a milestone seen live yet).
-  Next: (3) a bench arm running a task as
-  milestones against the same task in one go (local and cloud); (4) the
-  docs article; (5) Certo planning the milestones itself.
+  Step 3 is built (bench arm `milestones: true`, `app-tasks/spreadsheet`);
+  its first local run (`docs/benchmark/milestones-0.1.27.md`) solved
+  neither arm: in one go qwen3.8 gave only empty replies, in milestones
+  it built milestone 1 and ran out of time on milestone 2. Next: rerun
+  with more time per milestone or `--resume`, and find why the one-go
+  replies were empty; (4) the docs article; (5) Certo planning the
+  milestones itself.
   Done when an app-sized task ends `verified` in milestone mode on a
   local model, with a published record.
 - **Independent tests: the rest** (0.1.24: `--independent-tests`, three

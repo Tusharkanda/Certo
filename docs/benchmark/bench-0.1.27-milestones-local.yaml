@@ -1,0 +1,14 @@
+# Milestone mode on a local model (Certo 0.1.27): qwen3.8 on
+# app-tasks/spreadsheet, the whole task in one go against the same task
+# in its five milestones, with the same total time: 100 minutes for the
+# whole task, 20 minutes for each milestone. Run it from the repository
+# root with:
+#   certo bench --config docs/benchmark/bench-0.1.27-milestones-local.yaml
+# Every model below must be enabled in your models.yaml; see
+# docs/guides/write-a-benchmark-file.md.
+tasks_dir: app-tasks
+tasks: [spreadsheet]
+repeats: 3
+arms:
+  - {name: qwen-whole, strategy: single, model: qwen3.8-27b-local, context_tokens: 32768, max_task_seconds: 6000}
+  - {name: qwen-milestones, strategy: single, model: qwen3.8-27b-local, context_tokens: 32768, max_task_seconds: 1200, milestones: true}
