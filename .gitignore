@@ -239,6 +239,9 @@ escalation.yaml
 # results are committed in docs/benchmark/.
 /bench.yaml
 /bench-*.yaml
+# Certo's own run state (checkpoints, STATUS.md) from runs made in this
+# folder; never committed.
+/.certo/
 # certo bench results (default output folder)
 bench-results/
 
