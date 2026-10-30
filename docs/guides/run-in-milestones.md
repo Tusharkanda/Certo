@@ -169,6 +169,8 @@ milestones.
 
 ## Related
 
+- [Build an app in several tasks](build-an-app-in-several-tasks.md): a
+  worked example, a spreadsheet engine in 5 milestones
 - [Commands](../reference/commands.md#certo): `--milestones`, `--resume`
 - [The first live milestone runs](../benchmark/milestones-live-0.1.27.md): this guide's
   example task, and what was tested

@@ -93,6 +93,7 @@ takes you from install to your first verified project.
 | See what a run did and what it cost | [Run records and costs](guides/run-records-and-costs.md) |
 | Continue a task after an interruption or a failed verdict | [Resume an interrupted run](guides/resume-a-run.md) |
 | Build something bigger in steps, each checked before the next | [Run a task in milestones](guides/run-in-milestones.md) |
+| See a whole app built that way, step by step | [Build an app in several tasks](guides/build-an-app-in-several-tasks.md) |
 | Undo what the agent did, back to an earlier point | [Go back to an earlier point](guides/checkpoints.md) |
 | Teach the agent my conventions, for every project or one | [Manage skills](guides/manage-skills.md) |
 | Give the agent a new action, in Python | [Add custom tools](guides/add-custom-tools.md) |

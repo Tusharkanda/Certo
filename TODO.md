@@ -77,11 +77,14 @@ first item is the suggested next one.
   milestone): milestones 1-2 `verified` in 2/3 runs, then out of time
   planning milestone 3; one go wrote the whole engine in 2/3 runs (87
   and 100/111 hidden) but no tests. Next: carry a short summary of the
-  code into each new milestone so it doesn't re-plan from nothing, and
+  code into each new milestone (done 2026-10-30: the handover; its qwen
+  run is bench-results/milestones-handover-0.1.27, to write up), and
   a longer per-call limit for this model (7 calls hit 1200 s); with the
   next `apps-` version, say in the task that a chain of 200 cells must
-  work (hidden `test_m2_a_long_chain` is stricter than the text); (4) the
-  docs article; (5) Certo planning the milestones itself.
+  work (hidden `test_m2_a_long_chain` is stricter than the text). The
+  docs article is written (`docs/guides/build-an-app-in-several-tasks.md`,
+  Haiku 5/5 verified, 111/111 hidden). Then (5) Certo planning the
+  milestones itself.
   Done when an app-sized task ends `verified` in milestone mode on a
   local model, with a published record.
 - **Independent tests: the rest** (0.1.24: `--independent-tests`, three
@@ -226,8 +229,7 @@ cut that first run's output from 2,949 lines to 1,021.)
   Still to do: a truly clean machine (no Python, no uv).
 - **GitHub Action**: an issue labelled `certo` becomes a pull request with
   the verdict and checks in its description.
-- **Docs articles still to write** (ideas from 2026-10-18): build an
-  app in several tasks (needs real runs); review the agent's work safely;
+- **Docs articles still to write** (ideas from 2026-10-18): review the agent's work safely;
   share your benchmark results (with the benchmark file, as `docs/benchmark/` does); keep costs down; use `certo verify`
   without the agent (pre-commit: done in #16; any AI tool: [#31](https://github.com/alessioricco/certo/issues/31)).
 - **Prebuilt Docker image.** Docker execution from a pip install fails:
