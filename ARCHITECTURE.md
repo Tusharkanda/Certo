@@ -258,7 +258,12 @@ given design was chosen.
   text, titles and verdicts, because the agent reads `.certo/` (seen
   live: Haiku `cat`-ed the first version, checks included); `--resume`
   calls `reopen()`, which re-reads and re-checks the file, and resumes
-  `run.json` only when its `task` equals that milestone's text.
+  `run.json` only when its `task` is that milestone's text
+  (`is_milestone_task`, which ignores the handover). Milestone N+1's text
+  includes `handover()`: the folder's files with sizes and milestone N's
+  last `finish` result; both loops build it after a `verified` milestone
+  (bench from the messages of that milestone only), and a resume past
+  milestone 1 gets the file list alone.
   `project_state.save_record` adds `status_lines()` to `STATUS.md`
   (lazy import: milestones.py imports project_state). Checkpoints `before
   milestone N` use `always=True`, or an unchanged folder would skip them.

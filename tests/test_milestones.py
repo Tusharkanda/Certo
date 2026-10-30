@@ -9,6 +9,8 @@ from certo.milestones import (
     MilestoneState,
     checks_up_to,
     clear_state,
+    handover,
+    is_milestone_task,
     load_state,
     milestone_task,
     parse_milestones,
@@ -17,6 +19,8 @@ from certo.milestones import (
     status_lines,
     summary_lines,
 )
+from types import SimpleNamespace
+
 from certo.project_state import RunRecord, ensure_state_dir, save_record, status_path
 
 TASK = """# Todo app
@@ -205,3 +209,80 @@ def test_summary_lines_say_which_were_not_started(tmp_path):
     _, _, state = _started(tmp_path, {1: "retry_exhausted"})
 
     assert summary_lines(state) == ["1. storage: retry_exhausted", "2. due dates: not started"]
+
+
+# --- handover: what a milestone leaves for the next -------------------------
+
+
+def _finish(text):
+    return SimpleNamespace(role="tool", name="finish", content=[SimpleNamespace(text=text)])
+
+
+def test_handover_lists_the_files_and_the_last_finish_summary(tmp_path):
+    (tmp_path / "sheet.py").write_text("a = 1\nb = 2\n")
+    (tmp_path / "tests").mkdir()
+    (tmp_path / "tests" / "test_sheet.py").write_text("x")
+    (tmp_path / "logo.png").write_bytes(b"\x89PNG\0\0")
+    (tmp_path / ".hidden").write_text("secret\n")
+    (tmp_path / ".certo").mkdir()
+    (tmp_path / ".certo" / "STATUS.md").write_text("x\n")
+    messages = [_finish("Old summary."), SimpleNamespace(role="assistant"), _finish("Built it.")]
+
+    text = handover(str(tmp_path), messages, 1)
+
+    assert text.startswith("## What milestone 1 left")
+    assert "- logo.png (6 bytes)\n- sheet.py (2 lines)\n- tests/test_sheet.py (1 line)" in text
+    assert ".hidden" not in text and "STATUS.md" not in text
+    assert "not checked by Certo" in text
+    assert text.endswith("Built it.")
+    assert "Old summary" not in text
+
+
+def test_handover_is_none_with_nothing_to_say(tmp_path):
+    assert handover(str(tmp_path), [], 1) is None
+
+
+def test_handover_shortens_a_long_summary_and_a_long_file_list(tmp_path):
+    for i in range(45):
+        (tmp_path / f"f{i:02}.txt").write_text("")
+    text = handover(str(tmp_path), [_finish("y" * 3000)], 2)
+
+    assert "- f39.txt (0 lines)\n- ... and 5 more" in text
+    assert "f40.txt" not in text
+    assert text.endswith("y [...]")
+    assert text.count("y") < 2100
+
+
+def test_milestone_task_puts_the_handover_before_the_milestone():
+    plan = parse_milestones(TASK)
+    text = milestone_task(plan, 2, "## What milestone 1 left\n\n- todo.py (3 lines)")
+
+    assert text.index("Already done and checked") < text.index("What milestone 1 left")
+    assert text.index("What milestone 1 left") < text.index("## Now: milestone 2")
+
+
+def test_a_milestone_task_is_recognised_whatever_its_handover():
+    plan = parse_milestones(TASK)
+    given = milestone_task(plan, 2, "## What milestone 1 left\n\n- todo.py (3 lines)\n\nDone.")
+
+    assert is_milestone_task(given, plan, 2)
+    assert is_milestone_task(milestone_task(plan, 2), plan, 2)
+    assert not is_milestone_task(given, plan, 1)
+    assert not is_milestone_task(given + " and more", plan, 2)
+
+
+def test_handover_takes_the_last_plain_message_when_there_is_no_finish(tmp_path):
+    def said(text, **extra):
+        return SimpleNamespace(
+            role="assistant", name=None, content=[SimpleNamespace(text=text)], **extra
+        )
+
+    messages = [
+        said("Working.", tool_calls=[object()]),
+        said("Converted both ways, with tests."),
+        said(""),
+        SimpleNamespace(role="assistant", name="certo", content=[SimpleNamespace(text="Notice")]),
+    ]
+    text = handover(str(tmp_path), messages, 1)
+
+    assert text.endswith("Converted both ways, with tests.")

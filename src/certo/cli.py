@@ -36,6 +36,8 @@ from .milestones import (
     MilestoneState,
     checks_up_to,
     clear_state,
+    handover,
+    is_milestone_task,
     milestone_task,
     reopen,
     summary_lines,
@@ -684,7 +686,7 @@ def main(argv: list[str] | None = None) -> int:
         record = load_record(cfg.workspace)
         # The saved run continues only if it was this milestone's: otherwise
         # (stopped before it began) the milestone starts afresh.
-        if record is not None and record.task == milestone_task(milestone_state.plan, number):
+        if record is not None and is_milestone_task(record.task, milestone_state.plan, number):
             if cfg.model_selection == "escalate":
                 # A ladder starts the milestone again on its first rung, in
                 # a fresh conversation told how the last try ended.
@@ -955,6 +957,9 @@ def _run_milestones(
     number = state.next_number()
     outcome = None
     first = True
+    # What the milestone before left; a resume past milestone 1 has only
+    # the folder, its conversation was in an earlier session.
+    left = handover(workspace, [], number - 1) if number is not None and number > 1 else None
     while number is not None:
         milestone = state.plan.get(number)
         state.current = number
@@ -962,7 +967,7 @@ def _run_milestones(
         print(f"\nMilestone {number} of {total}: {milestone.label}", flush=True)
         if cfg.checkpoints:
             safe_snapshot(workspace, f"before milestone {number}", always=True)
-        text = milestone_task(state.plan, number)
+        text = milestone_task(state.plan, number, left)
         resume = resume_from if first else None
         extra = instruction if first else None
         if first and restart is not None:
@@ -978,7 +983,8 @@ def _run_milestones(
         if number == total and acceptance_checks:
             checks += list(acceptance_checks)
         history["task"] = f"Milestone {number} of {total}: {milestone.label}"
-        outcome = run_one(text, resume, extra, checks or None).outcome
+        result = run_one(text, resume, extra, checks or None)
+        outcome = result.outcome
         if outcome.run_summary is not None:
             summaries.append(outcome.run_summary)
         state.verdicts[number] = outcome.verification_state
@@ -997,6 +1003,7 @@ def _run_milestones(
             print(report_line(outcome.independent_tests, strict=cfg.independent_tests_strict))
         if outcome.verification_state != "verified":
             break
+        left = handover(workspace, result, number)
         number = state.next_number()
         first = False
     print("\nMilestones:")

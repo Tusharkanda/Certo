@@ -24,6 +24,7 @@ from collections.abc import Mapping, Sequence
 from dataclasses import dataclass, field
 
 from .acceptance import AcceptanceCheck, AcceptanceCheckError, parse_acceptance_checks
+from .escalation import workspace_listing
 from .project_state import STATE_DIR
 
 _PLAN_FILE = "milestones.json"
@@ -156,9 +157,10 @@ def _parse_block(number: int, raw: str) -> tuple[Mapping[str, object], ...]:
     return tuple(data)
 
 
-def milestone_task(plan: MilestonePlan, number: int) -> str:
+def milestone_task(plan: MilestonePlan, number: int, handover: str | None = None) -> str:
     """What the agent gets for milestone `number`: the shared context, the
-    milestones done so far by title, and this one in full."""
+    milestones done so far by title, what they left (`handover`), and this
+    one in full."""
     milestone = plan.get(number)
     total = len(plan)
     parts = [plan.context] if plan.context else []
@@ -171,6 +173,8 @@ def milestone_task(plan: MilestonePlan, number: int) -> str:
         parts.append(
             "Already done and checked (the work is in the folder; keep it working):\n" + done
         )
+    if handover:
+        parts.append(handover)
     parts.append(f"## Now: milestone {number} of {total}: {milestone.label}\n\n{milestone.text}")
     if number < total:
         parts.append(
@@ -178,6 +182,92 @@ def milestone_task(plan: MilestonePlan, number: int) -> str:
             "finish, Certo runs the project's checks."
         )
     return "\n\n".join(parts)
+
+
+def is_milestone_task(text: str, plan: MilestonePlan, number: int) -> bool:
+    """Whether `text` is what milestone `number` was given, whatever
+    handover it had: the handover depends on the folder and the last
+    conversation, so a resume in a new session can't rebuild it."""
+    return _HANDOVER_SECTION.sub("", text, count=1) == milestone_task(plan, number)
+
+
+_HANDOVER_SECTION = re.compile(
+    r"\n\n## What milestone \d+ left\n.*?(?=\n\n## Now: milestone )", re.S
+)
+# What a handover lists at most: the folder's files, and the characters
+# of the last milestone's own summary.
+_HANDOVER_FILES = 40
+_HANDOVER_SUMMARY_CHARS = 2000
+_COUNTED_MAX_BYTES = 2_000_000
+
+
+def handover(workspace: str, messages: Sequence[object], finished: int) -> str | None:
+    """What milestone `finished` left for the next one, which starts in a
+    fresh conversation: the project folder's files with their sizes, and
+    the agent's own summary when it finished, marked as not checked. Found by the 0.1.27 local benchmark: a new milestone spent
+    most of its time reading the folder and planning again from nothing.
+    None when there is nothing to say."""
+    files = _file_lines(workspace)
+    summary = _finish_summary(messages)
+    if not files and not summary:
+        return None
+    parts = [f"## What milestone {finished} left"]
+    if files:
+        parts.append("The project folder now (from Certo):\n" + "\n".join(files))
+    if summary:
+        parts.append(
+            f"The agent's own summary at the end of milestone {finished} (not checked "
+            "by Certo; the code is what counts):\n\n" + summary
+        )
+    return "\n\n".join(parts)
+
+
+def _file_lines(workspace: str) -> list[str]:
+    paths = sorted(
+        path
+        for path in workspace_listing(workspace)
+        if not any(part.startswith(".") for part in path.split(os.sep))
+    )
+    lines = [f"- {path} ({_size(os.path.join(workspace, path))})" for path in paths]
+    if len(lines) > _HANDOVER_FILES:
+        more = len(lines) - _HANDOVER_FILES
+        lines = [*lines[:_HANDOVER_FILES], f"- ... and {more} more"]
+    return lines
+
+
+def _size(path: str) -> str:
+    try:
+        size = os.path.getsize(path)
+        if size > _COUNTED_MAX_BYTES:
+            return f"{size:,} bytes"
+        with open(path, "rb") as f:
+            data = f.read()
+    except OSError:
+        return "unreadable"
+    if b"\0" in data:
+        return f"{size:,} bytes"
+    lines = data.count(b"\n") + (1 if data and not data.endswith(b"\n") else 0)
+    return f"{lines:,} line{'s' if lines != 1 else ''}"
+
+
+def _finish_summary(messages: Sequence[object]) -> str | None:
+    """The agent's last words, shortened: its last `finish` result, or its
+    last message that called no tool (some models end without `finish`).
+    Certo's own notices have a name, so they never count."""
+    for message in reversed(messages):
+        role, name = getattr(message, "role", None), getattr(message, "name", None)
+        finish = role == "tool" and name == "finish"
+        said = role == "assistant" and name is None and not getattr(message, "tool_calls", None)
+        if not (finish or said):
+            continue
+        text = "".join(getattr(part, "text", "") for part in getattr(message, "content", []) or [])
+        text = text.strip()
+        if not text:
+            continue
+        if len(text) > _HANDOVER_SUMMARY_CHARS:
+            text = text[:_HANDOVER_SUMMARY_CHARS].rstrip() + " [...]"
+        return text
+    return None
 
 
 def whole_task(plan: MilestonePlan) -> str:

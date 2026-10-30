@@ -55,7 +55,9 @@ For each milestone, Certo:
 
 1. takes a [checkpoint](checkpoints.md) named `before milestone N`;
 2. starts a new conversation with the context, the titles of the
-   milestones already done, and this milestone's text;
+   milestones already done, what the last one left (the project's files
+   with their sizes, and the agent's own summary when it finished,
+   marked as not checked), and this milestone's text;
 3. runs it like any task, with the usual fix attempts, then checks the
    project's tests and the acceptance checks of this milestone and of
    every milestone before it (an earlier milestone that stops passing

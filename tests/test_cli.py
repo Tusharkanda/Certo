@@ -2378,6 +2378,27 @@ def test_milestones_run_one_at_a_time_with_their_checks_adding_up(monkeypatch, t
     assert "Verification: verified" in out
 
 
+def test_the_next_milestone_gets_what_the_last_one_left(monkeypatch, tmp_path):
+    calls: list = []
+    finish = _FakeMessage("Built todo.py.")
+    finish.role, finish.name = "tool", "finish"
+
+    def fake(task, **kwargs):
+        calls.append(task)
+        (tmp_path / "project" / "todo.py").write_text("items = []\n")
+        return _fake_result([finish])
+
+    monkeypatch.setattr(cli, "load_config", lambda: _milestone_cfg(tmp_path))
+    monkeypatch.setattr(cli, "run_task", fake)
+
+    assert cli.main(["--milestones", _milestone_file(tmp_path)]) == 0
+
+    assert "What milestone" not in calls[0]
+    assert "## What milestone 1 left" in calls[1]
+    assert "- todo.py (1 line)" in calls[1]
+    assert "Built todo.py." in calls[1]
+
+
 def test_milestones_stop_at_the_first_that_is_not_verified(monkeypatch, tmp_path, capsys):
     calls: list = []
     monkeypatch.setattr(cli, "load_config", lambda: _milestone_cfg(tmp_path))
@@ -2396,7 +2417,9 @@ def test_resume_continues_the_first_milestone_not_verified(monkeypatch, tmp_path
     from certo.milestones import milestone_task
 
     workspace, plan = _saved_milestones(tmp_path, {1: "verified", 2: "retry_exhausted"}, 2)
-    _saved_run(workspace, task=milestone_task(plan, 2))
+    # Milestone 2 was given a handover the new session can't rebuild.
+    _saved_run(workspace, task=milestone_task(plan, 2, "## What milestone 1 left\n\nDone."))
+    (workspace / "todo.py").write_text("items = []\n")
     calls: list = []
     monkeypatch.setattr(cli, "load_config", lambda: _milestone_cfg(tmp_path))
     monkeypatch.setattr(cli, "run_task", _milestone_run_task(calls, ["verified"]))
@@ -2404,7 +2427,7 @@ def test_resume_continues_the_first_milestone_not_verified(monkeypatch, tmp_path
     assert cli.main(["--resume", "use sqlite"]) == 0
 
     assert len(calls) == 1
-    assert calls[0]["task"] == milestone_task(plan, 2)
+    assert "## Now: milestone 2 of 2" in calls[0]["task"]
     assert calls[0]["resume_from"].verdict == "retry_exhausted"
     assert calls[0]["resume_instruction"] == "use sqlite"
 

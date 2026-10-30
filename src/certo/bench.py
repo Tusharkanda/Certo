@@ -52,6 +52,7 @@ from .milestones import (
     MilestoneError,
     MilestonePlan,
     checks_up_to,
+    handover,
     milestone_task,
     parse_milestones,
     whole_task,
@@ -268,12 +269,16 @@ def execute_run(
         try:
             if in_milestones:
                 attempts = []
+                left = None
                 for milestone in plan.milestones:
                     checks["now"] = checks_up_to(plan, milestone.number)
+                    first_message = len(messages)
                     one = strategy.run(
-                        context(milestone_task(plan, milestone.number)), planned.arm.params
+                        context(milestone_task(plan, milestone.number, left)),
+                        planned.arm.params,
                     )
                     attempts.append(one)
+                    left = handover(workspace, messages[first_message:], milestone.number)
                     milestone_records.append(
                         {
                             "number": milestone.number,

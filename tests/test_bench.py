@@ -918,6 +918,14 @@ class FakeMilestoneModel:
         self.calls.append(SimpleNamespace(task=task_text, cfg=cfg, checks=acceptance_checks))
         workspace = Path(cfg.workspace)
         shutil.copy(self.reference, workspace / "calc.py")
+        if on_message is not None:
+            on_message(
+                SimpleNamespace(
+                    role="tool",
+                    name="finish",
+                    content=[SimpleNamespace(text=f"Milestone {len(self.calls)} done.")],
+                )
+            )
         self.make_venv(workspace)
         verdict = self.verdicts[(len(self.calls) - 1) % len(self.verdicts)]
         return SimpleNamespace(
@@ -937,6 +945,9 @@ def test_a_milestones_arm_runs_each_milestone_with_its_checks(tmp_path, project_
     assert len(model.calls) == 2
     assert "milestone 1 of 2: add" in model.calls[0].task
     assert "milestone 2 of 2: sub" in model.calls[1].task
+    assert "What milestone" not in model.calls[0].task
+    assert "- calc.py (6 lines)" in model.calls[1].task
+    assert model.calls[1].task.count("Milestone 1 done.") == 1
     assert [c.path for c in model.calls[0].checks] == ["calc.py"]
     assert [c.path for c in model.calls[1].checks] == ["calc.py", "calc.py"]
     (record,) = _records(out)

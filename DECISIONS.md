@@ -1375,3 +1375,14 @@ considered and live-verification detail: `docs/ROADMAP.txt`.
   refuses `--escalate`. Independent tests are written per milestone from
   its text; earlier milestones' sets aren't re-run (they'd need keeping);
   a resumed milestone gets none, as any resume.
+
+- **A new milestone gets what the last one left** (2026-10-30). Each
+  milestone after the first gets the project's file list with sizes
+  (Certo's) and the agent's last `finish` summary (marked not checked),
+  instead of only the titles. Reason: in the 64K local benchmark, new
+  milestones spent their 40 minutes reading the folder and planning
+  again (docs/benchmark/milestones-64k-0.1.27.md). Deterministic and
+  free (no model call to summarize); a fresh conversation stays, so the
+  context doesn't grow with each milestone. On by default in milestone
+  mode, which is experimental; measured on a cloud and a local model
+  before release (working agreement 2).

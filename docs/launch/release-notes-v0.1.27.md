@@ -20,6 +20,10 @@ Milestones:
 Verification: verified
 ```
 
+Each milestone after the first also gets what the last one left: the
+project's files with their sizes, and the agent's own summary when it
+finished, so it doesn't start by exploring the folder from nothing.
+
 The time, cost and step limits apply to each milestone. Certo keeps only
 the milestones' titles and verdicts in `.certo/`, never their acceptance
 checks, because the agent can read that folder.
