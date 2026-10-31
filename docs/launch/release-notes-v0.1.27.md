@@ -34,6 +34,19 @@ the first rung, told how the last try ended. With `--independent-tests`,
 each milestone gets its own tests, written before it starts. See
 [Run a task in milestones](../guides/run-in-milestones.md).
 
+## New: two official skills
+
+- `python-environment`, when a task mentions pip, a virtual environment
+  or the dependency files: declare each dependency in the project's file
+  and install from it, into the project's own environment, with test
+  tools as development dependencies.
+- `node-project-setup`, when the agent touches a `package.json`: a real
+  `test` script, a `build` script when there is a build step, the
+  lockfile kept, and scaffolders run without prompts.
+
+Both help the project pass Certo's checks on the next machine too. See
+[Manage skills](../guides/manage-skills.md).
+
 ## New: a line when a newer Certo is out
 
 When a newer version is on PyPI, `certo` says so in one line at the end

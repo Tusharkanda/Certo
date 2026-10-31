@@ -279,16 +279,21 @@ Rules for every new skill: short and narrowly triggered (prefer `paths:`
 triggers; every skill that fires costs context a 32K local model can't
 spare); measured with `certo bench` on a local and a cloud model before
 release; authored for Certo in the legacy `triggers:`/`paths:` format.
-Today there are 13 (eight `lifecycle/`, `git/commit-conventions`,
+Today there are 15 (eight `lifecycle/`, `git/commit-conventions`,
 `python-web/fastapi-conventions` and `pin-dependencies`,
-`testing/pytest-conventions` and `testable-interactive-apps`).
+`testing/pytest-conventions` and `testable-interactive-apps`,
+`python/python-environment`, `node/node-project-setup`).
 
-**Make a project verifiable** (first; suggested order: the first three):
-- `python-environment`: use the project's `.venv`; never install into
-  Certo's interpreter or with `pip install --user`; declare dependencies
-  in `pyproject.toml` first.
-- `node-project-setup`: a real `test` script with at least one test, a
-  `build` script, a committed lockfile, no interactive scaffolders.
+**Measure the two new skills before 0.1.27 is released.**
+`python-environment` and `node-project-setup` (2026-10-31) are written
+but not measured. `node-project-setup` fires on the Node benchmark
+tasks (`slugify`, `semver-order`, `room-bookings`): a `skills_off` arm
+against the default on those, Haiku and qwen3.8. `python-environment`
+fires on no bundled task: it needs a task with a third-party package
+first. Done when both are measured, or the unmeasured one is left out
+of the release.
+
+**Make a project verifiable** (first; suggested order: the first two):
 - `cli-entry-points`: `__main__` guard last, a closed stdin doesn't hang,
   `--help` and non-interactive flags work.
 - `test-oracles`: derive expected values independently, never from the

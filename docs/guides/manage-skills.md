@@ -350,13 +350,23 @@ task:
 | `documentation-and-operational-readiness` | api, config, configuration, setup, install, deploy, cli, endpoint | Keep the README, setup steps and configuration docs in step with the change. |
 | `completion-and-release-readiness` | release, deploy, production, ship, launch, pull request, PR | A final review before finishing; never claim success while a check fails. |
 
-And five more: `pytest-conventions`, `commit-conventions`,
-`fastapi-conventions`, `pin-dependencies` (which fires when the agent
-edits `pyproject.toml` or `requirements*.txt`), and
-`testable-interactive-apps`, which fires on interactive, game, menu,
-terminal, stdin or standard input: it keeps a game's or menu's rules
-apart from its input and output, and has the agent test both, even when
-the task doesn't ask for tests.
+And seven more:
+
+- `pytest-conventions`, `commit-conventions` and `fastapi-conventions`;
+- `pin-dependencies`, which fires when the agent edits `pyproject.toml`
+  or `requirements*.txt`;
+- `testable-interactive-apps`, which fires on interactive, game, menu,
+  terminal, stdin or standard input: it keeps a game's or menu's rules
+  apart from its input and output, and has the agent test both, even
+  when the task doesn't ask for tests;
+- `python-environment`, which fires on pip, venv, virtualenv, pypi,
+  pyproject.toml, requirements.txt or third-party: dependencies are
+  declared in the project's file and installed from it, into the
+  project's own environment, with test tools as development
+  dependencies;
+- `node-project-setup`, which fires when the agent touches a
+  `package.json`: a real `test` script, a `build` script when there is a
+  build step, the lockfile kept, and scaffolders run without prompts.
 
 The agent is also told to apply the lifecycle skills when they fit even if
 no trigger word appears, and to skip them for trivial changes.

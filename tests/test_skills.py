@@ -248,3 +248,22 @@ def test_default_config_loads_lifecycle_skills_from_an_unrelated_cwd(tmp_path, m
     for name in _LIFECYCLE_SKILL_NAMES:
         assert name in names
     assert {"commit-conventions", "pytest-conventions"} <= names
+
+
+def test_python_environment_fires_on_packaging_words_not_on_the_bundled_tasks():
+    skill = _real_catalog()["python-environment"]
+
+    assert skill.match_trigger("Use requests from PyPI and pin it") is not None
+    assert skill.match_trigger("Set up a venv and install the deps with pip") is not None
+    tasks = Path(certo.__file__).parent / "benchmark_tasks"
+    for task in tasks.glob("*/task.md"):
+        assert skill.match_trigger(task.read_text()) is None, task.parent.name
+
+
+def test_node_project_setup_fires_on_a_package_json_only():
+    skill = _real_catalog()["node-project-setup"]
+
+    assert skill.match_path_trigger("package.json") is not None
+    assert skill.match_path_trigger("web/package.json") is not None
+    assert skill.match_path_trigger("pyproject.toml") is None
+    assert skill.match_trigger("Write a Node.js module") is None

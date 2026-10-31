@@ -1395,3 +1395,14 @@ considered and live-verification detail: `docs/ROADMAP.txt`.
   for sure which installer to run (pip does the same). At most one
   PyPI request a day, in the background, only on a terminal, not in CI
   or `certo bench`; `CERTO_UPDATE_CHECK=0` turns it off.
+
+- **`python-environment` by keyword, `node-project-setup` by path**
+  (2026-10-31, the Author's call to add both now, before a task shows
+  their gap). The Python rules matter before any file is edited (the
+  first `pip install`), so they fire on packaging words in the task;
+  the words chosen match none of the bundled benchmark tasks
+  ("dependencies" left out: three Node tasks say "no dependencies").
+  The Node rules are about `package.json` itself, so they fire when the
+  agent touches it, which the Node benchmark tasks do. Both are measured
+  with a `skills_off` arm on a local and a cloud model before 0.1.27 is
+  released (working agreement 2).
