@@ -1406,3 +1406,51 @@ considered and live-verification detail: `docs/ROADMAP.txt`.
   agent touches it, which the Node benchmark tasks do. Both are measured
   with a `skills_off` arm on a local and a cloud model before 0.1.27 is
   released (working agreement 2).
+
+- **The MCP server: every command, on a shared core** (the Author,
+  2026-10-31; built in 0.2, after the Phase 3 exit). Supersedes the
+  one-line "MCP server for editors" idea. The design:
+  1. **A shared core first (step 0).** A `certo.api` layer: one function
+     per command, a typed request in, a typed result out, no printing
+     and no prompts. The CLI, `certo-server` and the MCP server become
+     thin layers over it. Reason: `cli.main` mixes flag parsing, logic
+     and printing, and `server.py` has its own run path; an MCP server
+     on top would either parse terminal text or be a third copy.
+  2. **One result format, also as `certo --json`.** A versioned JSON
+     result (verdict, checks, failing tests, files changed, cost,
+     models, milestone states) returned by MCP, REST and a new `--json`
+     flag. Reason: a wrapper, a CI script or the GitHub Action can use
+     the CLI without MCP, and the three never disagree.
+  3. **Two tool sets.** `certo-mcp --tools core` (run a task, run
+     status, verify, check) and `--tools all` (every command, for
+     wrappers). Reason: a client puts every tool's description in its
+     model's context; ~25 tools crowd an editor's model, local ones
+     most. Every tool carries MCP's read-only/destructive hints, so a
+     client confirms `rollback`, `delete_project` and `purge`.
+  4. **Long commands are runs.** `run_task`, `verify` and `bench` return
+     a run id at once; `run_status`, `run_events` (since a cursor) and
+     `run_cancel` follow it, with progress also as MCP notifications
+     (polling always works). Cancel stops the agent cleanly and keeps
+     the checkpoint, so `--resume` works after it. One run per project
+     folder at a time (a lock), different folders in parallel, one
+     `bench` at a time.
+  5. **What is read is a resource, not a tool.** A project's
+     `STATUS.md`, `RUNS.md`, run transcripts and bench `results.md` as
+     MCP resources (`certo://projects/<name>/status`), which clients
+     can show and watch.
+  6. **The client limits the folders.** Certo works only inside the
+     client's MCP roots (or `CERTO_PROJECTS_DIR` when it sends none).
+     Questions Certo asks a person (confirm mode, escalation choice,
+     `init`) are arguments or MCP elicitation; a client that can't
+     answer gets the default that needs no answer. stdio first; HTTP
+     only with authentication, which is the Author's item (server
+     authentication).
+  7. **Later, to check first: the client's model as Certo's model**,
+     through MCP sampling: Certo would run on the editor's model with
+     no key of its own. Needs a model adapter beside LiteLLM, and
+     sampling with tool calls verified in clients; not in the first
+     version.
+  Kept from the earlier plan: every command in
+  `docs/reference/commands.md` has a tool, and a test fails when one
+  doesn't. Verify the MCP Python SDK (and spec features such as
+  elicitation, roots and long-running tasks) before use (golden rule 2).
