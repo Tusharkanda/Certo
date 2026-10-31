@@ -255,8 +255,33 @@ cut that first run's output from 2,949 lines to 1,021.)
   the settings file for now. Later, read them from the system keychain
   or a secret manager (1Password, Bitwarden, a cloud vault) instead.
   Decide which, and how a key is named, when someone asks for it.
-- **MCP server**, so Claude Desktop, Cursor, Zed and others can call Certo
-  as a tool and get the verdict back.
+- **MCP server with every Certo command** (the Author, 2026-10-31: all
+  the commands, so a client can build a wrapper on top; 0.2 work, after
+  the Phase 3 exit). A `certo-mcp` entry point (stdio first), one MCP
+  tool per command with the same options as the CLI flags:
+  - runs: `run_task` (all of `certo`'s flags: `--project`,
+    `--milestones`, `--escalate`, `--resume`, `--independent-tests`, ...),
+    `verify`, `bench`. Long: they return a run id at once, then
+    `run_status` (verdict, failing checks, cost, milestone states),
+    `run_events` (progress since a cursor) and `run_cancel`; progress
+    also as MCP notifications;
+  - setup and inspection: `check` (also `check-llm`), `models_list`,
+    `models_update`, `init` (only the non-interactive form: every answer
+    as an argument), `skills_list/add/remove/enable/disable/update/sync`,
+    `checkpoints_list`, `rollback`;
+  - records: what `certo-admin` does (`show`, `delete_task`,
+    `delete_project`, `purge`).
+  Every result is structured JSON (the same fields the CLI prints), never
+  terminal text to parse. Prompts that ask the user (`CERTO_CONFIRM_MODE`,
+  escalation questions, `init`) become arguments or MCP elicitation.
+  Build on the code server mode already uses for background runs and
+  the task store, not a second copy. Design first in DECISIONS.md:
+  stdio vs HTTP, one run at a time or several, which folders a client
+  may use, and how `tests/test_docs.py` keeps the tool list in step with
+  the CLI. Verify the MCP Python SDK before use (golden rule 2). Done
+  when every command in `docs/reference/commands.md` has a tool, a
+  guide shows a client running a task to `verified`, and a test fails
+  when a CLI command has no tool.
 - **Run report**: an HTML/Markdown summary per run (what changed, which
   checks ran, cost, why the verdict), from the existing artifacts.
 - **Live progress view** in the terminal: current milestone, last check,
