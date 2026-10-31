@@ -95,5 +95,6 @@ run with no `sheet.py` counts as 0):
 ## Related
 
 - [The first run, at 32,768 tokens](milestones-0.1.27.md)
+- [The third run, with a handover between milestones](milestones-handover-0.1.27.md)
 - [Run a task in milestones](../guides/run-in-milestones.md)
 - [The benchmark guide](../guides/benchmark.md)

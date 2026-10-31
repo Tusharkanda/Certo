@@ -171,10 +171,10 @@ Then you can:
 ## On a local model
 
 On `qwen3.8:27b` with Ollama, this task has not ended `verified` yet.
-With a 65,536-token window and 40 minutes per milestone, two of three
-runs had milestones 1 and 2 `verified`, then ran out of time planning
-milestone 3. Details in
-[the local benchmark](../benchmark/milestones-64k-0.1.27.md). If you
+With a 65,536-token window, 40 minutes per milestone and the handover
+between milestones, all three runs had milestones 1 and 2 `verified`;
+none got through milestone 3. Details in
+[the local benchmark](../benchmark/milestones-handover-0.1.27.md). If you
 build on a local model:
 
 - give it a large context window (`CERTO_LLM_CONTEXT_TOKENS`); at

@@ -1,0 +1,13 @@
+# Milestone mode on a local model, third run (Certo 0.1.27): the same
+# milestone arm as bench-0.1.27-milestones-local-64k.yaml (qwen3.8,
+# 65,536-token window, 40 minutes per milestone), now that each new
+# milestone gets what the last one left. Run it from the repository root
+# with:
+#   certo bench --config docs/benchmark/bench-0.1.27-milestones-handover-local.yaml
+# Every model below must be enabled in your models.yaml; see
+# docs/guides/write-a-benchmark-file.md.
+tasks_dir: app-tasks
+tasks: [spreadsheet]
+repeats: 3
+arms:
+  - {name: qwen-milestones-handover, strategy: single, model: qwen3.8-27b-local, context_tokens: 65536, max_task_seconds: 2400, milestones: true}

@@ -176,7 +176,8 @@ milestones.
   example task, and what was tested
 - [Milestones on a local model](../benchmark/milestones-0.1.27.md):
   `qwen3.8:27b` on a spreadsheet task, in milestones and in one go
-  ([again with a larger window](../benchmark/milestones-64k-0.1.27.md))
+  ([again with a larger window](../benchmark/milestones-64k-0.1.27.md),
+  [and with a handover](../benchmark/milestones-handover-0.1.27.md))
 - [Acceptance checks](acceptance-checks.md)
 - [Escalate between models](escalate-between-models.md)
 - [Independent tests](independent-tests.md)
