@@ -223,8 +223,9 @@ def handover(workspace: str, messages: Sequence[object], finished: int) -> str |
 
 
 def _file_lines(workspace: str) -> list[str]:
+    # Shown with "/" on every system, as the agent's tools write paths.
     paths = sorted(
-        path
+        path.replace(os.sep, "/")
         for path in workspace_listing(workspace)
         if not any(part.startswith(".") for part in path.split(os.sep))
     )
