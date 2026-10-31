@@ -339,6 +339,8 @@ def test_extra_details_no_division_by_zero_latency():
 
 def test_check_llm_populates_ollama_fields(monkeypatch):
     _patch(monkeypatch, _response("OK", completion=10))
+    ticks = iter(range(100, 10_000, 2))
+    monkeypatch.setattr(llm_check.time, "monotonic", lambda: float(next(ticks)))
     monkeypatch.setattr(context_window, "ollama_version", lambda *a, **k: "0.5.7")
     monkeypatch.setattr(context_window, "ollama_context_tokens", lambda *a, **k: 65536)
     result = llm_check.check_llm(_cfg(model="ollama/llama3"))
@@ -352,6 +354,8 @@ def test_check_llm_populates_ollama_fields(monkeypatch):
 def test_check_llm_cloud_model_has_no_ollama_fields(monkeypatch):
     """Cloud model: probes are never touched; tok/s IS still computed."""
     _patch(monkeypatch, _response("OK"))
+    ticks = iter(range(100, 10_000, 2))
+    monkeypatch.setattr(llm_check.time, "monotonic", lambda: float(next(ticks)))
 
     def boom(*a, **k):
         pytest.fail("must not probe cloud models")
@@ -372,6 +376,8 @@ def test_check_llm_cloud_model_has_no_ollama_fields(monkeypatch):
 
 def test_check_tool_calling_success_and_ollama_fields(monkeypatch):
     _patch_tool(monkeypatch, _tool_response("finish", completion=10))
+    ticks = iter(range(100, 10_000, 2))
+    monkeypatch.setattr(llm_check.time, "monotonic", lambda: float(next(ticks)))
     monkeypatch.setattr(context_window, "ollama_version", lambda *a, **k: "0.5.7")
     monkeypatch.setattr(context_window, "ollama_context_tokens", lambda *a, **k: 65536)
     result = llm_check.check_tool_calling(_cfg(model="ollama/llama3"))

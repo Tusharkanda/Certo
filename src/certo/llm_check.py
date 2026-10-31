@@ -340,11 +340,8 @@ def _ollama_details(cfg: Config, *, timeout: int | None = None) -> dict:
     except Exception:  # noqa: BLE001 - best effort
         pass
     try:
-        if cfg.llm_context_tokens:
-            tokens, source = cfg.llm_context_tokens, "CERTO_LLM_CONTEXT_TOKENS"
-        else:
-            tokens = context_window.ollama_context_tokens(cfg.model, cfg.base_url, t)
-            source = "server"
+        tokens = context_window.known_context_tokens(cfg.model, cfg.llm_context_tokens, cfg.base_url, t)
+        source = "CERTO_LLM_CONTEXT_TOKENS" if cfg.llm_context_tokens else "server"
         if tokens:
             details["context_tokens"] = tokens
             details["context_source"] = source
