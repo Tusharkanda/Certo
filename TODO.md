@@ -51,7 +51,9 @@ first item is the suggested next one.
 - **Re-verify the "confident but wrong" fixes live**: #1, #3, #5, #10
   and #6 for Java in `ARCHITECTURE.md` say "not re-verified live" (#2, #4
   and #6 for Go/Rust were, 2026-10-19). #1 and #5 are hard to trigger on
-  purpose; #10 is reachable from a benchmark task.
+  purpose; #10 is reachable from a benchmark task. Also never seen live:
+  a climb inside a milestone (`--milestones --escalate`), and
+  `--resume` after Ctrl-C mid-run.
 - **Move the historical planning docs into `docs/history/`**
   (`docs/KICKOFF.md`, `docs/SPEC.md`, `docs/ROADMAP.txt`), so readers
   don't take them for current docs; fix every reference. Starter issue:
@@ -88,8 +90,17 @@ first item is the suggested next one.
   docs article is written (`docs/guides/build-an-app-in-several-tasks.md`,
   Haiku 5/5 verified, 111/111 hidden). Then (5) Certo planning the
   milestones itself.
+  A fourth run, 60 minutes per milestone and the new tool-call shapes,
+  started 2026-10-31 09:12 (`bench-results/milestones-60min-0.1.27`,
+  config `docs/benchmark/bench-0.1.27-milestones-60min-local.yaml`).
   Done when an app-sized task ends `verified` in milestone mode on a
-  local model, with a published record.
+  local model, with a published record. Closing it closes the project
+  review's plan; the next release is then 0.2 (the Author, 2026-10-31).
+- **A harder app task** (`app-tasks`, next `apps-` version). Haiku and
+  Sonnet both pass the spreadsheet 111/111 in one go, so it doesn't
+  separate cloud models: a task that does would show the ladder climbing
+  for a reason and the fooled rate on app-scale work. Done when one
+  cloud model fails it in one go and another passes.
 - **Independent tests: the rest** (0.1.24: `--independent-tests`, three
   sets by default with a 2-of-3 vote, report only; replay in
   `docs/benchmark/independent-tests-replay-0.1.24.md`). Live Haiku arm
