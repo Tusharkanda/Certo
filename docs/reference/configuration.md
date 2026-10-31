@@ -120,6 +120,12 @@ removed in 0.1.23; Certo warns while one is still set. See
 |---|---|---|
 | `CERTO_ARTIFACTS_DIR` | empty (off) | A folder where each run writes `metadata.json`, `transcript.json` and `metrics.json`. See [Run records and costs](../guides/run-records-and-costs.md). |
 
+## Update check
+
+| Variable | Default | Meaning |
+|---|---|---|
+| `CERTO_UPDATE_CHECK` | on | When a newer Certo is on PyPI, `certo` prints one line at the end of a command, such as `Certo 0.1.28 is out (you have 0.1.27). To update: uv tool upgrade certo`, with the command that matches how Certo was installed (`uv tool`, `pipx` or `pip`). It asks pypi.org at most once a day, in the background, and keeps the answer in `~/.cache/certo/update-check.json` (or under `XDG_CACHE_HOME`). Only in a terminal: never when the output goes to a file or a pipe, in CI (when `CI` is set), or in `certo bench`. `0` turns it off. |
+
 ## Server task records
 
 Read only by `certo-server` and `certo-admin`. See
@@ -166,6 +172,8 @@ store except `memory` is [experimental](../README.md#experimental-features).
 | Variable | Meaning |
 |---|---|
 | `XDG_CONFIG_HOME` | Changes where the user settings file is (see the table at the top). |
+| `XDG_CACHE_HOME` | Changes where the [update check](#update-check) keeps its answer. |
+| `CI` | When set, there is no [update check](#update-check). |
 | `OPENAI_API_KEY`, `ANTHROPIC_API_KEY`, `GEMINI_API_KEY`, `DEEPSEEK_API_KEY`, `MOONSHOT_API_KEY` | Read only by `certo init`, which offers to reuse them (and then writes `CERTO_LLM_API_KEY=${...}`). |
 | `OPENHANDS_SUPPRESS_BANNER` | Certo sets it to `1` unless you set it, to hide the OpenHands start-up banner. |
 | `LITELLM_MODE` | Certo sets it to `PRODUCTION` unless you set it. Otherwise LiteLLM loads a `.env` file of its own, found from its install folder, which could override your settings. |

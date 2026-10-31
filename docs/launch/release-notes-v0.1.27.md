@@ -34,6 +34,20 @@ the first rung, told how the last try ended. With `--independent-tests`,
 each milestone gets its own tests, written before it starts. See
 [Run a task in milestones](../guides/run-in-milestones.md).
 
+## New: a line when a newer Certo is out
+
+When a newer version is on PyPI, `certo` says so in one line at the end
+of a command, with the command that updates it:
+
+```text
+Certo 0.1.28 is out (you have 0.1.27). To update: uv tool upgrade certo
+```
+
+It checks at most once a day, in the background, so it never slows a
+run, and only in a terminal: not in CI, a pipe or `certo bench`.
+`CERTO_UPDATE_CHECK=0` turns it off. See
+[Configuration](../reference/configuration.md#update-check).
+
 ## Benchmark: tasks in milestones
 
 A benchmark arm with `milestones: true` runs a task written in

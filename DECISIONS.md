@@ -1386,3 +1386,12 @@ considered and live-verification detail: `docs/ROADMAP.txt`.
   context doesn't grow with each milestone. On by default in milestone
   mode, which is experimental; measured on a cloud and a local model
   before release (working agreement 2).
+
+- **A newer version is announced in one line, never asked about**
+  (2026-10-31). `certo` prints "Certo X is out (you have Y). To update:
+  <command>" at the end of a command, with the command for how it was
+  installed (`uv tool`, `pipx`, `pip`); it doesn't offer to update.
+  Reason: a question would block unattended runs, and Certo can't know
+  for sure which installer to run (pip does the same). At most one
+  PyPI request a day, in the background, only on a terminal, not in CI
+  or `certo bench`; `CERTO_UPDATE_CHECK=0` turns it off.

@@ -15,7 +15,7 @@ from datetime import UTC, datetime
 from typing import TYPE_CHECKING, Any
 from urllib.parse import urlparse
 
-from . import __version__
+from . import __version__, update_check
 from .acceptance import AcceptanceCheck, AcceptanceCheckError, parse_acceptance_checks
 from .banner import format_banner
 from .catalog_check import load_checked_catalog
@@ -25,6 +25,7 @@ from .config import (
     defer_llm_check,
     ensure_llm_configured,
     load_config,
+    load_settings_files,
     override_llm,
     resolve_project_dir,
 )
@@ -513,6 +514,28 @@ def verify_main(argv: list[str]) -> int:
 
 def main(argv: list[str] | None = None) -> int:
     argv = sys.argv[1:] if argv is None else list(argv)
+    check = None if argv[:1] == ["bench"] else _start_update_check()
+    try:
+        return _main(argv)
+    finally:
+        line = check.notice() if check is not None else None
+        if line:
+            print(f"\n{line}", file=sys.stderr)
+
+
+def _start_update_check() -> update_check.UpdateCheck | None:
+    """A check for a newer Certo on PyPI, or None (update_check.py). The
+    settings files are read into a copy of the environment, so
+    CERTO_UPDATE_CHECK=0 in a `.env` works before the command loads it."""
+    try:
+        environ = dict(os.environ)
+        load_settings_files(environ=environ)
+        return update_check.start(environ)
+    except Exception:  # noqa: BLE001 - never let the check stop a command
+        return None
+
+
+def _main(argv: list[str]) -> int:
     # `verify`, `init`, `check`, `models`, `skills`, `bench`, `checkpoints`
     # and `rollback` are
     # subcommands only as the exact, whole first argument. A task is always

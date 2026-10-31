@@ -497,6 +497,15 @@ given design was chosen.
   adds `changes_note()` to the contract's limitations, plus
   `TaskOutcome.check_file_changes`. Pre-existing files only; report only.
 - **`deadline.py`** — `stop_at_deadline()`, see `runner.py` above.
+- **`update_check.py`** — stdlib only. `cli.main` wraps `_main`: it
+  starts `update_check.start()` before the command (not for `bench`;
+  `certo-server` and `certo-admin` don't call it) and prints
+  `UpdateCheck.notice()` to stderr after it, waiting at most 0.5 s. The
+  check reads the settings files into a copy of the environment, so
+  `CERTO_UPDATE_CHECK=0` in a `.env` counts before `load_config` runs.
+  PyPI's JSON API in a daemon thread (2 s timeout), cached a day in
+  `update-check.json`; any failure means no line. Not a `Config` field:
+  it isn't run policy, and every subcommand would have to pass it.
 - **`text_tool_calls.py`** — stdlib only. `looks_like_tool_call(text,
   tools)` recognises a final message that is, as a whole, a tool call
   written as JSON (shapes from saved transcripts: bare arguments, the
