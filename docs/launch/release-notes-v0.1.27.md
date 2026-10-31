@@ -53,5 +53,11 @@ per milestone. See
   no time left, and ended `budget_exhausted`. It now says in one notice
   that the checks pass but nothing changed, and the verdict stays
   `budget_exhausted` (or `cost_exhausted`).
+- Two more shapes of a tool call written as text are now recognised,
+  so Certo sends its reminder instead of ending the run:
+  `{"command": "file_editor", "arguments": {...}}`, and a tool-use or
+  tool-result block such as `{"type": "tool_result", "tool_use_id":
+  "call_1", ...}`. `qwen3.8:27b` ended two of three milestone runs this
+  way in the local benchmark.
 - Security updates in the lock file: authlib 1.9.1, dnspython 2.9.1
   and litellm 1.100.4.

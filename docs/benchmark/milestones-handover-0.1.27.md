@@ -86,7 +86,8 @@ last one ends at the run's last message):
 ## What to try next
 
 - Recognise both shapes above as tool calls written as text, so the
-  reminder is sent and the run goes on.
+  reminder is sent and the run goes on. Done after this run: Certo now
+  recognises both.
 - Give each milestone more time, or ask the model to plan less before
   its first edit: on milestone 3, qwen still spends more than 40
   minutes before editing.

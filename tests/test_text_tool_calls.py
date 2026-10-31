@@ -38,6 +38,11 @@ TOOLS = {
         '"command": "create", "path": "t.py", "file_text": "import pytest"}}',
         '{"task_tracker": {"task_list": [{"title": "Write tests", "status": "todo"}]}}',
         '{"tool_use": {"name": "file_editor", "arguments": {"command": "view"}}}',
+        '{"command": "file_editor", "arguments": {"command": "view", "path": "/tmp/p", '
+        '"security_risk": "LOW", "summary": "View project directory structure"}}',
+        '{"type": "tool_result", "tool_use_id": "call_1", "content": "Let me continue '
+        'viewing the rest of the test file and then plan the implementation."}',
+        '{"type": "tool_use", "tool_use_id": "call_2", "content": "Let me continue."}',
         '```json\n{"command": "view", "path": "/tmp/p"}\n```',
         '<tool_call>\n{"name": "terminal", "arguments": {"command": "ls"}}\n</tool_call>',
     ],
@@ -66,6 +71,8 @@ def test_a_call_cut_off_mid_file_is_recognised():
         '{"name": "Ada", "arguments": {"x": 1}}',
         '{"command": "read_file", "path": "a.js", "start_line": 1, "end_line": 9}',
         '{"summary": "only the framework field"}',
+        '{"type": "text", "text": "Done. All tests pass."}',
+        '{"command": "ls -la", "arguments": {"x": 1}}',
         "{}",
         "[1, 2, 3]",
         "{not json and no known key",

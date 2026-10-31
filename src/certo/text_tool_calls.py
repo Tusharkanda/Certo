@@ -15,9 +15,13 @@ Shapes seen in saved transcripts, each as the whole message:
 - the arguments alone: `{"command": "view", "path": "/..."}`;
 - the tool named under a key: `{"tool_name": "terminal", "arguments":
   {...}}`, also `name`, `tool` or `tool_use`, or the arguments next to
-  the name: `{"name": "file_editor", "command": "view", ...}`;
+  the name: `{"name": "file_editor", "command": "view", ...}`; also the
+  name under `command` next to `arguments`: `{"command": "file_editor",
+  "arguments": {...}}`;
 - OpenAI's format: `{"type": "function", "function": {"name": ...}}`;
 - the tool's name as the key: `{"task_tracker": {"task_list": [...]}}`;
+- a tool-use or tool-result block of the model API, with no tool name:
+  `{"type": "tool_result", "tool_use_id": "call_1", "content": "..."}`;
 - any of these cut off mid-file, so the JSON doesn't parse.
 
 JSON that names no tool and isn't one tool's arguments, such as
@@ -41,6 +45,9 @@ REMINDER = (
 _ALWAYS_ALLOWED = frozenset({"summary", "security_risk"})
 # Keys a model puts the tool's name under.
 _NAME_KEYS = ("name", "tool_name", "tool", "tool_use")
+# `type` values of the model API's tool blocks, which a model sometimes
+# writes as text.
+_TOOL_BLOCK_TYPES = frozenset({"tool_use", "tool_result"})
 # When the runner can't read the agent's tools: the built-in coding tools
 # and their parameters (openhands-tools 1.47.0).
 DEFAULT_TOOLS: Mapping[str, frozenset[str]] = {
@@ -74,7 +81,8 @@ def looks_like_tool_call(text: str, tools: Mapping[str, Iterable[str]] | None = 
     if not isinstance(value, dict) or not value:
         return False
     return (
-        _names_tool(value, known)
+        value.get("type") in _TOOL_BLOCK_TYPES
+        or _names_tool(value, known)
         or any(k in known for k in value)
         or _bare_arguments(set(value), known)
     )
@@ -87,6 +95,8 @@ def _names_tool(value: dict, known: Mapping[str, frozenset[str]]) -> bool:
         name = value.get(key)
         if isinstance(name, str) and name in known:
             return True
+    if isinstance(value.get("arguments"), dict) and value.get("command") in known:
+        return True
     return any(
         isinstance(value.get(key), dict) and _names_tool(value[key], known)
         for key in ("function", "tool_use")

@@ -81,7 +81,7 @@ first item is the suggested next one.
   run, `docs/benchmark/milestones-handover-0.1.27.md`: milestones 1-2
   `verified` in 3/3, 127/333 hidden against 85; milestone 3 failed by
   time once and twice on tool calls written as text in shapes the
-  detector missed), and
+  detector missed, now recognised), and
   a longer per-call limit for this model (7 calls hit 1200 s); with the
   next `apps-` version, say in the task that a chain of 200 cells must
   work (hidden `test_m2_a_long_chain` is stricter than the text). The
