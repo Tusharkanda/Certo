@@ -510,7 +510,9 @@ given design was chosen.
   tools)` recognises a final message that is, as a whole, a tool call
   written as JSON (shapes from saved transcripts: bare arguments, the
   tool named under `name`/`tool_name`/`tool`/`tool_use`, OpenAI's
-  `function` object, the tool's name as the key, cut-off JSON).
+  `function` object, the tool's name as the key, the name under
+  `command` next to `arguments`, a `tool_use`/`tool_result` block,
+  cut-off JSON).
   `runner._remind_text_tool_call`, called in `_run_conversation_once`
   after each `conversation.run()`, sends `REMINDER` and runs again when
   the run FINISHED on such a `MessageEvent`: at most
